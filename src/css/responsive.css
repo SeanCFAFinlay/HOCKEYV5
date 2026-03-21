@@ -1,0 +1,325 @@
+/* Mobile-First Responsive Design */
+
+/* Touch-friendly defaults */
+button, .tower-btn, .menu-card, .map-card {
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  min-height: 44px;
+}
+
+/* Small phones (320px - 375px) */
+@media (max-width: 375px) {
+  .logo-icons {
+    font-size: 2.5rem;
+  }
+
+  .logo h1 {
+    font-size: 1.4rem;
+  }
+
+  .menu-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .menu-card-icon {
+    font-size: 2.2rem;
+  }
+
+  .menu-card h3 {
+    font-size: 1.1rem;
+  }
+
+  .map-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .tower-btn {
+    width: 58px;
+    padding: 6px 3px;
+  }
+
+  .tower-btn-icon {
+    font-size: 1.2rem;
+  }
+
+  .tower-btn-name {
+    font-size: 0.5rem;
+  }
+
+  .tower-btn-cost {
+    font-size: 0.7rem;
+  }
+
+  .hud-stat {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+
+  .hud-wave {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .action-btn {
+    padding: 10px 4px;
+    font-size: 0.7rem;
+  }
+
+  .speed-btn {
+    width: 32px;
+    font-size: 0.75rem;
+  }
+
+  .cam-btns {
+    right: 8px;
+    gap: 6px;
+  }
+
+  .cam-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+  }
+}
+
+/* Standard phones (376px - 480px) */
+@media (min-width: 376px) and (max-width: 480px) {
+  .tower-btn {
+    width: 64px;
+  }
+
+  .tower-btn-icon {
+    font-size: 1.4rem;
+  }
+}
+
+/* Large phones / Small tablets (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .tower-btn {
+    width: 72px;
+    padding: 10px 6px;
+  }
+
+  .tower-btn-icon {
+    font-size: 1.6rem;
+  }
+
+  .tower-btn-name {
+    font-size: 0.65rem;
+  }
+
+  .action-btn {
+    padding: 14px 8px;
+    font-size: 0.85rem;
+  }
+
+  .hud-stat {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+
+  .cam-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
+  }
+}
+
+/* Tablets (769px+) */
+@media (min-width: 769px) {
+  .menu-cards {
+    flex-direction: row;
+    max-width: 700px;
+  }
+
+  .menu-card {
+    flex: 1;
+    flex-direction: column;
+    text-align: center;
+    padding: 28px;
+  }
+
+  .menu-card-arrow {
+    display: none;
+  }
+
+  .map-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .tower-btn {
+    width: 85px;
+    padding: 12px 8px;
+  }
+
+  .tower-btn-icon {
+    font-size: 2rem;
+  }
+
+  .tower-btn-name {
+    font-size: 0.75rem;
+  }
+
+  .tower-btn-cost {
+    font-size: 0.9rem;
+  }
+
+  .action-btn {
+    padding: 16px 12px;
+    font-size: 0.95rem;
+  }
+
+  .speed-btn {
+    width: 50px;
+    font-size: 0.95rem;
+  }
+
+  .upgrade-sheet {
+    max-width: 500px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+  }
+
+  .upgrade-sheet.show {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Landscape on phones */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hud {
+    padding: 6px 12px;
+  }
+
+  .hud-stat, .hud-wave {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  .bottom-ui {
+    padding-bottom: 4px;
+  }
+
+  .tower-bar {
+    padding: 6px 10px;
+  }
+
+  .tower-btn {
+    width: 55px;
+    padding: 5px 3px;
+  }
+
+  .tower-btn-icon {
+    font-size: 1.1rem;
+  }
+
+  .tower-btn-name {
+    display: none;
+  }
+
+  .action-bar {
+    padding: 0 10px 6px;
+    gap: 4px;
+  }
+
+  .action-btn {
+    padding: 8px 4px;
+    font-size: 0.7rem;
+  }
+
+  .speed-btn {
+    width: 30px;
+  }
+
+  .cam-btns {
+    top: 45%;
+    gap: 4px;
+  }
+
+  .cam-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+}
+
+/* Safe areas for notched devices */
+@supports (padding: env(safe-area-inset-top)) {
+  .hud {
+    padding-top: calc(10px + env(safe-area-inset-top));
+    padding-left: calc(12px + env(safe-area-inset-left));
+    padding-right: calc(12px + env(safe-area-inset-right));
+  }
+
+  .bottom-ui {
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .cam-btns {
+    right: calc(12px + env(safe-area-inset-right));
+  }
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 10px var(--c); }
+  50% { box-shadow: 0 0 25px var(--c), 0 0 40px var(--c); }
+}
+
+.tower-btn.selected {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.upgrade-sheet.show {
+  animation: slide-up 0.25s ease-out forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-overlay.show {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+/* Touch feedback */
+.tower-btn:active:not(.disabled),
+.action-btn:active:not(:disabled),
+.cam-btn:active,
+.menu-card:active,
+.map-card:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+/* Hover effects for desktop */
+@media (hover: hover) {
+  .tower-btn:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .menu-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .cam-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .action-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+}

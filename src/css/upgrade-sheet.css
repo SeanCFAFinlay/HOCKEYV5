@@ -1,0 +1,109 @@
+.upgrade-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 15, 25, 0.98);
+  border-top: 2px solid var(--gold);
+  padding: 16px;
+  padding-bottom: calc(16px + var(--safe-bottom));
+  z-index: 200;
+  transform: translateY(100%);
+  transition: transform 0.25s ease-out;
+  backdrop-filter: blur(20px);
+  border-radius: 20px 20px 0 0;
+}
+
+.upgrade-sheet.show {
+  transform: translateY(0);
+}
+
+.upgrade-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+.upgrade-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.upgrade-icon {
+  font-size: 1.8rem;
+}
+
+.upgrade-info h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.upgrade-info p {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.upgrade-stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.upgrade-stat {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 8px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.upgrade-stat-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 2px;
+}
+
+.upgrade-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.upgrade-stat-next {
+  font-size: 0.75rem;
+  color: var(--grass);
+}
+
+.upgrade-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.upgrade-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.upgrade-btn.sell {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--red);
+}
+
+.upgrade-btn.do-upgrade {
+  background: var(--gold);
+  color: #000;
+}
+
+.upgrade-btn:disabled {
+  background: #333;
+  color: #555;
+  cursor: not-allowed;
+}

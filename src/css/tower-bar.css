@@ -1,0 +1,54 @@
+.tower-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tower-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.tower-btn {
+  flex-shrink: 0;
+  width: 68px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 8px 4px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+}
+
+.tower-btn.selected {
+  border-color: var(--c);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--c) 50%, transparent);
+  transform: translateY(-4px);
+}
+
+.tower-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.tower-btn-icon {
+  font-size: 1.5rem;
+}
+
+.tower-btn-name {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 3px 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tower-btn-cost {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gold);
+}

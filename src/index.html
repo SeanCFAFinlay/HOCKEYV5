@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Hockey vs Soccer TD</title>
+
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/hud.css">
+  <link rel="stylesheet" href="css/tower-bar.css">
+  <link rel="stylesheet" href="css/action-bar.css">
+  <link rel="stylesheet" href="css/upgrade-sheet.css">
+  <link rel="stylesheet" href="css/modals.css">
+  <link rel="stylesheet" href="css/camera-btns.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+<!-- Menu Screen -->
+<div id="menuScreen" class="screen active">
+  <div class="logo">
+    <div class="logo-icons">🏒 ⚡ ⚽</div>
+    <h1><span class="ice">HOCKEY</span> vs <span class="grass">SOCCER</span></h1>
+    <p>TOWER DEFENSE 3D</p>
+  </div>
+  <div class="menu-cards">
+    <div class="menu-card hockey" onclick="selectTheme('hockey')">
+      <div class="menu-card-icon">🏒</div>
+      <div><h3>Hockey Arena</h3><p>Defend on ice • Stop the pucks!</p></div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+    <div class="menu-card soccer" onclick="selectTheme('soccer')">
+      <div class="menu-card-icon">⚽</div>
+      <div><h3>Soccer Stadium</h3><p>Defend on grass • Block the balls!</p></div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- Map Selection Screen -->
+<div id="mapScreen" class="screen">
+  <div class="map-header">
+    <button class="back-btn" onclick="showScreen('menuScreen')">‹</button>
+    <h2 class="map-title" id="mapTitle">Select Arena</h2>
+  </div>
+  <div class="map-grid" id="mapGrid"></div>
+</div>
+
+<!-- Game Screen -->
+<div id="gameScreen" class="screen">
+  <div class="hud">
+    <div class="hud-left">
+      <button class="hud-menu" onclick="exitGame()">✕</button>
+      <div class="hud-wave">🌊 <span id="waveNum">0</span>/<span id="waveMax">20</span></div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-stat money">💰<span id="moneyVal">500</span></div>
+      <div class="hud-stat lives">❤️<span id="livesVal">20</span></div>
+      <div class="hud-stat score">⭐<span id="scoreVal">0</span></div>
+    </div>
+  </div>
+
+  <div class="canvas-wrap"></div>
+
+  <div class="cam-btns">
+    <button class="cam-btn" onclick="zoomIn()">+</button>
+    <button class="cam-btn" onclick="zoomOut()">−</button>
+    <button class="cam-btn" onclick="resetCam()">⟲</button>
+  </div>
+
+  <div class="bottom-ui">
+    <div class="tower-bar" id="towerBar"></div>
+    <div class="action-bar">
+      <div class="speed-btns">
+        <button class="action-btn speed-btn active" data-speed="1">1×</button>
+        <button class="action-btn speed-btn" data-speed="2">2×</button>
+        <button class="action-btn speed-btn" data-speed="3">3×</button>
+      </div>
+      <button class="action-btn sell-btn" id="sellBtn" onclick="toggleSell()">SELL</button>
+      <button class="action-btn auto-btn" id="autoBtn" onclick="toggleAutoWave()">AUTO: OFF</button>
+      <button class="action-btn start-btn" id="startBtn" onclick="startWave()">▶ START</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upgrade Sheet -->
+<div class="upgrade-sheet" id="upgradeSheet">
+  <div class="upgrade-handle"></div>
+  <div class="upgrade-header">
+    <div class="upgrade-icon" id="upIcon">🏒</div>
+    <div class="upgrade-info"><h3 id="upName">Tower</h3><p id="upLevel">Level 1</p></div>
+  </div>
+  <div class="upgrade-stats">
+    <div class="upgrade-stat"><div class="upgrade-stat-label">DMG</div><div class="upgrade-stat-value" id="upDmg">50</div><div class="upgrade-stat-next" id="upDmgNext">→75</div></div>
+    <div class="upgrade-stat"><div class="upgrade-stat-label">RNG</div><div class="upgrade-stat-value" id="upRng">3.0</div><div class="upgrade-stat-next" id="upRngNext">→3.5</div></div>
+    <div class="upgrade-stat"><div class="upgrade-stat-label">RATE</div><div class="upgrade-stat-value" id="upRate">1.0</div><div class="upgrade-stat-next" id="upRateNext">→1.2</div></div>
+  </div>
+  <div class="upgrade-btns">
+    <button class="upgrade-btn sell" onclick="sellTower()">Sell $<span id="upSell">60</span></button>
+    <button class="upgrade-btn do-upgrade" id="upBtn" onclick="doUpgrade()">Upgrade $<span id="upCost">80</span></button>
+  </div>
+</div>
+
+<!-- Win Modal -->
+<div class="modal-overlay" id="winModal">
+  <div class="modal win">
+    <div class="modal-icon">🏆</div>
+    <h2>VICTORY!</h2>
+    <div class="modal-stats">
+      <div><div class="modal-stat-val" id="winScore">0</div><div class="modal-stat-label">Score</div></div>
+      <div><div class="modal-stat-val" id="winWaves">0</div><div class="modal-stat-label">Waves</div></div>
+    </div>
+    <button class="modal-btn" onclick="closeModal('win')">Continue</button>
+  </div>
+</div>
+
+<!-- Lose Modal -->
+<div class="modal-overlay" id="loseModal">
+  <div class="modal lose">
+    <div class="modal-icon">💀</div>
+    <h2>DEFEATED</h2>
+    <div class="modal-stats">
+      <div><div class="modal-stat-val" id="loseWave">0</div><div class="modal-stat-label">Wave</div></div>
+      <div><div class="modal-stat-val" id="loseScore">0</div><div class="modal-stat-label">Score</div></div>
+    </div>
+    <button class="modal-btn" onclick="closeModal('lose')">Try Again</button>
+  </div>
+</div>
+
+<!-- Main JS Module -->
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>

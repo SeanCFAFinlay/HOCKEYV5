@@ -1,0 +1,88 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal {
+  background: rgba(20, 20, 30, 0.98);
+  padding: 28px;
+  border-radius: 24px;
+  text-align: center;
+  width: 100%;
+  max-width: 300px;
+  border: 2px solid;
+}
+
+.modal-icon {
+  font-size: 3.5rem;
+  margin-bottom: 12px;
+}
+
+.modal h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.modal.win h2 {
+  color: var(--grass);
+}
+
+.modal.win {
+  border-color: var(--grass);
+}
+
+.modal.lose h2 {
+  color: var(--red);
+}
+
+.modal.lose {
+  border-color: var(--red);
+}
+
+.modal-stats {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin-bottom: 20px;
+}
+
+.modal-stat-val {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.modal-stat-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.modal-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+
+.modal.win .modal-btn {
+  background: var(--grass);
+}
+
+.modal.lose .modal-btn {
+  background: var(--red);
+}

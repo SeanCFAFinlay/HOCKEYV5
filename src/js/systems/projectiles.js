@@ -1,0 +1,359 @@
+// Projectile creation and movement with enhanced visuals
+
+import { getState, removeProjectile } from '../engine/state.js';
+import { handleHit } from './damage.js';
+
+// Trail particle pool for reuse
+const trailPool = [];
+const MAX_TRAIL_PARTICLES = 100;
+
+function getTrailParticle(color) {
+  let particle = trailPool.pop();
+  if (!particle) {
+    const geo = new THREE.SphereGeometry(0.04, 6, 6);
+    const mat = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.6
+    });
+    particle = new THREE.Mesh(geo, mat);
+  } else {
+    particle.material.color.set(color);
+    particle.material.opacity = 0.6;
+  }
+  particle.scale.setScalar(1);
+  return particle;
+}
+
+function returnTrailParticle(particle, scene) {
+  scene.remove(particle);
+  if (trailPool.length < MAX_TRAIL_PARTICLES) {
+    trailPool.push(particle);
+  }
+}
+
+export function createProjectile(tw, target, sx, sz) {
+  const state = getState();
+  const { theme, themeData, scene } = state;
+
+  const td = themeData.towers.find(t => t.id === tw.type);
+  const idx = themeData.towers.indexOf(td);
+  const isHockey = theme === 'hockey';
+
+  let geo, mat;
+  let speed = 8.5;
+  let trailColor = null;
+  const c = new THREE.Color(td.clr);
+
+  // Theme-specific projectile shapes with enhanced visuals
+  if (isHockey) {
+    switch (idx) {
+      case 0: // Slap Shot - glowing puck
+        geo = new THREE.CylinderGeometry(0.06, 0.06, 0.02, 16);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0x111111,
+          metalness: 0.9,
+          roughness: 0.2,
+          emissive: 0x00d4ff,
+          emissiveIntensity: 0.5
+        });
+        trailColor = 0x00d4ff;
+        break;
+      case 1: // Sniper - tracer round
+        geo = new THREE.CylinderGeometry(0.02, 0.04, 0.15, 8);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0xffaa00,
+          metalness: 0.8,
+          roughness: 0.2,
+          emissive: 0xff6600,
+          emissiveIntensity: 0.8
+        });
+        trailColor = 0xff6600;
+        speed = 12;
+        break;
+      case 2: // Enforcer - fist wave
+        geo = new THREE.SphereGeometry(0.08, 12, 12);
+        mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+        trailColor = 0xffffff;
+        break;
+      case 3: // Ice Spray - ice crystal
+        geo = new THREE.OctahedronGeometry(0.07, 0);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0x88eeff,
+          metalness: 0.3,
+          roughness: 0.2,
+          emissive: 0x44ccff,
+          emissiveIntensity: 0.6,
+          transparent: true,
+          opacity: 0.85
+        });
+        trailColor = 0x88eeff;
+        break;
+      case 4: // Goalie - save blast
+        geo = new THREE.TorusGeometry(0.08, 0.03, 8, 16);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0xff7ac0,
+          metalness: 0.5,
+          roughness: 0.3,
+          emissive: 0xff4488,
+          emissiveIntensity: 0.5
+        });
+        trailColor = 0xff7ac0;
+        speed = 8.0;
+        break;
+      case 5: // Power Play - lightning bolt
+        geo = new THREE.CylinderGeometry(0.015, 0.03, 0.18, 6);
+        mat = new THREE.MeshBasicMaterial({ color: 0xffff88 });
+        trailColor = 0xffff00;
+        speed = 14;
+        break;
+      case 6: // Hot Stick - fireball
+        geo = new THREE.SphereGeometry(0.07, 12, 12);
+        mat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+        trailColor = 0xff6600;
+        speed = 9.5;
+        break;
+      case 7: // Captain - golden star
+        geo = new THREE.OctahedronGeometry(0.08, 0);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0xffd700,
+          metalness: 0.95,
+          roughness: 0.1,
+          emissive: 0xffaa00,
+          emissiveIntensity: 0.6
+        });
+        trailColor = 0xffd700;
+        speed = 10.0;
+        break;
+      default:
+        geo = new THREE.SphereGeometry(0.06, 10, 10);
+        mat = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.4, roughness: 0.4, metalness: 0.1 });
+        trailColor = c;
+    }
+  } else {
+    switch (idx) {
+      case 0: // Striker - mini ball
+        geo = new THREE.SphereGeometry(0.06, 16, 16);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          metalness: 0.1,
+          roughness: 0.5,
+          emissive: 0x22aa22,
+          emissiveIntensity: 0.3
+        });
+        trailColor = 0x22c55e;
+        speed = 9.0;
+        break;
+      case 1: // Free Kick - curved shot
+        geo = new THREE.CylinderGeometry(0.02, 0.04, 0.2, 8);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0x88eeff,
+          metalness: 0.5,
+          roughness: 0.2,
+          emissive: 0x44aaff,
+          emissiveIntensity: 0.7
+        });
+        trailColor = 0x88eeff;
+        speed = 11.0;
+        break;
+      case 2: // Header - shockwave
+        geo = new THREE.TorusGeometry(0.06, 0.025, 8, 16);
+        mat = new THREE.MeshBasicMaterial({ color: 0x22dddd, transparent: true, opacity: 0.8 });
+        trailColor = 0x22dddd;
+        speed = 8.0;
+        break;
+      case 3: // Tackle - slide tackle wave
+        geo = new THREE.ConeGeometry(0.06, 0.12, 8);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0x8b6914,
+          metalness: 0.3,
+          roughness: 0.7,
+          emissive: 0x443300,
+          emissiveIntensity: 0.3
+        });
+        trailColor = 0xaa8833;
+        speed = 8.5;
+        break;
+      case 4: // Keeper - diving save
+        geo = new THREE.SphereGeometry(0.09, 12, 12);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0x88eeff,
+          metalness: 0.4,
+          roughness: 0.3,
+          emissive: 0x44aaff,
+          emissiveIntensity: 0.5,
+          transparent: true,
+          opacity: 0.85
+        });
+        trailColor = 0x88eeff;
+        break;
+      case 5: // Playmaker - pass beam
+        geo = new THREE.CylinderGeometry(0.015, 0.015, 0.15, 6);
+        mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        trailColor = 0xffffff;
+        speed = 12;
+        break;
+      case 6: // Flare - firework
+        geo = new THREE.OctahedronGeometry(0.06, 0);
+        mat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+        trailColor = 0xff6644;
+        speed = 9.0;
+        break;
+      case 7: // Legend - golden trophy shot
+        geo = new THREE.OctahedronGeometry(0.08, 1);
+        mat = new THREE.MeshStandardMaterial({
+          color: 0xffd700,
+          metalness: 0.95,
+          roughness: 0.05,
+          emissive: 0xffaa00,
+          emissiveIntensity: 0.7
+        });
+        trailColor = 0xffd700;
+        speed = 11.0;
+        break;
+      default:
+        geo = new THREE.SphereGeometry(0.06, 10, 10);
+        mat = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.3 });
+        trailColor = c;
+    }
+  }
+
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.castShadow = true;
+  mesh.scale.multiplyScalar(1.4);
+
+  // Enhanced glow effect with multiple layers
+  const glowCol = trailColor || (mat && mat.color) || new THREE.Color(c);
+
+  // Inner glow
+  const innerGlowGeo = new THREE.SphereGeometry(0.1, 12, 12);
+  const innerGlowMat = new THREE.MeshBasicMaterial({
+    color: glowCol,
+    transparent: true,
+    opacity: 0.5,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const innerGlow = new THREE.Mesh(innerGlowGeo, innerGlowMat);
+  innerGlow.renderOrder = 998;
+  mesh.add(innerGlow);
+
+  // Outer glow
+  const outerGlowGeo = new THREE.SphereGeometry(0.18, 10, 10);
+  const outerGlowMat = new THREE.MeshBasicMaterial({
+    color: glowCol,
+    transparent: true,
+    opacity: 0.25,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const outerGlow = new THREE.Mesh(outerGlowGeo, outerGlowMat);
+  outerGlow.renderOrder = 997;
+  mesh.add(outerGlow);
+
+  mesh.position.set(sx, 0.45, sz);
+  scene.add(mesh);
+
+  // Trigger tower firing flash
+  if (tw.baseGlow) {
+    tw.firingFlash = 1.0;
+  }
+
+  return {
+    mesh,
+    tower: tw,
+    target,
+    tx: target.x,
+    ty: (target.y != null ? target.y : (target.flying ? 1.2 : 0.2)),
+    tz: target.z,
+    x: sx,
+    z: sz,
+    y: 0.45,
+    vx: 0,
+    vz: 0,
+    vy: 0,
+    t: 0,
+    speed,
+    trailColor,
+    trail: [],
+    trailTimer: 0
+  };
+}
+
+export function updateProjectiles(dt) {
+  const state = getState();
+  const { projectiles, enemies, scene } = state;
+
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+
+    // Update target position if still alive
+    if (enemies.includes(p.target)) {
+      p.tx = p.target.x;
+      p.ty = p.target.y;
+      p.tz = p.target.z;
+    }
+
+    const dx = p.tx - p.x;
+    const dy = p.ty - p.y;
+    const dz = p.tz - p.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const move = p.speed * dt;
+
+    if (dist <= move) {
+      handleHit(p);
+      if (p.mesh) scene.remove(p.mesh);
+      // Clean up trail particles
+      if (p.trail) {
+        p.trail.forEach(t => returnTrailParticle(t, scene));
+      }
+      projectiles.splice(i, 1);
+    } else {
+      // Spawn trail particles
+      if (p.trailColor && p.trail) {
+        p.trailTimer += dt;
+        if (p.trailTimer >= 0.03) {
+          p.trailTimer = 0;
+          const particle = getTrailParticle(p.trailColor);
+          particle.position.set(p.x, p.y, p.z);
+          scene.add(particle);
+          p.trail.push(particle);
+
+          // Limit trail length
+          if (p.trail.length > 8) {
+            const old = p.trail.shift();
+            returnTrailParticle(old, scene);
+          }
+        }
+
+        // Fade trail particles
+        p.trail.forEach((t, idx) => {
+          const fade = (idx + 1) / p.trail.length;
+          t.material.opacity = 0.5 * fade;
+          t.scale.setScalar(0.5 + 0.5 * fade);
+        });
+      }
+
+      p.x += (dx / dist) * move;
+      p.y += (dy / dist) * move;
+      p.z += (dz / dist) * move;
+
+      if (p.mesh) {
+        p.mesh.position.set(p.x, p.y, p.z);
+        p.mesh.rotation.y += dt * 12;
+        p.mesh.rotation.x += dt * 8;
+
+        // Pulsing glow effect
+        const pulse = 1 + Math.sin(p.t * 15) * 0.15;
+        if (p.mesh.children[0]) {
+          p.mesh.children[0].scale.setScalar(pulse);
+        }
+        if (p.mesh.children[1]) {
+          p.mesh.children[1].scale.setScalar(pulse * 1.1);
+        }
+      }
+
+      p.t += dt;
+    }
+  }
+}
