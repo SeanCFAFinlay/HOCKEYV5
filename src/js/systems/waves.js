@@ -1,7 +1,7 @@
 // Wave management with game-time based spawning
 // No setTimeout - all spawns tied to fixed timestep
 
-import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpawnsPending } from '../engine/state.js';
+import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpawnsPending, setAutoWave } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { spawnEnemy } from './enemies.js';
 import { updateHUD } from '../ui/hud.js';
@@ -93,12 +93,13 @@ export function checkWaveCompletion() {
  */
 export function toggleAutoWave() {
   const state = getState();
-  state.autoWave = !state.autoWave;
+  const newMode = !state.autoWave;
+  setAutoWave(newMode); // Use dispatch to update state properly
 
   const b = document.getElementById('autoBtn');
   if (b) {
-    b.textContent = state.autoWave ? 'AUTO: ON' : 'AUTO: OFF';
-    b.classList.toggle('on', state.autoWave);
+    b.textContent = newMode ? 'AUTO: ON' : 'AUTO: OFF';
+    b.classList.toggle('on', newMode);
   }
 }
 

@@ -10,6 +10,9 @@ import { onResize } from './scene.js';
 let previewMesh = null;
 let previewCell = null;
 
+// Track pinch distance separately from tap-timestamp to avoid type mismatch
+let pinchStartDist = 0;
+
 /**
  * Set up all input handlers
  */
@@ -54,17 +57,17 @@ export function attachHandlers(canvas) {
 
 function onTouchStart(e) {
   e.preventDefault();
-  const state = getState();
 
   if (e.touches.length === 1) {
     setDragging(true);
     setDragMoved(false);
     setLastPosition(e.touches[0].clientX, e.touches[0].clientY);
-    setTouchStart(Date.now());
+    setTouchStart(Date.now()); // Only used for tap timing
   } else if (e.touches.length === 2) {
     const dx = e.touches[0].clientX - e.touches[1].clientX;
     const dy = e.touches[0].clientY - e.touches[1].clientY;
-    setTouchStart(Math.sqrt(dx * dx + dy * dy));
+    pinchStartDist = Math.sqrt(dx * dx + dy * dy); // Use local var for pinch
+    setDragMoved(true); // Pinch is never a tap
   }
 }
 
@@ -90,15 +93,17 @@ function onTouchMove(e) {
     const dy = e.touches[0].clientY - e.touches[1].clientY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    state.camDist = Math.max(8, Math.min(40, state.camDist - (dist - state.touchStart) * 0.04));
-    setTouchStart(dist);
+    // Use local pinchStartDist (not touchStart) to avoid type mismatch
+    state.camDist = Math.max(8, Math.min(40, state.camDist - (dist - pinchStartDist) * 0.04));
+    pinchStartDist = dist;
   }
 }
 
 function onTouchEnd(e) {
   const state = getState();
 
-  if (!state.dragMoved && Date.now() - state.touchStart < 200) {
+  // Only treat as a tap if: no drag movement AND it was a single-touch AND time was short
+  if (!state.dragMoved && e.changedTouches.length === 1 && Date.now() - state.touchStart < 200) {
     handleTap(e.changedTouches[0]);
   }
 

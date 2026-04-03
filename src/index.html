@@ -68,6 +68,12 @@
     </div>
   </div>
 
+  <!-- Wave preview banner (shown between waves) -->
+  <div class="wave-preview" id="wavePreview" style="display:none">
+    <span class="wave-preview-label">NEXT WAVE</span>
+    <span class="wave-preview-content" id="wavePreviewContent"></span>
+  </div>
+
   <div class="canvas-wrap"></div>
 
   <div class="cam-btns">
@@ -117,8 +123,12 @@
     <div class="modal-stats">
       <div><div class="modal-stat-val" id="winScore">0</div><div class="modal-stat-label">Score</div></div>
       <div><div class="modal-stat-val" id="winWaves">0</div><div class="modal-stat-label">Waves</div></div>
+      <div><div class="modal-stat-val" id="winBest">—</div><div class="modal-stat-label">Best Score</div></div>
     </div>
-    <button class="modal-btn" onclick="closeModal('win')">Continue</button>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="closeModal('win')">Menu</button>
+      <button class="modal-btn" onclick="replayGame()">Play Again</button>
+    </div>
   </div>
 </div>
 
@@ -130,8 +140,12 @@
     <div class="modal-stats">
       <div><div class="modal-stat-val" id="loseWave">0</div><div class="modal-stat-label">Wave</div></div>
       <div><div class="modal-stat-val" id="loseScore">0</div><div class="modal-stat-label">Score</div></div>
+      <div><div class="modal-stat-val" id="loseBest">—</div><div class="modal-stat-label">Best Score</div></div>
     </div>
-    <button class="modal-btn" onclick="closeModal('lose')">Try Again</button>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="closeModal('lose')">Menu</button>
+      <button class="modal-btn" onclick="replayGame()">Retry</button>
+    </div>
   </div>
 </div>
 
