@@ -30,8 +30,12 @@
 }
 
 .tower-btn.disabled {
-  opacity: 0.35;
+  opacity: 0.45;
   cursor: not-allowed;
+}
+
+.tower-btn.disabled .tower-btn-cost {
+  color: var(--red); /* Red price = can't afford */
 }
 
 .tower-btn-icon {

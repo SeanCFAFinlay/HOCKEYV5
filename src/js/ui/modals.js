@@ -37,16 +37,16 @@ export function replayGame() {
   startGame(state.mapIndex);
 }
 
-function _showWinModal(score, waves) {
+function _showWinModal(score, waveReached) {
   const state = getState();
   const { theme, mapIndex } = state;
 
-  recordRun(theme, mapIndex, score, waves);
+  recordRun(theme, mapIndex, score, waveReached);
   const best = getBestScore(theme, mapIndex);
 
   const el = (id) => document.getElementById(id);
   if (el('winScore'))  el('winScore').textContent  = score;
-  if (el('winWaves'))  el('winWaves').textContent  = waves;
+  if (el('winWaves'))  el('winWaves').textContent  = waveReached;
   if (el('winBest'))   el('winBest').textContent   = best > 0 ? best : '—';
   el('winModal')?.classList.add('show');
 }

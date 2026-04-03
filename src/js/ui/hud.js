@@ -172,7 +172,9 @@ function showWavePreview() {
     return;
   }
 
-  const nextWaveData = WAVES[wave]; // wave is 0-based index for next wave (current is wave, next is wave+1)
+  // state.wave is the last completed wave (1-based after increment).
+  // WAVES is a 0-indexed array, so WAVES[state.wave] is the *next* wave's data.
+  const nextWaveData = WAVES[wave];
   if (!nextWaveData) {
     if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
     return;

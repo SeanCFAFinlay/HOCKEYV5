@@ -13,6 +13,9 @@ let previewCell = null;
 // Track pinch distance separately from tap-timestamp to avoid type mismatch
 let pinchStartDist = 0;
 
+// Maximum time in ms between touchstart and touchend to count as a tap
+const TAP_THRESHOLD_MS = 200;
+
 /**
  * Set up all input handlers
  */
@@ -103,7 +106,7 @@ function onTouchEnd(e) {
   const state = getState();
 
   // Only treat as a tap if: no drag movement AND it was a single-touch AND time was short
-  if (!state.dragMoved && e.changedTouches.length === 1 && Date.now() - state.touchStart < 200) {
+  if (!state.dragMoved && e.changedTouches.length === 1 && Date.now() - state.touchStart < TAP_THRESHOLD_MS) {
     handleTap(e.changedTouches[0]);
   }
 
