@@ -74,3 +74,37 @@
 .hud-stat.score {
   color: var(--grass);
 }
+
+/* Wave preview banner shown between waves */
+.wave-preview {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 110;
+  background: rgba(0, 0, 0, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: calc(100vw - 24px);
+  overflow: hidden;
+}
+
+.wave-preview-label {
+  font-weight: 700;
+  color: var(--gold);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.wave-preview-content {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}

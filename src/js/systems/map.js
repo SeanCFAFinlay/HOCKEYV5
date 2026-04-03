@@ -211,8 +211,8 @@ export function generateObstacles() {
     }
   };
 
-  // Select generator based on map index
-  [gen0, gen1, gen2, gen3, gen4][Math.max(0, Math.min(4, mapIndex))]();
+  // Select generator based on map index (cycle through 5 patterns for all 10 maps)
+  [gen0, gen1, gen2, gen3, gen4][mapIndex % 5]();
 
   // Top up if under-filled
   let placed = 0;

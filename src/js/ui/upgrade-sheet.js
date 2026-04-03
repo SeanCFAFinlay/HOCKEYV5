@@ -1,6 +1,7 @@
 // Upgrade panel logic
 
-import { getState, setSelectedPlaced } from '../engine/state.js';
+import { getState, setSelectedPlaced, dispatch, ActionTypes, addMoney, removeTower } from '../engine/state.js';
+import { emit, GameEvents } from '../engine/events.js';
 import { onNavChanged } from '../systems/pathfinding.js';
 import { createTowerMesh } from '../rendering/tower-meshes.js';
 import { updateHUD } from './hud.js';
@@ -54,9 +55,10 @@ export function doUpgrade() {
   if (!selectedPlaced || selectedPlaced.lv >= 3) return;
 
   const td = themeData.towers.find(t => t.id === selectedPlaced.type);
-  if (state.money < td.up[selectedPlaced.lv]) return;
+  const upgradeCost = td.up[selectedPlaced.lv];
+  if (state.money < upgradeCost) return;
 
-  state.money -= td.up[selectedPlaced.lv];
+  dispatch(ActionTypes.ADD_MONEY, -upgradeCost); // Use dispatch so subscribers fire
   selectedPlaced.lv++;
   selectedPlaced.hp = (selectedPlaced.hp || 160) + 60;
   selectedPlaced.dmg = td.dmg[selectedPlaced.lv];
@@ -68,9 +70,12 @@ export function doUpgrade() {
   if (td.chain) selectedPlaced.chain = td.chain[selectedPlaced.lv];
   if (td.burn) selectedPlaced.burn = td.burn[selectedPlaced.lv];
 
-  // Update range indicator
+  // Update range indicator - dispose old geometry to prevent memory leak
   if (selectedPlaced.rangeMesh) {
-    selectedPlaced.rangeMesh.geometry = new THREE.RingGeometry(selectedPlaced.rng - 0.05, selectedPlaced.rng, 64);
+    if (selectedPlaced.rangeMesh.geometry) {
+      selectedPlaced.rangeMesh.geometry.dispose();
+    }
+    selectedPlaced.rangeMesh.geometry = new THREE.RingGeometry(selectedPlaced.rng - 0.08, selectedPlaced.rng, 64);
   }
 
   // Rebuild mesh
@@ -79,13 +84,14 @@ export function doUpgrade() {
   }
   selectedPlaced.mesh = createTowerMesh(selectedPlaced);
 
+  emit(GameEvents.TOWER_UPGRADE, { tower: selectedPlaced });
   updateHUD();
   showUpgrade(selectedPlaced);
 }
 
 export function sellTower() {
   const state = getState();
-  const { selectedPlaced, themeData, grid, scene, towers } = state;
+  const { selectedPlaced, themeData, grid, scene } = state;
 
   if (!selectedPlaced) return;
 
@@ -94,17 +100,19 @@ export function sellTower() {
   for (let i = 0; i < selectedPlaced.lv; i++) {
     val += Math.floor(td.up[i] * 0.6);
   }
-  state.money += val;
+
+  addMoney(val); // Use addMoney so money subscribers and events fire properly
+
+  if (selectedPlaced.mesh) {
+    scene.remove(selectedPlaced.mesh); // Also removes rangeMesh (it's a child of the group)
+  }
 
   const cell = grid[selectedPlaced.y][selectedPlaced.x];
-  if (selectedPlaced.mesh) {
-    scene.remove(selectedPlaced.mesh);
-  }
-  const towerIdx = towers.indexOf(selectedPlaced);
-  if (towerIdx !== -1) {
-    towers.splice(towerIdx, 1);
-  }
-  cell.tower = null;
+  if (cell) cell.tower = null;
+
+  removeTower(selectedPlaced); // Use removeTower dispatch so REMOVE_TOWER events fire
+
+  emit(GameEvents.TOWER_SELL, { tower: selectedPlaced, value: val });
 
   onNavChanged();
   hideUpgrade();

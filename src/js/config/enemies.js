@@ -1,6 +1,11 @@
 // Enemy definitions for each theme
 // Each enemy has: id, nm (name), hp, spd (speed), rwd (reward), sz (size)
 // Optional properties: fire, flying, armor, boss
+//
+// Balance notes:
+//   - Base HP is scaled per-wave in systems/enemies.js: hp * (1 + wave * 0.07 + (wave/25)^1.6 * 0.6)
+//   - Rewards are fixed values; stronger/boss enemies give more
+//   - Armor reduces damage taken as a flat multiplier (e.g., 0.35 = 35% damage reduction)
 
 export const HOCKEY_ENEMIES = [
   {
@@ -25,7 +30,7 @@ export const HOCKEY_ENEMIES = [
     nm: 'Flying Puck',
     hp: 45,
     spd: 2.8,
-    rwd: 12,
+    rwd: 14, // Slightly higher - bypasses ground defenses
     flying: true,
     sz: 0.9
   },
@@ -34,7 +39,7 @@ export const HOCKEY_ENEMIES = [
     nm: 'Heavy Puck',
     hp: 250,
     spd: 0.7,
-    rwd: 35,
+    rwd: 40, // Increased from 35 - high HP tank deserves more
     armor: 0.4,
     sz: 1.4
   },
@@ -43,7 +48,7 @@ export const HOCKEY_ENEMIES = [
     nm: 'Inferno Puck',
     hp: 400,
     spd: 0.55,
-    rwd: 55,
+    rwd: 65, // Increased from 55
     fire: true,
     armor: 0.3,
     sz: 1.5
@@ -53,7 +58,7 @@ export const HOCKEY_ENEMIES = [
     nm: 'Flying Fire',
     hp: 120,
     spd: 2.2,
-    rwd: 25,
+    rwd: 28, // Slightly increased - fire + flying combo
     flying: true,
     fire: true,
     sz: 1.0
@@ -63,7 +68,7 @@ export const HOCKEY_ENEMIES = [
     nm: 'Boss Puck',
     hp: 2500,
     spd: 0.35,
-    rwd: 350,
+    rwd: 380, // Unified with soccer boss
     armor: 0.35,
     boss: true,
     sz: 2.2
@@ -93,7 +98,7 @@ export const SOCCER_ENEMIES = [
     nm: 'Flying Ball',
     hp: 40,
     spd: 3.0,
-    rwd: 12,
+    rwd: 14, // Matches hockey flying reward
     flying: true,
     sz: 0.9
   },
@@ -102,7 +107,7 @@ export const SOCCER_ENEMIES = [
     nm: 'Heavy Ball',
     hp: 280,
     spd: 0.65,
-    rwd: 35,
+    rwd: 40, // Increased from 35
     armor: 0.45,
     sz: 1.4
   },
@@ -111,7 +116,7 @@ export const SOCCER_ENEMIES = [
     nm: 'Inferno Ball',
     hp: 450,
     spd: 0.5,
-    rwd: 55,
+    rwd: 65, // Increased from 55
     fire: true,
     armor: 0.35,
     sz: 1.5
@@ -121,7 +126,7 @@ export const SOCCER_ENEMIES = [
     nm: 'Flying Fire',
     hp: 130,
     spd: 2.3,
-    rwd: 25,
+    rwd: 28, // Matches hockey
     flying: true,
     fire: true,
     sz: 1.0
@@ -131,7 +136,7 @@ export const SOCCER_ENEMIES = [
     nm: 'Boss Ball',
     hp: 2800,
     spd: 0.32,
-    rwd: 400,
+    rwd: 380, // Unified with hockey boss (was 400, hockey was 350)
     armor: 0.38,
     boss: true,
     sz: 2.2
