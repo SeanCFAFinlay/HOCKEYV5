@@ -32,6 +32,22 @@ export function spawnEnemy(ed) {
   const spawnIndex = state.enemies.length % SPAWNS.length;
   const s = SPAWNS[spawnIndex] || { x: 0, y: Math.floor(ROWS / 2) };
 
+  // Calculate phased difficulty scaling
+  // Early game (1-10): Gradual scaling
+  // Mid game (11-20): Moderate scaling
+  // Late game (21+): Steep scaling
+  const hpScale = wave <= 10 
+    ? (1 + wave * 0.10)                    // Early: 1.1x to 2.0x
+    : wave <= 20 
+      ? (2.0 + (wave - 10) * 0.15)         // Mid: 2.0x to 3.5x
+      : (3.5 + (wave - 20) * 0.20);        // Late: 3.5x to 7.5x at wave 40
+
+  const rewardScale = wave <= 10
+    ? (1 + wave * 0.06)                    // Early: 1.06x to 1.6x
+    : wave <= 20
+      ? (1.6 + (wave - 10) * 0.10)         // Mid: 1.6x to 2.6x
+      : (2.6 + (wave - 20) * 0.12);        // Late: 2.6x to 5.0x at wave 40
+
   const e = {
     // Identity
     type: ed.id,
@@ -52,21 +68,6 @@ export function spawnEnemy(ed) {
     prevZ: s.y - hh + 0.5,
 
     // Stats (scaled by wave with phased difficulty curve)
-    // Early game (1-10): Gradual scaling
-    // Mid game (11-20): Moderate scaling
-    // Late game (21+): Steep scaling
-    const hpScale = wave <= 10 
-      ? (1 + wave * 0.10)                    // Early: 1.1x to 2.0x
-      : wave <= 20 
-        ? (2.0 + (wave - 10) * 0.15)         // Mid: 2.0x to 3.5x
-        : (3.5 + (wave - 20) * 0.20);        // Late: 3.5x to 7.5x at wave 40
-
-    const rewardScale = wave <= 10
-      ? (1 + wave * 0.06)                    // Early: 1.06x to 1.6x
-      : wave <= 20
-        ? (1.6 + (wave - 10) * 0.10)         // Mid: 1.6x to 2.6x
-        : (2.6 + (wave - 20) * 0.12);        // Late: 2.6x to 5.0x at wave 40
-
     hp: Math.floor(ed.hp * hpScale),
     maxHp: Math.floor(ed.hp * hpScale),
     baseSpd: ed.spd,
