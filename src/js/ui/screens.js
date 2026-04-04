@@ -150,7 +150,35 @@ export function exitGame() {
   selectTheme(state.theme);
 }
 
+/**
+ * Replay the same map immediately
+ */
+export function replayGame() {
+  const state = getState();
+  const mapIdx = state.mapIndex;
+
+  // Hide modals
+  document.getElementById('winModal')?.classList.remove('show');
+  document.getElementById('loseModal')?.classList.remove('show');
+
+  // Stop current game
+  stopGameLoop();
+
+  // Cleanup
+  if (state.autoWaveTimer) {
+    clearTimeout(state.autoWaveTimer);
+  }
+
+  cleanupScene();
+
+  // Restart same map
+  setTimeout(() => {
+    startGame(mapIdx);
+  }, 100);
+}
+
 // Expose to window for HTML onclick handlers
 window.showScreen = showScreen;
 window.selectTheme = selectTheme;
 window.exitGame = exitGame;
+window.replayGame = replayGame;

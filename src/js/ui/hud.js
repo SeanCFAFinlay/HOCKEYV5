@@ -95,6 +95,9 @@ export function updateHUD() {
   // Update wave button
   if (domCache.startBtn) domCache.startBtn.disabled = state.waveActive;
 
+  // Show/hide wave preview
+  updateWavePreview();
+
   // Check for game over
   if (state.lives <= 0 && state.running) {
     const loseModal = document.getElementById('loseModal');
@@ -110,6 +113,65 @@ export function updateHUD() {
   }
 
   renderTowers();
+}
+
+/**
+ * Update wave preview panel
+ */
+function updateWavePreview() {
+  const state = getState();
+  const previewPanel = document.getElementById('wavePreview');
+  const previewEnemies = document.getElementById('wavePreviewEnemies');
+
+  if (!previewPanel || !previewEnemies) return;
+
+  // Show preview only when wave is not active and there are more waves
+  if (!state.waveActive && state.wave < state.mapData.waves && state.WAVES) {
+    const nextWave = state.WAVES[state.wave];
+    
+    if (nextWave && Object.keys(nextWave).length > 0) {
+      previewEnemies.innerHTML = '';
+
+      Object.entries(nextWave).forEach(([enemyId, count]) => {
+        const enemy = state.themeData.enemies.find(e => e.id === enemyId);
+        if (enemy && count > 0) {
+          const enemyDiv = document.createElement('div');
+          enemyDiv.className = 'wave-preview-enemy';
+          enemyDiv.innerHTML = `
+            <span class="wave-preview-enemy-count">${count}×</span>
+            <span class="wave-preview-enemy-icon" title="${enemy.nm}">${getEnemyIcon(enemy, state.theme)}</span>
+          `;
+          previewEnemies.appendChild(enemyDiv);
+        }
+      });
+
+      previewPanel.style.display = 'block';
+    } else {
+      previewPanel.style.display = 'none';
+    }
+  } else {
+    previewPanel.style.display = 'none';
+  }
+}
+
+/**
+ * Get enemy icon/emoji based on theme
+ */
+function getEnemyIcon(enemy, theme) {
+  // Simple mapping - could be enhanced
+  if (theme === 'hockey') {
+    if (enemy.boss) return '🏒💀';
+    if (enemy.fire && enemy.flying) return '🔥🏒';
+    if (enemy.fire) return '🔥';
+    if (enemy.flying) return '🏒✈️';
+    return '🏒';
+  } else {
+    if (enemy.boss) return '⚽💀';
+    if (enemy.fire && enemy.flying) return '🔥⚽';
+    if (enemy.fire) return '🔥';
+    if (enemy.flying) return '⚽✈️';
+    return '⚽';
+  }
 }
 
 /**

@@ -56,7 +56,7 @@ export function spawnEnemy(ed) {
     maxHp: ed.hp * (1 + wave * 0.12),
     baseSpd: ed.spd,
     spd: ed.spd,
-    rwd: ed.rwd,
+    rwd: Math.floor(ed.rwd * (1 + wave * 0.08)), // Scale reward with wave (80% of HP scaling)
     sz: ed.sz || 1,
     armor: ed.armor || 0,
 

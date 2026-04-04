@@ -70,6 +70,12 @@
 
   <div class="canvas-wrap"></div>
 
+  <!-- Wave Preview Panel -->
+  <div class="wave-preview" id="wavePreview" style="display: none;">
+    <div class="wave-preview-title">Next Wave</div>
+    <div class="wave-preview-enemies" id="wavePreviewEnemies"></div>
+  </div>
+
   <div class="cam-btns">
     <button class="cam-btn" onclick="zoomIn()">+</button>
     <button class="cam-btn" onclick="zoomOut()">−</button>
@@ -118,7 +124,10 @@
       <div><div class="modal-stat-val" id="winScore">0</div><div class="modal-stat-label">Score</div></div>
       <div><div class="modal-stat-val" id="winWaves">0</div><div class="modal-stat-label">Waves</div></div>
     </div>
-    <button class="modal-btn" onclick="closeModal('win')">Continue</button>
+    <div style="display: flex; gap: 12px; width: 100%;">
+      <button class="modal-btn" style="flex: 1;" onclick="replayGame()">Replay</button>
+      <button class="modal-btn" style="flex: 1;" onclick="closeModal('win')">Continue</button>
+    </div>
   </div>
 </div>
 
@@ -131,7 +140,10 @@
       <div><div class="modal-stat-val" id="loseWave">0</div><div class="modal-stat-label">Wave</div></div>
       <div><div class="modal-stat-val" id="loseScore">0</div><div class="modal-stat-label">Score</div></div>
     </div>
-    <button class="modal-btn" onclick="closeModal('lose')">Try Again</button>
+    <div style="display: flex; gap: 12px; width: 100%;">
+      <button class="modal-btn" style="flex: 1;" onclick="replayGame()">Replay</button>
+      <button class="modal-btn" style="flex: 1;" onclick="closeModal('lose')">Try Again</button>
+    </div>
   </div>
 </div>
 

@@ -19,6 +19,17 @@ html, body {
   touch-action: none;
 }
 
+/* Canvas wrapper - prevent all touch default behaviors */
+.canvas-wrap {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.canvas-wrap canvas {
+  touch-action: none;
+}
+
 .screen {
   display: none;
   height: 100%;
