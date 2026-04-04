@@ -64,7 +64,11 @@ export function initHUD() {
   on(GameEvents.GAME_LOSE, ({ wave, score }) => {
     if (domCache.loseWave) domCache.loseWave.textContent = wave;
     if (domCache.loseScore) domCache.loseScore.textContent = score;
-    if (domCache.loseModal) domCache.loseModal.classList.add('show');
+    
+    // Use modal helper to show high score
+    import('./modals.js').then(({ showGameOverModal }) => {
+      showGameOverModal('lose');
+    });
   });
 
   initialized = true;

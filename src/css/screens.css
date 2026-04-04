@@ -193,6 +193,14 @@
   opacity: 1;
 }
 
+.map-card-highscore {
+  font-size: 0.7rem;
+  color: var(--gold);
+  margin-top: 6px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
 /* Game Screen */
 #gameScreen {
   background: #000;

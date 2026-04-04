@@ -127,7 +127,11 @@ function checkWaveCompletion() {
 
       if (winScore) winScore.textContent = state.score;
       if (winWaves) winWaves.textContent = state.wave;
-      if (winModal) winModal.classList.add('show');
+
+      // Use modal helper to show high score
+      import('../ui/modals.js').then(({ showGameOverModal }) => {
+        showGameOverModal('win');
+      });
 
       emit(GameEvents.GAME_WIN, { score: state.score, wave: state.wave });
       setRunning(false);

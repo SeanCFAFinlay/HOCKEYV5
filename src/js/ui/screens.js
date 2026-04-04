@@ -39,18 +39,29 @@ export function selectTheme(t) {
   const grid = document.getElementById('mapGrid');
   grid.innerHTML = '';
 
-  themeData.maps.forEach((m, i) => {
-    const card = document.createElement('div');
-    card.className = 'map-card';
-    card.style.setProperty('--c', themeData.color);
-    card.innerHTML = `
-      <div class="map-card-icon">${themeData.icon}</div>
-      <div class="map-card-name">${m.name}</div>
-      <div class="map-card-info">${m.waves} Waves • ${m.cols}×${m.rows}</div>
-      <div class="map-stars">${[1, 2, 3, 4, 5].map(n => `<span class="${n <= m.diff ? 'on' : ''}">⭐</span>`).join('')}</div>
-    `;
-    card.onclick = () => startGame(i);
-    grid.appendChild(card);
+  // Import high scores
+  import('../systems/highscores.js').then(({ getHighScore }) => {
+    themeData.maps.forEach((m, i) => {
+      const card = document.createElement('div');
+      card.className = 'map-card';
+      card.style.setProperty('--c', themeData.color);
+      
+      // Get high score for this map
+      const highScore = getHighScore(t, i);
+      const highScoreHTML = highScore 
+        ? `<div class="map-card-highscore">Best: Wave ${highScore.wave}</div>`
+        : '';
+      
+      card.innerHTML = `
+        <div class="map-card-icon">${themeData.icon}</div>
+        <div class="map-card-name">${m.name}</div>
+        <div class="map-card-info">${m.waves} Waves • ${m.cols}×${m.rows}</div>
+        <div class="map-stars">${[1, 2, 3, 4, 5].map(n => `<span class="${n <= m.diff ? 'on' : ''}">⭐</span>`).join('')}</div>
+        ${highScoreHTML}
+      `;
+      card.onclick = () => startGame(i);
+      grid.appendChild(card);
+    });
   });
 
   showScreen('mapScreen');
