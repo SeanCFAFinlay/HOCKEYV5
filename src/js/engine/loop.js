@@ -99,9 +99,12 @@ function checkWaveCompletion() {
     emit(GameEvents.WAVE_COMPLETE, { wave: state.wave });
     updateHUD();
 
-    // Auto-wave handling (still uses setTimeout for delay, but properly managed)
+    // Auto-wave handling (scaled by game speed)
     if (state.autoWave && state.wave < state.mapData.waves) {
       if (state.autoWaveTimer) clearTimeout(state.autoWaveTimer);
+
+      // Scale delay by game speed (650ms at 1x, 325ms at 2x, 217ms at 3x)
+      const delay = 650 / state.gameSpeed;
 
       const timer = setTimeout(() => {
         const currentState = getState();
@@ -111,7 +114,7 @@ function checkWaveCompletion() {
             startWave();
           });
         }
-      }, 650);
+      }, delay);
 
       setAutoWaveTimer(timer);
     }

@@ -7,6 +7,7 @@ import { findPathGrid, onNavChanged } from './pathfinding.js';
 import { createEnemyMesh, returnEnemyMesh } from '../rendering/enemy-meshes.js';
 import { attachEnemyPowerLabel } from '../rendering/sprites.js';
 import { updateHUD } from '../ui/hud.js';
+import { hideUpgrade } from '../ui/upgrade-sheet.js';
 
 // Enemy state machine states
 export const EnemyState = {
@@ -351,6 +352,7 @@ function updateAttackingEnemy(e, dt, speed, hw, hh, index) {
       if (cell) cell.tower = null;
 
       emit(GameEvents.TOWER_DESTROYED, { tower });
+      hideUpgrade(); // Auto-close upgrade sheet if this tower was selected
       onNavChanged();
 
       e.state = EnemyState.MOVING;

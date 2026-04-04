@@ -80,9 +80,10 @@ function onTouchMove(e) {
       setDragMoved(true);
     }
 
-    // Update camera rotation
-    rotateCamera(-dx * 0.008);
-    state.camHeight = Math.max(5, Math.min(30, state.camHeight - dy * 0.05));
+    // Normalize rotation sensitivity by DPI (capped at 2x)
+    const dpiScale = Math.min(window.devicePixelRatio || 1, 2);
+    rotateCamera(-dx * 0.008 / dpiScale);
+    state.camHeight = Math.max(5, Math.min(30, state.camHeight - dy * 0.05 / dpiScale));
 
     setLastPosition(e.touches[0].clientX, e.touches[0].clientY);
   } else if (e.touches.length === 2) {
@@ -90,7 +91,9 @@ function onTouchMove(e) {
     const dy = e.touches[0].clientY - e.touches[1].clientY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    state.camDist = Math.max(8, Math.min(40, state.camDist - (dist - state.touchStart) * 0.04));
+    // Normalize pinch sensitivity by DPI
+    const dpiScale = Math.min(window.devicePixelRatio || 1, 2);
+    state.camDist = Math.max(8, Math.min(40, state.camDist - (dist - state.touchStart) * 0.04 / dpiScale));
     setTouchStart(dist);
   }
 }
