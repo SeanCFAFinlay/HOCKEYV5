@@ -6,7 +6,7 @@ import { on, GameEvents } from './engine/events.js';
 
 // Import UI modules (these set up window handlers)
 import './ui/screens.js';
-import './ui/modals.js';
+import { initModals } from './ui/modals.js';
 import './ui/upgrade-sheet.js';
 import './ui/controls.js';
 
@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize speed buttons
   initSpeedButtons();
+
+  // Initialize modal event listeners (win/lose handlers via game events)
+  initModals();
 
   // Set up global event handlers for debugging
   if (DEBUG) {

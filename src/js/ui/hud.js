@@ -22,10 +22,9 @@ function cacheDOMElements() {
     scoreVal: document.getElementById('scoreVal'),
     startBtn: document.getElementById('startBtn'),
     towerBar: document.getElementById('towerBar'),
-    loseModal: document.getElementById('loseModal'),
-    loseWave: document.getElementById('loseWave'),
-    loseScore: document.getElementById('loseScore'),
-    sellBtn: document.getElementById('sellBtn')
+    sellBtn: document.getElementById('sellBtn'),
+    wavePreview: document.getElementById('wavePreview'),
+    wavePreviewContent: document.getElementById('wavePreviewContent')
   };
 }
 
@@ -55,20 +54,24 @@ export function initHUD() {
   on(GameEvents.WAVE_START, ({ wave }) => {
     if (domCache.waveNum) domCache.waveNum.textContent = wave;
     if (domCache.startBtn) domCache.startBtn.disabled = true;
+    // Hide wave preview while wave is active
+    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
   });
 
   on(GameEvents.WAVE_COMPLETE, () => {
     if (domCache.startBtn) domCache.startBtn.disabled = false;
+    // Show preview of upcoming wave
+    showWavePreview();
   });
 
-  on(GameEvents.GAME_LOSE, ({ wave, score }) => {
-    if (domCache.loseWave) domCache.loseWave.textContent = wave;
-    if (domCache.loseScore) domCache.loseScore.textContent = score;
-    
-    // Use modal helper to show high score
-    import('./modals.js').then(({ showGameOverModal }) => {
-      showGameOverModal('lose');
-    });
+  on(GameEvents.GAME_LOSE, () => {
+    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
+    // Modal is handled by modals.js event listener
+  });
+
+  on(GameEvents.GAME_WIN, () => {
+    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
+    // Modal is handled by modals.js event listener
   });
 
   initialized = true;
@@ -98,23 +101,6 @@ export function updateHUD() {
 
   // Update wave button
   if (domCache.startBtn) domCache.startBtn.disabled = state.waveActive;
-
-  // Show/hide wave preview
-  updateWavePreview();
-
-  // Check for game over
-  if (state.lives <= 0 && state.running) {
-    const loseModal = document.getElementById('loseModal');
-    const loseWave = document.getElementById('loseWave');
-    const loseScore = document.getElementById('loseScore');
-
-    if (loseWave) loseWave.textContent = state.wave;
-    if (loseScore) loseScore.textContent = state.score;
-    if (loseModal) loseModal.classList.add('show');
-
-    state.running = false;
-    return;
-  }
 
   renderTowers();
 }
@@ -230,12 +216,58 @@ export function renderTowers() {
 }
 
 /**
+ * Show a compact preview of the next wave's enemy composition.
+ * Displayed between waves so players can plan.
+ */
+function showWavePreview() {
+  if (!domCache) cacheDOMElements();
+
+  const state = getState();
+  const { wave, WAVES, themeData } = state;
+
+  // Don't show if no upcoming wave
+  if (!WAVES || wave >= WAVES.length) {
+    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
+    return;
+  }
+
+  // state.wave is the last completed wave (1-based after increment).
+  // WAVES is a 0-indexed array, so WAVES[state.wave] is the *next* wave's data.
+  const nextWaveData = WAVES[wave];
+  if (!nextWaveData) {
+    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
+    return;
+  }
+
+  const parts = [];
+  Object.entries(nextWaveData).forEach(([id, count]) => {
+    const ed = themeData.enemies.find(e => e.id === id);
+    if (ed && count > 0) {
+      // Build a compact label: count × name, with icon cues for flags
+      const flags = (ed.boss ? '👑' : '') + (ed.flying ? '✈' : '') + (ed.fire ? '🔥' : '') + (ed.armor ? '🛡' : '');
+      parts.push(`${count}×${ed.nm}${flags ? ' ' + flags : ''}`);
+    }
+  });
+
+  if (parts.length === 0) {
+    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
+    return;
+  }
+
+  if (domCache.wavePreviewContent) domCache.wavePreviewContent.textContent = parts.join('  ·  ');
+  if (domCache.wavePreview) domCache.wavePreview.style.display = 'flex';
+}
+
+/**
  * Reset HUD for new game
  */
 export function resetHUD() {
   if (!domCache) cacheDOMElements();
 
   updateHUD();
+
+  // Hide wave preview on reset
+  if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
 
   // Reset sell button
   if (domCache.sellBtn) domCache.sellBtn.classList.remove('active');

@@ -7,8 +7,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Hockey vs Soccer TD</title>
 
-  <!-- Three.js r128 -->
+  <!-- Three.js r128 with CDN fallback error notification -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.body.innerHTML = '<div style="color:#fff;background:#000;padding:24px;text-align:center;font-family:sans-serif"><h2>⚠️ Failed to load 3D engine</h2><p>Please check your internet connection and reload.</p><button onclick="location.reload()" style="margin-top:12px;padding:12px 24px;font-size:1rem;cursor:pointer;border-radius:8px;border:none">Reload</button></div>';
+    }
+  </script>
 
   <!-- CSS -->
   <link rel="stylesheet" href="css/variables.css">
@@ -68,6 +73,12 @@
     </div>
   </div>
 
+  <!-- Wave preview banner (shown between waves) -->
+  <div class="wave-preview" id="wavePreview" style="display:none">
+    <span class="wave-preview-label">NEXT WAVE</span>
+    <span class="wave-preview-content" id="wavePreviewContent"></span>
+  </div>
+
   <div class="canvas-wrap"></div>
 
   <!-- Wave Preview Panel -->
@@ -123,10 +134,11 @@
     <div class="modal-stats">
       <div><div class="modal-stat-val" id="winScore">0</div><div class="modal-stat-label">Score</div></div>
       <div><div class="modal-stat-val" id="winWaves">0</div><div class="modal-stat-label">Waves</div></div>
+      <div><div class="modal-stat-val" id="winBest">—</div><div class="modal-stat-label">Best Score</div></div>
     </div>
-    <div style="display: flex; gap: 12px; width: 100%;">
-      <button class="modal-btn" style="flex: 1;" onclick="replayGame()">Replay</button>
-      <button class="modal-btn" style="flex: 1;" onclick="closeModal('win')">Continue</button>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="closeModal('win')">Menu</button>
+      <button class="modal-btn" onclick="replayGame()">Play Again</button>
     </div>
   </div>
 </div>
@@ -139,10 +151,11 @@
     <div class="modal-stats">
       <div><div class="modal-stat-val" id="loseWave">0</div><div class="modal-stat-label">Wave</div></div>
       <div><div class="modal-stat-val" id="loseScore">0</div><div class="modal-stat-label">Score</div></div>
+      <div><div class="modal-stat-val" id="loseBest">—</div><div class="modal-stat-label">Best Score</div></div>
     </div>
-    <div style="display: flex; gap: 12px; width: 100%;">
-      <button class="modal-btn" style="flex: 1;" onclick="replayGame()">Replay</button>
-      <button class="modal-btn" style="flex: 1;" onclick="closeModal('lose')">Try Again</button>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="closeModal('lose')">Menu</button>
+      <button class="modal-btn" onclick="replayGame()">Retry</button>
     </div>
   </div>
 </div>

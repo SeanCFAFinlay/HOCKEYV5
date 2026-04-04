@@ -67,9 +67,12 @@ export function spawnEnemy(ed) {
     prevY: 0.2,
     prevZ: s.y - hh + 0.5,
 
-    // Stats (scaled by wave with phased difficulty curve)
-    hp: Math.floor(ed.hp * hpScale),
-    maxHp: Math.floor(ed.hp * hpScale),
+    // Staged HP scaling: gentle early (readable), escalating mid/late (strategic challenge).
+    // Formula: base * (1 + wave*0.07 + (wave/25)^1.6 * 0.6)
+    //   Wave 1:  ~1.07x  Wave 5:  ~1.36x  Wave 10: ~1.74x
+    //   Wave 20: ~2.54x  Wave 40: ~5.0x   Wave 65: ~10.5x
+    hp: ed.hp * (1 + wave * 0.07 + Math.pow(wave / 25, 1.6) * 0.6),
+    maxHp: ed.hp * (1 + wave * 0.07 + Math.pow(wave / 25, 1.6) * 0.6),
     baseSpd: ed.spd,
     spd: ed.spd,
     rwd: Math.floor(ed.rwd * rewardScale),

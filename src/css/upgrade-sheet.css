@@ -103,7 +103,13 @@
 }
 
 .upgrade-btn:disabled {
-  background: #333;
-  color: #555;
+  background: rgba(100, 100, 100, 0.25);
+  color: rgba(255, 255, 255, 0.25);
   cursor: not-allowed;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Cost turns red when upgrade is unaffordable */
+#upBtn:disabled #upCost {
+  color: var(--red);
 }

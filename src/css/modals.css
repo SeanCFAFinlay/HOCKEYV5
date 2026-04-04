@@ -19,7 +19,7 @@
   border-radius: 24px;
   text-align: center;
   width: 100%;
-  max-width: 300px;
+  max-width: 320px;
   border: 2px solid;
 }
 
@@ -53,12 +53,13 @@
 .modal-stats {
   display: flex;
   justify-content: center;
-  gap: 28px;
+  gap: 20px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .modal-stat-val {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 800;
   color: var(--gold);
 }
@@ -68,8 +69,14 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* Two-button layout for modals */
+.modal-btns {
+  display: flex;
+  gap: 10px;
+}
+
 .modal-btn {
-  width: 100%;
+  flex: 1;
   padding: 14px;
   border: none;
   border-radius: 12px;
@@ -77,12 +84,18 @@
   font-weight: 700;
   color: #fff;
   cursor: pointer;
+  min-height: 48px;
 }
 
-.modal.win .modal-btn {
+.modal-btn.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal.win .modal-btn:not(.secondary) {
   background: var(--grass);
 }
 
-.modal.lose .modal-btn {
+.modal.lose .modal-btn:not(.secondary) {
   background: var(--red);
 }

@@ -10,7 +10,7 @@ import { updateParticles } from '../systems/particles.js';
 import { updateAnimations } from '../rendering/animations.js';
 import { updateCamera } from './camera.js';
 import { updateHUD } from '../ui/hud.js';
-import { processWaveSpawns } from '../systems/waves.js';
+import { processWaveSpawns, startWave } from '../systems/waves.js';
 
 // Fixed timestep configuration
 const FIXED_DT = 1 / 60;         // 60 FPS physics
@@ -90,6 +90,13 @@ export function gameLoop(currentTime) {
 function checkWaveCompletion() {
   const state = getState();
 
+  // Check game-over condition first
+  if (state.lives <= 0 && state.running) {
+    setRunning(false);
+    emit(GameEvents.GAME_LOSE, { wave: state.wave, score: state.score });
+    return;
+  }
+
   if (state.waveActive &&
       state.spawnsPending === 0 &&
       state.enemies.length === 0 &&
@@ -99,8 +106,9 @@ function checkWaveCompletion() {
     emit(GameEvents.WAVE_COMPLETE, { wave: state.wave });
     updateHUD();
 
-    // Auto-wave handling (scaled by game speed)
-    if (state.autoWave && state.wave < state.mapData.waves) {
+    // Auto-wave handling: use setTimeout for player-friendly delay between waves.
+    // Guard flag prevents double-fire if checkWaveCompletion runs in the same frame.
+    if (state.autoWave && state.wave < (state.mapData?.waves ?? 0)) {
       if (state.autoWaveTimer) clearTimeout(state.autoWaveTimer);
 
       // Scale delay by game speed (650ms at 1x, 325ms at 2x, 217ms at 3x)
@@ -109,10 +117,7 @@ function checkWaveCompletion() {
       const timer = setTimeout(() => {
         const currentState = getState();
         if (currentState.running && !currentState.waveActive && currentState.autoWave) {
-          // Import dynamically to avoid circular dependency
-          import('../systems/waves.js').then(({ startWave }) => {
-            startWave();
-          });
+          startWave();
         }
       }, delay);
 
@@ -120,20 +125,8 @@ function checkWaveCompletion() {
     }
 
     // Check win condition
-    if (state.wave >= state.mapData.waves) {
-      const winModal = document.getElementById('winModal');
-      const winScore = document.getElementById('winScore');
-      const winWaves = document.getElementById('winWaves');
-
-      if (winScore) winScore.textContent = state.score;
-      if (winWaves) winWaves.textContent = state.wave;
-
-      // Use modal helper to show high score
-      import('../ui/modals.js').then(({ showGameOverModal }) => {
-        showGameOverModal('win');
-      });
-
-      emit(GameEvents.GAME_WIN, { score: state.score, wave: state.wave });
+    if (state.mapData && state.wave >= state.mapData.waves) {
+      emit(GameEvents.GAME_WIN, { score: state.score, wave: state.wave }); // modals.js handles display
       setRunning(false);
     }
   }

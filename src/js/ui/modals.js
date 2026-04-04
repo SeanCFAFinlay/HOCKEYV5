@@ -1,8 +1,23 @@
 // Modal dialog management
 
 import { getState } from '../engine/state.js';
-import { selectTheme } from './screens.js';
-import { saveHighScore, getHighScore } from '../systems/highscores.js';
+import { on, GameEvents } from '../engine/events.js';
+import { selectTheme, startGame } from './screens.js';
+import { recordRun, getBestScore } from '../utils/persistence.js';
+
+/**
+ * Initialize modal event listeners.
+ * Modals react to game events — no direct calls needed from other modules.
+ */
+export function initModals() {
+  on(GameEvents.GAME_WIN, ({ score, wave }) => {
+    _showWinModal(score, wave);
+  });
+
+  on(GameEvents.GAME_LOSE, ({ wave, score }) => {
+    _showLoseModal(wave, score);
+  });
+}
 
 export function closeModal(type) {
   const state = getState();
@@ -20,45 +35,45 @@ export function closeModal(type) {
 }
 
 /**
- * Show modal with high score comparison
+ * Replay the same map without returning to the menu.
  */
-export function showGameOverModal(type) {
+export function replayGame() {
   const state = getState();
-  const { theme, mapIndex, wave, score, mapData } = state;
-  
-  const modal = document.getElementById(type + 'Modal');
-  const waveEl = document.getElementById(type + (type === 'win' ? 'Waves' : 'Wave'));
-  const scoreEl = document.getElementById(type + 'Score');
-  
-  if (waveEl) waveEl.textContent = wave;
-  if (scoreEl) scoreEl.textContent = score;
-  
-  // Check for high score
-  const highScore = getHighScore(theme, mapIndex);
-  let highScoreMsg = '';
-  
-  if (highScore) {
-    if (wave > highScore.wave || (wave === highScore.wave && score > highScore.score)) {
-      highScoreMsg = '<div style="color: #ffd700; font-size: 0.9rem; margin-top: 10px;">🏆 NEW HIGH SCORE!</div>';
-    } else {
-      highScoreMsg = `<div style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-top: 8px;">Best: Wave ${highScore.wave} • ${highScore.score} pts</div>`;
-    }
-  } else {
-    highScoreMsg = '<div style="color: #ffd700; font-size: 0.9rem; margin-top: 10px;">🏆 FIRST SCORE!</div>';
-  }
-  
-  // Add high score message to modal stats
-  const modalStats = modal.querySelector('.modal-stats');
-  if (modalStats && !modalStats.querySelector('.highscore-msg')) {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'highscore-msg';
-    msgDiv.innerHTML = highScoreMsg;
-    msgDiv.style.gridColumn = '1 / -1';
-    modalStats.appendChild(msgDiv);
-  }
-  
-  modal.classList.add('show');
+
+  document.getElementById('winModal')?.classList.remove('show');
+  document.getElementById('loseModal')?.classList.remove('show');
+
+  startGame(state.mapIndex);
+}
+
+function _showWinModal(score, waveReached) {
+  const state = getState();
+  const { theme, mapIndex } = state;
+
+  recordRun(theme, mapIndex, score, waveReached);
+  const best = getBestScore(theme, mapIndex);
+
+  const el = (id) => document.getElementById(id);
+  if (el('winScore'))  el('winScore').textContent  = score;
+  if (el('winWaves'))  el('winWaves').textContent  = waveReached;
+  if (el('winBest'))   el('winBest').textContent   = best > 0 ? best : '—';
+  el('winModal')?.classList.add('show');
+}
+
+function _showLoseModal(wave, score) {
+  const state = getState();
+  const { theme, mapIndex } = state;
+
+  recordRun(theme, mapIndex, score, wave);
+  const best = getBestScore(theme, mapIndex);
+
+  const el = (id) => document.getElementById(id);
+  if (el('loseWave'))  el('loseWave').textContent  = wave;
+  if (el('loseScore')) el('loseScore').textContent = score;
+  if (el('loseBest'))  el('loseBest').textContent  = best > 0 ? best : '—';
+  el('loseModal')?.classList.add('show');
 }
 
 // Expose to window for HTML onclick handlers
 window.closeModal = closeModal;
+window.replayGame = replayGame;
