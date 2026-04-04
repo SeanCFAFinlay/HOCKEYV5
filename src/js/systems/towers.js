@@ -49,6 +49,11 @@ export function handleCellTap(x, y) {
     cell.tower = null;
     onNavChanged();
     hideUpgrade();
+    
+    // Auto-disable sell mode after selling
+    setSellMode(false);
+    document.getElementById('sellBtn').classList.remove('active');
+    
     updateHUD();
     return;
   }

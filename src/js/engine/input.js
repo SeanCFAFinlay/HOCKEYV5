@@ -36,8 +36,113 @@ export function setupInputHandlers() {
   // Set up window resize handler immediately
   window.addEventListener('resize', onResize);
 
+  // Set up keyboard shortcuts
+  setupKeyboardShortcuts();
+
   // Check for canvas periodically
   checkCanvas();
+}
+
+/**
+ * Set up keyboard shortcuts for common actions
+ */
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Ignore if typing in input field
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const state = getState();
+    
+    // Only allow shortcuts during active gameplay
+    if (!state.running) return;
+
+    switch(e.key.toLowerCase()) {
+      case ' ':
+      case 'enter':
+        // Start wave
+        e.preventDefault();
+        if (typeof window.startWave === 'function') {
+          window.startWave();
+        }
+        break;
+
+      case 's':
+        // Toggle sell mode
+        e.preventDefault();
+        if (typeof window.toggleSell === 'function') {
+          window.toggleSell();
+        }
+        break;
+
+      case 'a':
+        // Toggle auto-wave
+        e.preventDefault();
+        if (typeof window.toggleAutoWave === 'function') {
+          window.toggleAutoWave();
+        }
+        break;
+
+      case '1':
+      case '2':
+      case '3':
+        // Set game speed
+        e.preventDefault();
+        const speed = parseInt(e.key);
+        const speedBtns = document.querySelectorAll('.speed-btn');
+        speedBtns.forEach(btn => {
+          const btnSpeed = parseInt(btn.dataset.speed);
+          btn.classList.toggle('active', btnSpeed === speed);
+          if (btnSpeed === speed) btn.click();
+        });
+        break;
+
+      case 'escape':
+        // Deselect tower / cancel sell mode
+        e.preventDefault();
+        import('./state.js').then(({ setSelectedTower, setSellMode }) => {
+          setSelectedTower(null);
+          setSellMode(false);
+          document.getElementById('sellBtn')?.classList.remove('active');
+        });
+        import('../ui/upgrade-sheet.js').then(({ hideUpgrade }) => {
+          hideUpgrade();
+        });
+        import('../ui/hud.js').then(({ renderTowers }) => {
+          renderTowers();
+        });
+        break;
+
+      case 'q':
+      case 'w':
+      case 'e':
+      case 'r':
+      case 't':
+      case 'y':
+      case 'u':
+      case 'i':
+        // Quick-select towers (1st through 8th tower)
+        e.preventDefault();
+        const towerKeys = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i'];
+        const towerIndex = towerKeys.indexOf(e.key.toLowerCase());
+        if (towerIndex >= 0 && state.themeData) {
+          const tower = state.themeData.towers[towerIndex];
+          if (tower && state.money >= tower.cost) {
+            import('./state.js').then(({ setSelectedTower, setSellMode }) => {
+              setSelectedTower(tower.id);
+              setSellMode(false);
+              document.getElementById('sellBtn')?.classList.remove('active');
+            });
+            import('../ui/upgrade-sheet.js').then(({ hideUpgrade }) => {
+              hideUpgrade();
+            });
+            import('../ui/hud.js').then(({ renderTowers }) => {
+              renderTowers();
+            });
+          }
+        }
+        break;
+    }
+  });
 }
 
 /**
@@ -86,9 +191,10 @@ function onTouchMove(e) {
       setDragMoved(true);
     }
 
-    // Update camera rotation
-    rotateCamera(-dx * 0.008);
-    state.camHeight = Math.max(5, Math.min(30, state.camHeight - dy * 0.05));
+    // Normalize rotation sensitivity by DPI (capped at 2x)
+    const dpiScale = Math.min(window.devicePixelRatio || 1, 2);
+    rotateCamera(-dx * 0.008 / dpiScale);
+    state.camHeight = Math.max(5, Math.min(30, state.camHeight - dy * 0.05 / dpiScale));
 
     setLastPosition(e.touches[0].clientX, e.touches[0].clientY);
   } else if (e.touches.length === 2) {

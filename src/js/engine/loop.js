@@ -111,12 +111,15 @@ function checkWaveCompletion() {
     if (state.autoWave && state.wave < (state.mapData?.waves ?? 0)) {
       if (state.autoWaveTimer) clearTimeout(state.autoWaveTimer);
 
+      // Scale delay by game speed (650ms at 1x, 325ms at 2x, 217ms at 3x)
+      const delay = 650 / state.gameSpeed;
+
       const timer = setTimeout(() => {
         const currentState = getState();
         if (currentState.running && !currentState.waveActive && currentState.autoWave) {
           startWave();
         }
-      }, 650);
+      }, delay);
 
       setAutoWaveTimer(timer);
     }
