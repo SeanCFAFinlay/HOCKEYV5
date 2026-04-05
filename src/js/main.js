@@ -52,6 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDebugListeners();
   }
 
+  // Hide loader once initialized
+  const loader = document.getElementById('appLoader');
+  if (loader) {
+    setTimeout(() => {
+      loader.classList.add('hidden');
+    }, 100);
+  }
+
   console.log('Initialization complete');
 });
 

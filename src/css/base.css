@@ -12,11 +12,17 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   background: var(--bg);
   color: #fff;
   position: fixed;
   touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* Prevent pull-to-refresh */
+body {
+  overscroll-behavior-y: contain;
 }
 
 /* Canvas wrapper - prevent all touch default behaviors */

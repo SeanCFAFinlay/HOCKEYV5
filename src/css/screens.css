@@ -4,7 +4,10 @@
   justify-content: center;
   align-items: center;
   padding: 20px;
-  padding-top: calc(20px + var(--safe-top));
+  padding-top: calc(20px + env(safe-area-inset-top));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  padding-left: calc(20px + env(safe-area-inset-left));
+  padding-right: calc(20px + env(safe-area-inset-right));
 }
 
 .logo {
@@ -49,12 +52,13 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 22px;
+  padding: 24px 22px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   cursor: pointer;
+  min-height: 88px;
 }
 
 .menu-card:active {
@@ -112,8 +116,10 @@
 #mapScreen {
   background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
   padding: 16px;
-  padding-top: calc(16px + var(--safe-top));
-  padding-bottom: calc(16px + var(--safe-bottom));
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-right: calc(16px + env(safe-area-inset-right));
 }
 
 .map-header {
@@ -124,14 +130,20 @@
 }
 
 .back-btn {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
   background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 12px;
   color: #fff;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .map-title {
@@ -152,9 +164,14 @@
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  padding: 14px;
+  padding: 16px 14px;
   text-align: center;
   cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .map-card:active {

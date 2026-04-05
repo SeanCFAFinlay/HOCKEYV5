@@ -2,12 +2,12 @@
   display: flex;
   gap: 8px;
   padding: 12px;
+  padding-bottom: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-}
-
-.tower-bar::-webkit-scrollbar {
-  display: none;
+  scrollbar-width: none; /* Firefox */
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
 }
 
 .tower-btn {
@@ -20,6 +20,13 @@
   text-align: center;
   backdrop-filter: blur(10px);
   cursor: pointer;
+  scroll-snap-align: start;
+  transition: all 0.2s ease;
+}
+
+/* Hide scrollbar for all browsers */
+.tower-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .tower-btn.selected {

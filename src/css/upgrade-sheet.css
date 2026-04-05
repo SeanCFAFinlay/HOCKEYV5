@@ -12,6 +12,9 @@
   transition: transform 0.25s ease-out;
   backdrop-filter: blur(20px);
   border-radius: 20px 20px 0 0;
+  max-height: 85vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .upgrade-sheet.show {
@@ -84,12 +87,16 @@
 
 .upgrade-btn {
   flex: 1;
-  padding: 14px;
+  padding: 16px 14px;
   border: none;
   border-radius: 12px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .upgrade-btn.sell {
