@@ -16,6 +16,20 @@ let pinchStartDist = 0;
 // Maximum time in ms between touchstart and touchend to count as a tap
 const TAP_THRESHOLD_MS = 200;
 
+// Debounce resize to prevent layout thrashing
+let resizeTimeout = null;
+const RESIZE_DEBOUNCE_MS = 150;
+
+function debouncedResize() {
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout);
+  }
+  resizeTimeout = setTimeout(() => {
+    onResize();
+    resizeTimeout = null;
+  }, RESIZE_DEBOUNCE_MS);
+}
+
 /**
  * Set up all input handlers
  */
@@ -34,7 +48,7 @@ export function setupInputHandlers() {
   };
 
   // Set up window resize handler immediately
-  window.addEventListener('resize', onResize);
+  window.addEventListener('resize', debouncedResize);
 
   // Set up keyboard shortcuts
   setupKeyboardShortcuts();
@@ -152,14 +166,21 @@ function setupKeyboardShortcuts() {
 export function attachHandlers(canvas) {
   if (!canvas) return;
 
+  // Touch events need preventDefault for game control, so not passive
   canvas.addEventListener('touchstart', onTouchStart, { passive: false });
   canvas.addEventListener('touchmove', onTouchMove, { passive: false });
   canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+  
+  // Mouse events
   canvas.addEventListener('mousedown', onMouseDown);
   canvas.addEventListener('mousemove', onMouseMove);
   canvas.addEventListener('mouseup', onMouseUp);
   canvas.addEventListener('mouseleave', onMouseLeave);
+  
+  // Wheel needs preventDefault for zoom control
   canvas.addEventListener('wheel', onWheel, { passive: false });
+  
+  // Click for tap handling
   canvas.addEventListener('click', onClick);
 }
 
