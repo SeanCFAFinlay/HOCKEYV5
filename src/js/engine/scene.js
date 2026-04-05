@@ -97,7 +97,6 @@ export function init3D() {
   sun.castShadow = true;
 
   // Adaptive shadow quality: lower on mobile for better performance
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const shadowMapSize = isMobile ? 1024 : 2048;
   
   // Higher quality shadows
