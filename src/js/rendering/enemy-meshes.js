@@ -142,6 +142,38 @@ export function createEnemyMesh(enemy) {
   }
 
   if (isHockey) {
+    // Determine enemy type by name for special visuals
+    const enemyName = enemy.nm || '';
+    const isSpeedSkater = enemyName.includes('Speed Skater');
+    const isDefenseman = enemyName.includes('Defenseman');
+    const isEnforcer = enemyName.includes('Enforcer');
+    
+    // Adjust body material for new enemy types
+    if (isSpeedSkater) {
+      bodyMat = new THREE.MeshStandardMaterial({
+        color: 0x00ffff, // Bright cyan for speed
+        metalness: 0.7,
+        roughness: 0.2,
+        emissive: 0x00aaaa,
+        emissiveIntensity: 0.5
+      });
+    } else if (isDefenseman) {
+      bodyMat = new THREE.MeshStandardMaterial({
+        color: 0x2244aa, // Dark blue for defenseman
+        metalness: 0.6,
+        roughness: 0.3,
+        envMapIntensity: 0.8
+      });
+    } else if (isEnforcer) {
+      bodyMat = new THREE.MeshStandardMaterial({
+        color: 0xaa2222, // Dark red for enforcer
+        metalness: 0.6,
+        roughness: 0.4,
+        emissive: 0x440000,
+        emissiveIntensity: 0.3
+      });
+    }
+    
     // PUCK - Enhanced with beveled edges and glow
     const puckBody = new THREE.Mesh(new THREE.CylinderGeometry(sz, sz, sz * 0.3, 32), bodyMat);
     puckBody.rotation.x = Math.PI / 2;
@@ -172,6 +204,93 @@ export function createEnemyMesh(enemy) {
     bevelRing.rotation.x = Math.PI / 2;
     bevelRing.position.z = sz * 0.14;
     group.add(bevelRing);
+
+    // SPECIAL FEATURES FOR NEW ENEMY TYPES
+    if (isSpeedSkater) {
+      // Speed lines trailing behind
+      for (let i = 0; i < 5; i++) {
+        const speedLine = new THREE.Mesh(
+          new THREE.PlaneGeometry(sz * 0.15, sz * 0.03),
+          new THREE.MeshBasicMaterial({ 
+            color: 0x00ffff, 
+            transparent: true, 
+            opacity: 0.6 - i * 0.1,
+            side: THREE.DoubleSide
+          })
+        );
+        speedLine.position.set(0, sz * 0.1, -sz * (0.4 + i * 0.15));
+        speedLine.rotation.x = -Math.PI / 2;
+        group.add(speedLine);
+      }
+      // Energy glow
+      const speedGlow = new THREE.Mesh(
+        new THREE.SphereGeometry(sz * 0.6, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.2 })
+      );
+      speedGlow.position.y = 0;
+      group.add(speedGlow);
+      enemy.speedGlow = speedGlow;
+    }
+
+    if (isDefenseman) {
+      // Extra armor shoulder pads
+      const shoulderPadMat = new THREE.MeshStandardMaterial({
+        color: 0x334466,
+        metalness: 0.85,
+        roughness: 0.15,
+        envMapIntensity: 1.0
+      });
+      [-1, 1].forEach(side => {
+        const shoulderPad = new THREE.Mesh(
+          new THREE.BoxGeometry(sz * 0.3, sz * 0.25, sz * 0.2),
+          shoulderPadMat
+        );
+        shoulderPad.position.set(side * sz * 0.7, sz * 0.1, 0);
+        shoulderPad.castShadow = true;
+        group.add(shoulderPad);
+        
+        // Reflective stripe
+        const stripe = new THREE.Mesh(
+          new THREE.BoxGeometry(sz * 0.32, sz * 0.05, sz * 0.22),
+          new THREE.MeshStandardMaterial({ color: 0xaaccff, metalness: 0.9, roughness: 0.1 })
+        );
+        stripe.position.set(side * sz * 0.7, sz * 0.15, 0);
+        group.add(stripe);
+      });
+    }
+
+    if (isEnforcer) {
+      // Spiked helmet effect
+      const spikeCount = 6;
+      for (let i = 0; i < spikeCount; i++) {
+        const angle = (i / spikeCount) * Math.PI * 2;
+        const spike = new THREE.Mesh(
+          new THREE.ConeGeometry(sz * 0.08, sz * 0.25, 6),
+          new THREE.MeshStandardMaterial({ 
+            color: 0xdd3333, 
+            metalness: 0.8, 
+            roughness: 0.2,
+            emissive: 0x440000,
+            emissiveIntensity: 0.4
+          })
+        );
+        spike.position.set(Math.cos(angle) * sz * 0.7, sz * 0.3, Math.sin(angle) * sz * 0.7);
+        spike.rotation.set(0, 0, -Math.PI / 3);
+        spike.castShadow = true;
+        group.add(spike);
+      }
+      // Battle scars/scratches (as decorative lines)
+      const scarMat = new THREE.MeshBasicMaterial({ color: 0x880000, side: THREE.DoubleSide });
+      for (let i = 0; i < 3; i++) {
+        const scar = new THREE.Mesh(
+          new THREE.PlaneGeometry(sz * 0.5, sz * 0.02),
+          scarMat
+        );
+        scar.position.set(0, sz * 0.05, sz * 0.16);
+        scar.rotation.z = Math.random() * Math.PI;
+        group.add(scar);
+      }
+    }
 
     if (!enemy.fire) {
       // Glowing team logo
