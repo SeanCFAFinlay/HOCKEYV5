@@ -7,6 +7,7 @@ import { attachHandlers } from './input.js';
 import { addObstacleVisuals } from '../rendering/obstacles.js';
 import { addSpawnAndPenVisuals } from '../rendering/markers.js';
 import { buildCells, buildLights, addPerimeterDecor } from '../rendering/environment.js';
+import { isMobileDevice } from '../utils/device.js';
 
 // Store ambient particles for animation
 let ambientParticles = null;
@@ -67,8 +68,7 @@ export function init3D() {
   renderer.setSize(w, h);
   
   // Adaptive pixel ratio: cap at 1.5x on mobile for better performance, 2x on desktop
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const maxPixelRatio = isMobile ? 1.5 : 2;
+  const maxPixelRatio = isMobileDevice() ? 1.5 : 2;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
 
   // Enhanced shadows
@@ -97,7 +97,7 @@ export function init3D() {
   sun.castShadow = true;
 
   // Adaptive shadow quality: lower on mobile for better performance
-  const shadowMapSize = isMobile ? 1024 : 2048;
+  const shadowMapSize = isMobileDevice() ? 1024 : 2048;
   
   // Higher quality shadows
   sun.shadow.mapSize.width = shadowMapSize;
@@ -441,8 +441,7 @@ function createAmbientParticles(isHockey) {
   const { scene, COLS, ROWS } = state;
 
   // Reduce particle count on mobile for better performance
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const particleCount = isMobile ? 50 : 100;
+  const particleCount = isMobileDevice() ? 50 : 100;
   const positions = new Float32Array(particleCount * 3);
   const colors = new Float32Array(particleCount * 3);
 

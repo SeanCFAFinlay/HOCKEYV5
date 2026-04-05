@@ -199,8 +199,8 @@ button, .tower-btn, .menu-card, .map-card {
   }
 }
 
-/* Standard phones legacy breakpoint (376px - 480px) */
-@media (min-width: 376px) and (max-width: 480px) {
+/* Larger phones (431px - 480px) */
+@media (min-width: 431px) and (max-width: 480px) {
   .tower-btn {
     width: 64px;
   }
