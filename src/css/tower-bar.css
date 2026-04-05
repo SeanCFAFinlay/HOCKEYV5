@@ -2,39 +2,12 @@
   display: flex;
   gap: 8px;
   padding: 12px;
+  padding-bottom: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none; /* Firefox */
   scroll-behavior: smooth;
-}
-
-/* Hide scrollbar for all browsers */
-.tower-bar::-webkit-scrollbar {
-  display: none;
-}
-
-/* Subtle scroll gradient hints on edges */
-.tower-bar::before,
-.tower-bar::after {
-  content: '';
-  position: sticky;
-  top: 0;
-  bottom: 0;
-  width: 20px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.tower-bar::before {
-  left: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.3), transparent);
-  margin-right: -20px;
-}
-
-.tower-bar::after {
-  right: 0;
-  background: linear-gradient(to left, rgba(0,0,0,0.3), transparent);
-  margin-left: -20px;
+  scroll-snap-type: x proximity;
 }
 
 .tower-btn {
@@ -47,6 +20,13 @@
   text-align: center;
   backdrop-filter: blur(10px);
   cursor: pointer;
+  scroll-snap-align: start;
+  transition: all 0.2s ease;
+}
+
+/* Hide scrollbar for all browsers */
+.tower-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .tower-btn.selected {
