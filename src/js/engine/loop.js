@@ -11,6 +11,8 @@ import { updateAnimations } from '../rendering/animations.js';
 import { updateCamera } from './camera.js';
 import { updateHUD } from '../ui/hud.js';
 import { processWaveSpawns, startWave } from '../systems/waves.js';
+import { updatePreviewAnimation } from './input.js';
+import { createVictoryEffect, createDefeatEffect } from '../systems/particles.js';
 
 // Fixed timestep configuration
 const FIXED_DT = 1 / 60;         // 60 FPS physics
@@ -70,6 +72,7 @@ export function gameLoop(currentTime) {
   // Variable update for smooth animations
   addAnimTime(frameTime);
   updateAnimations(frameTime);
+  updatePreviewAnimation(frameTime);
   updateCamera(frameTime);
 
   // Render
@@ -126,6 +129,9 @@ function checkWaveCompletion() {
 
     // Check win condition
     if (state.mapData && state.wave >= state.mapData.waves) {
+      // Victory celebration effect
+      createVictoryEffect();
+
       emit(GameEvents.GAME_WIN, { score: state.score, wave: state.wave }); // modals.js handles display
       setRunning(false);
     }

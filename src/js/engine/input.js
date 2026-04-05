@@ -1,17 +1,110 @@
 // Input handling - touch, mouse, keyboard events
-// Includes placement preview and smooth interactions
+// Mobile-first input state machine with improved gesture handling
 
-import { getState, setDragging, setDragMoved, setLastPosition, setTouchStart } from './state.js';
+import { getState, setDragging, setDragMoved, setLastPosition, setTouchStart, dispatch, ActionTypes } from './state.js';
 import { rotateCamera, zoomIn, zoomOut } from './camera.js';
 import { handleCellTap } from '../systems/towers.js';
 import { onResize } from './scene.js';
+import { showUpgrade } from '../ui/upgrade-sheet.js';
 
-// Preview mesh for tower placement
-let previewMesh = null;
-let previewCell = null;
+// Input state machine states
+export const InputState = {
+  IDLE: 'idle',
+  CAMERA_DRAG: 'camera_drag',
+  PINCH_ZOOM: 'pinch_zoom',
+  AWAITING_TAP: 'awaiting_tap',
+  UI_BLOCKED: 'ui_blocked'
+};
 
-// Track pinch distance separately from tap-timestamp to avoid type mismatch
+// Configuration
+const DRAG_THRESHOLD = 8; // Pixels - must move this far to count as drag
+const TAP_MAX_DURATION = 250; // ms - tap must be shorter than this
+const LONG_PRESS_DURATION = 400; // ms - hold for this long for detail view
+const PINCH_SENSITIVITY = 0.04;
+const DRAG_SENSITIVITY = 0.008;
+const HEIGHT_SENSITIVITY = 0.05;
+
+// Input state
+let inputState = InputState.IDLE;
+let touchStartPos = { x: 0, y: 0 };
+let touchStartTime = 0;
 let pinchStartDist = 0;
+let longPressTimer = null;
+let longPressTriggered = false;
+let lastTouchCell = null;
+
+// Preview mesh for tower placement - enhanced components
+let previewGroup = null;
+let previewCell = null;
+let previewAnimTime = 0;
+
+// Preview materials (cached)
+let previewMaterials = {
+  validBase: null,
+  invalidBase: null,
+  validGlow: null,
+  invalidGlow: null,
+  validRange: null,
+  invalidRange: null,
+  gridHighlight: null
+};
+
+function initPreviewMaterials() {
+  if (previewMaterials.validBase) return;
+
+  previewMaterials.validBase = new THREE.MeshStandardMaterial({
+    color: 0x22c55e,
+    metalness: 0.3,
+    roughness: 0.5,
+    transparent: true,
+    opacity: 0.7
+  });
+  previewMaterials.invalidBase = new THREE.MeshStandardMaterial({
+    color: 0xef4444,
+    metalness: 0.3,
+    roughness: 0.5,
+    transparent: true,
+    opacity: 0.7
+  });
+  previewMaterials.validGlow = new THREE.MeshBasicMaterial({
+    color: 0x22c55e,
+    transparent: true,
+    opacity: 0.4,
+    blending: THREE.AdditiveBlending
+  });
+  previewMaterials.invalidGlow = new THREE.MeshBasicMaterial({
+    color: 0xef4444,
+    transparent: true,
+    opacity: 0.4,
+    blending: THREE.AdditiveBlending
+  });
+  previewMaterials.validRange = new THREE.MeshBasicMaterial({
+    color: 0x22c55e,
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.DoubleSide
+  });
+  previewMaterials.invalidRange = new THREE.MeshBasicMaterial({
+    color: 0xef4444,
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.DoubleSide
+  });
+  previewMaterials.gridHighlight = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.3,
+    side: THREE.DoubleSide
+  });
+}
+
+/**
+ * Get current input state
+ * @returns {string}
+ */
+export function getInputState() {
+  return inputState;
+}
 
 // Maximum time in ms between touchstart and touchend to count as a tap
 const TAP_THRESHOLD_MS = 200;
@@ -34,19 +127,6 @@ function debouncedResize() {
  * Set up all input handlers
  */
 export function setupInputHandlers() {
-  // Wait for canvas to be available
-  const checkCanvas = () => {
-    const wrap = document.querySelector('.canvas-wrap');
-    const canvas = wrap?.querySelector('canvas');
-
-    if (canvas) {
-      attachHandlers(canvas);
-    } else {
-      // Canvas will be created when game starts
-      // Set up a mutation observer or just rely on game start
-    }
-  };
-
   // Set up window resize handler immediately
   window.addEventListener('resize', debouncedResize);
 
@@ -54,6 +134,13 @@ export function setupInputHandlers() {
   setupKeyboardShortcuts();
 
   // Check for canvas periodically
+  const checkCanvas = () => {
+    const wrap = document.querySelector('.canvas-wrap');
+    const canvas = wrap?.querySelector('canvas');
+    if (canvas) {
+      attachHandlers(canvas);
+    }
+  };
   checkCanvas();
 }
 
@@ -166,36 +253,116 @@ function setupKeyboardShortcuts() {
 export function attachHandlers(canvas) {
   if (!canvas) return;
 
-  // Touch events need preventDefault for game control, so not passive
+  // Touch events (mobile) - need preventDefault for game control
   canvas.addEventListener('touchstart', onTouchStart, { passive: false });
   canvas.addEventListener('touchmove', onTouchMove, { passive: false });
   canvas.addEventListener('touchend', onTouchEnd, { passive: false });
-  
-  // Mouse events
+  canvas.addEventListener('touchcancel', onTouchCancel, { passive: false });
+
+  // Mouse events (desktop)
   canvas.addEventListener('mousedown', onMouseDown);
   canvas.addEventListener('mousemove', onMouseMove);
   canvas.addEventListener('mouseup', onMouseUp);
   canvas.addEventListener('mouseleave', onMouseLeave);
-  
+
   // Wheel needs preventDefault for zoom control
   canvas.addEventListener('wheel', onWheel, { passive: false });
-  
-  // Click for tap handling
-  canvas.addEventListener('click', onClick);
 }
+
+/**
+ * Check if touch is over a UI element
+ * @param {Touch|MouseEvent} e
+ * @returns {boolean}
+ */
+function isTouchOverUI(e) {
+  const elements = document.elementsFromPoint(e.clientX, e.clientY);
+  for (const el of elements) {
+    // Check if any parent is a UI element
+    if (el.closest('.hud') ||
+        el.closest('.bottom-ui') ||
+        el.closest('.cam-btns') ||
+        el.closest('.upgrade-sheet') ||
+        el.closest('.modal-overlay')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Calculate distance between two touches
+ */
+function getTouchDistance(e) {
+  if (e.touches.length < 2) return 0;
+  const dx = e.touches[0].clientX - e.touches[1].clientX;
+  const dy = e.touches[0].clientY - e.touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Cancel any pending long press
+ */
+function cancelLongPress() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+}
+
+/**
+ * Handle long press - show tower details if over a tower
+ */
+function handleLongPress() {
+  longPressTriggered = true;
+
+  if (lastTouchCell) {
+    const state = getState();
+    const { grid } = state;
+    const cell = grid[lastTouchCell.y]?.[lastTouchCell.x];
+
+    if (cell?.tower) {
+      showUpgrade(cell.tower);
+    }
+  }
+}
+
+// ==================== TOUCH HANDLERS ====================
 
 function onTouchStart(e) {
   e.preventDefault();
 
+  // Check if touch is on UI
+  if (isTouchOverUI(e.touches[0])) {
+    inputState = InputState.UI_BLOCKED;
+    return;
+  }
+
+  // Single touch
   if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    touchStartPos = { x: touch.clientX, y: touch.clientY };
+    touchStartTime = Date.now();
+    longPressTriggered = false;
+    inputState = InputState.AWAITING_TAP;
+
     setDragging(true);
     setDragMoved(false);
-    setLastPosition(e.touches[0].clientX, e.touches[0].clientY);
-    setTouchStart(Date.now()); // Only used for tap timing
-  } else if (e.touches.length === 2) {
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    pinchStartDist = Math.sqrt(dx * dx + dy * dy); // Use local var for pinch
+    setLastPosition(touch.clientX, touch.clientY);
+    setTouchStart(touchStartTime);
+
+    // Track cell under touch for long press
+    lastTouchCell = getCellUnderPoint(touch);
+
+    // Start long press timer
+    cancelLongPress();
+    longPressTimer = setTimeout(handleLongPress, LONG_PRESS_DURATION);
+  }
+  // Two-finger pinch
+  else if (e.touches.length === 2) {
+    cancelLongPress();
+    inputState = InputState.PINCH_ZOOM;
+    pinchStartDist = getTouchDistance(e);
+    setTouchStart(pinchStartDist);
     setDragMoved(true); // Pinch is never a tap
   }
 }
@@ -204,45 +371,94 @@ function onTouchMove(e) {
   e.preventDefault();
   const state = getState();
 
-  if (e.touches.length === 1 && state.dragging) {
-    const dx = e.touches[0].clientX - state.lastX;
-    const dy = e.touches[0].clientY - state.lastY;
+  if (inputState === InputState.UI_BLOCKED) return;
 
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+  // Single touch - camera drag or awaiting tap
+  if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStartPos.x;
+    const dy = touch.clientY - touchStartPos.y;
+    const totalDistance = Math.sqrt(dx * dx + dy * dy);
+
+    // Check if we've moved enough to count as a drag
+    if (totalDistance > DRAG_THRESHOLD) {
+      cancelLongPress();
+      inputState = InputState.CAMERA_DRAG;
       setDragMoved(true);
     }
 
-    // Normalize rotation sensitivity by DPI (capped at 2x)
-    const dpiScale = Math.min(window.devicePixelRatio || 1, 2);
-    rotateCamera(-dx * 0.008 / dpiScale);
-    state.camHeight = Math.max(5, Math.min(30, state.camHeight - dy * 0.05 / dpiScale));
+    // If dragging, update camera
+    if (inputState === InputState.CAMERA_DRAG) {
+      const moveDx = touch.clientX - state.lastX;
+      const moveDy = touch.clientY - state.lastY;
 
-    setLastPosition(e.touches[0].clientX, e.touches[0].clientY);
-  } else if (e.touches.length === 2) {
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+      rotateCamera(-moveDx * DRAG_SENSITIVITY);
+      const newHeight = Math.max(5, Math.min(30, state.camHeight - moveDy * HEIGHT_SENSITIVITY));
+      dispatch(ActionTypes.SET_CAMERA_STATE, { height: newHeight });
 
-    // Use local pinchStartDist (not touchStart) to avoid type mismatch
-    state.camDist = Math.max(8, Math.min(40, state.camDist - (dist - pinchStartDist) * 0.04));
-    pinchStartDist = dist;
+      setLastPosition(touch.clientX, touch.clientY);
+    }
+  }
+  // Two-finger pinch zoom
+  else if (e.touches.length === 2 && inputState === InputState.PINCH_ZOOM) {
+    const currentDist = getTouchDistance(e);
+    const pinchDelta = currentDist - state.touchStart;
+
+    const newDist = Math.max(8, Math.min(40, state.camDist - pinchDelta * PINCH_SENSITIVITY));
+    dispatch(ActionTypes.SET_CAMERA_STATE, { dist: newDist });
+    setTouchStart(currentDist);
   }
 }
 
 function onTouchEnd(e) {
+  cancelLongPress();
   const state = getState();
 
-  // Only treat as a tap if: no drag movement AND it was a single-touch AND time was short
-  if (!state.dragMoved && e.changedTouches.length === 1 && Date.now() - state.touchStart < TAP_THRESHOLD_MS) {
+  if (inputState === InputState.UI_BLOCKED) {
+    inputState = InputState.IDLE;
+    return;
+  }
+
+  // Check for tap (short duration, minimal movement, no long press)
+  const touchDuration = Date.now() - touchStartTime;
+  const wasTap = !state.dragMoved &&
+                 touchDuration < TAP_MAX_DURATION &&
+                 !longPressTriggered &&
+                 inputState !== InputState.PINCH_ZOOM;
+
+  if (wasTap && e.changedTouches.length > 0) {
     handleTap(e.changedTouches[0]);
   }
 
+  // Reset state
+  inputState = InputState.IDLE;
   setDragging(false);
+  lastTouchCell = null;
   hidePreview();
 }
 
+function onTouchCancel(e) {
+  cancelLongPress();
+  inputState = InputState.IDLE;
+  setDragging(false);
+  lastTouchCell = null;
+  hidePreview();
+}
+
+// ==================== MOUSE HANDLERS ====================
+
 function onMouseDown(e) {
   if (e.button !== 0) return; // Only left click
+
+  // Check if click is on UI
+  if (isTouchOverUI(e)) {
+    inputState = InputState.UI_BLOCKED;
+    return;
+  }
+
+  touchStartPos = { x: e.clientX, y: e.clientY };
+  touchStartTime = Date.now();
+  inputState = InputState.AWAITING_TAP;
 
   setDragging(true);
   setDragMoved(false);
@@ -252,32 +468,57 @@ function onMouseDown(e) {
 function onMouseMove(e) {
   const state = getState();
 
-  // Update placement preview
-  if (state.selectedTower && !state.dragging) {
+  // Update placement preview when hovering (not dragging)
+  if (state.selectedTower && inputState === InputState.IDLE) {
     updatePreview(e);
   }
 
+  if (inputState === InputState.UI_BLOCKED) return;
   if (!state.dragging) return;
 
-  const dx = e.clientX - state.lastX;
-  const dy = e.clientY - state.lastY;
+  const dx = e.clientX - touchStartPos.x;
+  const dy = e.clientY - touchStartPos.y;
+  const totalDistance = Math.sqrt(dx * dx + dy * dy);
 
-  if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+  // Check if we've moved enough to count as a drag
+  if (totalDistance > DRAG_THRESHOLD / 2) { // Smaller threshold for mouse
+    inputState = InputState.CAMERA_DRAG;
     setDragMoved(true);
   }
 
-  // Update camera rotation
-  rotateCamera(-dx * 0.008);
-  state.camHeight = Math.max(5, Math.min(30, state.camHeight - dy * 0.05));
+  // If dragging, update camera
+  if (inputState === InputState.CAMERA_DRAG) {
+    const moveDx = e.clientX - state.lastX;
+    const moveDy = e.clientY - state.lastY;
 
-  setLastPosition(e.clientX, e.clientY);
+    rotateCamera(-moveDx * DRAG_SENSITIVITY);
+    const newHeight = Math.max(5, Math.min(30, state.camHeight - moveDy * HEIGHT_SENSITIVITY));
+    dispatch(ActionTypes.SET_CAMERA_STATE, { height: newHeight });
+
+    setLastPosition(e.clientX, e.clientY);
+  }
 }
 
-function onMouseUp() {
+function onMouseUp(e) {
+  const state = getState();
+
+  if (inputState === InputState.UI_BLOCKED) {
+    inputState = InputState.IDLE;
+    setDragging(false);
+    return;
+  }
+
+  // Check for click (minimal movement)
+  if (!state.dragMoved) {
+    handleTap(e);
+  }
+
+  inputState = InputState.IDLE;
   setDragging(false);
 }
 
 function onMouseLeave() {
+  inputState = InputState.IDLE;
   setDragging(false);
   hidePreview();
 }
@@ -291,22 +532,18 @@ function onWheel(e) {
   }
 }
 
-function onClick(e) {
-  const state = getState();
-  if (!state.dragMoved) {
-    handleTap(e);
-  }
-}
+// ==================== TAP HANDLING ====================
 
 /**
- * Handle tap/click on game grid
- * @param {Event} e - Mouse or touch event
+ * Get the grid cell under a point
+ * @param {Touch|MouseEvent} e
+ * @returns {Object|null} Cell coordinates {x, y} or null
  */
-function handleTap(e) {
+function getCellUnderPoint(e) {
   const state = getState();
   const { renderer, raycaster, mouse, camera, cells } = state;
 
-  if (!renderer || !raycaster || !camera) return;
+  if (!renderer || !raycaster || !camera || !cells) return null;
 
   const rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -316,11 +553,25 @@ function handleTap(e) {
   const hits = raycaster.intersectObjects(cells);
 
   if (hits.length > 0) {
-    const { x, y } = hits[0].object.userData;
-    handleCellTap(x, y);
+    return hits[0].object.userData;
+  }
+  return null;
+}
+
+/**
+ * Handle tap/click on game grid
+ * @param {Event} e - Mouse or touch event
+ */
+function handleTap(e) {
+  const cell = getCellUnderPoint(e);
+
+  if (cell) {
+    handleCellTap(cell.x, cell.y);
     hidePreview();
   }
 }
+
+// ==================== PREVIEW HANDLING ====================
 
 /**
  * Update placement preview position
@@ -332,21 +583,15 @@ function updatePreview(e) {
 
   if (!renderer || !raycaster || !camera || !selectedTower) return;
 
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  const cell = getCellUnderPoint(e);
 
-  raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(cells);
-
-  if (hits.length > 0) {
-    const { x, y } = hits[0].object.userData;
-    const cell = grid[y][x];
+  if (cell) {
+    const gridCell = grid[cell.y]?.[cell.x];
 
     // Only show preview on valid cells
-    if (cell.type === 'ground' && !cell.tower) {
-      if (previewCell?.x !== x || previewCell?.y !== y) {
-        showPreview(x, y);
+    if (gridCell?.type === 'ground' && !gridCell.tower) {
+      if (previewCell?.x !== cell.x || previewCell?.y !== cell.y) {
+        showPreview(cell.x, cell.y);
       }
     } else {
       hidePreview();
@@ -370,43 +615,90 @@ function showPreview(x, y) {
   const td = themeData.towers.find(t => t.id === selectedTower);
   if (!td) return;
 
+  initPreviewMaterials();
+
   const affordable = money >= td.cost;
   const hw = COLS / 2;
   const hh = ROWS / 2;
+  const worldX = x - hw + 0.5;
+  const worldZ = y - hh + 0.5;
 
   // Remove old preview
-  if (previewMesh) {
-    scene.remove(previewMesh);
-  }
+  hidePreview();
 
-  // Create preview mesh
-  previewMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.4, 0.4, 0.1, 16),
-    new THREE.MeshBasicMaterial({
-      color: affordable ? 0x00ff00 : 0xff0000,
-      transparent: true,
-      opacity: 0.5
-    })
-  );
+  // Create preview group
+  previewGroup = new THREE.Group();
+  previewGroup.position.set(worldX, 0, worldZ);
+  previewGroup.userData = { baseMat: null, glowMesh: null, rangeMesh: null };
 
-  previewMesh.position.set(x - hw + 0.5, 0.05, y - hh + 0.5);
-  scene.add(previewMesh);
+  // Grid cell highlight (square underneath)
+  const gridGeo = new THREE.PlaneGeometry(0.95, 0.95);
+  const gridHighlight = new THREE.Mesh(gridGeo, previewMaterials.gridHighlight);
+  gridHighlight.rotation.x = -Math.PI / 2;
+  gridHighlight.position.y = 0.01;
+  previewGroup.add(gridHighlight);
 
-  // Add range indicator
-  const rangeMesh = new THREE.Mesh(
-    new THREE.RingGeometry(td.rng[0] - 0.05, td.rng[0], 64),
-    new THREE.MeshBasicMaterial({
-      color: affordable ? 0x00ff00 : 0xff0000,
-      transparent: true,
-      opacity: 0.2,
-      side: THREE.DoubleSide
-    })
-  );
+  // Hexagonal base platform
+  const baseGeo = new THREE.CylinderGeometry(0.4, 0.45, 0.12, 6);
+  const baseMat = affordable ? previewMaterials.validBase : previewMaterials.invalidBase;
+  const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+  baseMesh.position.y = 0.06;
+  previewGroup.add(baseMesh);
+  previewGroup.userData.baseMesh = baseMesh;
+
+  // Glow ring underneath
+  const glowGeo = new THREE.CylinderGeometry(0.42, 0.47, 0.02, 6);
+  const glowMat = affordable ? previewMaterials.validGlow : previewMaterials.invalidGlow;
+  const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+  glowMesh.position.y = 0.01;
+  previewGroup.add(glowMesh);
+  previewGroup.userData.glowMesh = glowMesh;
+
+  // Outer glow ring
+  const outerGlowGeo = new THREE.TorusGeometry(0.42, 0.03, 8, 6);
+  const outerGlow = new THREE.Mesh(outerGlowGeo, glowMat);
+  outerGlow.rotation.x = Math.PI / 2;
+  outerGlow.position.y = 0.12;
+  previewGroup.add(outerGlow);
+  previewGroup.userData.outerGlow = outerGlow;
+
+  // Range indicator - outer edge
+  const rangeGeo = new THREE.RingGeometry(td.rng[0] - 0.08, td.rng[0], 64);
+  const rangeMat = affordable ? previewMaterials.validRange : previewMaterials.invalidRange;
+  const rangeMesh = new THREE.Mesh(rangeGeo, rangeMat);
   rangeMesh.rotation.x = -Math.PI / 2;
-  rangeMesh.position.set(x - hw + 0.5, 0.02, y - hh + 0.5);
-  previewMesh.add(rangeMesh);
+  rangeMesh.position.y = 0.02;
+  previewGroup.add(rangeMesh);
+  previewGroup.userData.rangeMesh = rangeMesh;
 
+  // Range indicator - inner fill (very subtle)
+  const rangeFillGeo = new THREE.CircleGeometry(td.rng[0] - 0.08, 64);
+  const rangeFillMat = new THREE.MeshBasicMaterial({
+    color: affordable ? 0x22c55e : 0xef4444,
+    transparent: true,
+    opacity: 0.05,
+    side: THREE.DoubleSide
+  });
+  const rangeFill = new THREE.Mesh(rangeFillGeo, rangeFillMat);
+  rangeFill.rotation.x = -Math.PI / 2;
+  rangeFill.position.y = 0.015;
+  previewGroup.add(rangeFill);
+
+  // Tower icon indicator (floating above)
+  const iconGeo = new THREE.OctahedronGeometry(0.08, 0);
+  const iconMat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(td.clr),
+    transparent: true,
+    opacity: 0.9
+  });
+  const iconMesh = new THREE.Mesh(iconGeo, iconMat);
+  iconMesh.position.y = 0.35;
+  previewGroup.add(iconMesh);
+  previewGroup.userData.iconMesh = iconMesh;
+
+  scene.add(previewGroup);
   previewCell = { x, y };
+  previewAnimTime = 0;
 }
 
 /**
@@ -415,9 +707,20 @@ function showPreview(x, y) {
 function hidePreview() {
   const state = getState();
 
-  if (previewMesh && state.scene) {
-    state.scene.remove(previewMesh);
-    previewMesh = null;
+  if (previewGroup && state.scene) {
+    // Dispose all geometries in the group
+    previewGroup.traverse((child) => {
+      if (child.geometry) {
+        child.geometry.dispose();
+      }
+      // Don't dispose cached materials
+      if (child.material && !Object.values(previewMaterials).includes(child.material)) {
+        child.material.dispose();
+      }
+    });
+
+    state.scene.remove(previewGroup);
+    previewGroup = null;
   }
 
   previewCell = null;
@@ -427,5 +730,49 @@ function hidePreview() {
  * Clear preview (call on game end)
  */
 export function clearPreview() {
+  hidePreview();
+}
+
+/**
+ * Update preview animation (call from game loop)
+ * @param {number} dt - Delta time
+ */
+export function updatePreviewAnimation(dt) {
+  if (!previewGroup) return;
+
+  previewAnimTime += dt;
+  const t = previewAnimTime;
+
+  // Animate glow pulsing
+  if (previewGroup.userData.glowMesh) {
+    const glowScale = 1 + Math.sin(t * 4) * 0.1;
+    previewGroup.userData.glowMesh.scale.setScalar(glowScale);
+    previewGroup.userData.glowMesh.material.opacity = 0.3 + Math.sin(t * 3) * 0.15;
+  }
+
+  // Animate outer glow ring
+  if (previewGroup.userData.outerGlow) {
+    previewGroup.userData.outerGlow.material.opacity = 0.5 + Math.sin(t * 5) * 0.2;
+  }
+
+  // Animate floating icon
+  if (previewGroup.userData.iconMesh) {
+    previewGroup.userData.iconMesh.position.y = 0.35 + Math.sin(t * 3) * 0.05;
+    previewGroup.userData.iconMesh.rotation.y = t * 2;
+  }
+
+  // Animate range mesh
+  if (previewGroup.userData.rangeMesh) {
+    previewGroup.userData.rangeMesh.material.opacity = 0.12 + Math.sin(t * 2) * 0.05;
+  }
+}
+
+/**
+ * Reset input state (call on game reset)
+ */
+export function resetInputState() {
+  cancelLongPress();
+  inputState = InputState.IDLE;
+  lastTouchCell = null;
   hidePreview();
 }

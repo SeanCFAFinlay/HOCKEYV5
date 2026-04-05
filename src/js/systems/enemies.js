@@ -1,13 +1,14 @@
 // Enemy spawning and movement with state machine
 // Delta-time based, deterministic movement
 
-import { getState, addEnemy, decrementLives, decrementSpawnsPending, addMoney, addScore } from '../engine/state.js';
+import { getState, addEnemy, decrementLives, decrementSpawnsPending, addMoney, addScore, incrementKills } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { findPathGrid, onNavChanged } from './pathfinding.js';
 import { createEnemyMesh, returnEnemyMesh } from '../rendering/enemy-meshes.js';
 import { attachEnemyPowerLabel } from '../rendering/sprites.js';
 import { updateHUD } from '../ui/hud.js';
 import { hideUpgrade } from '../ui/upgrade-sheet.js';
+import { assertDefined, assertPositiveNumber, warnIf } from '../utils/assertions.js';
 
 // Enemy state machine states
 export const EnemyState = {
@@ -23,10 +24,20 @@ export const EnemyState = {
  * @param {Object} ed - Enemy definition
  */
 export function spawnEnemy(ed) {
+  // Validate enemy definition
+  assertDefined(ed, 'enemy definition');
+  assertDefined(ed.id, 'enemy.id');
+  assertPositiveNumber(ed.hp, 'enemy.hp');
+  assertPositiveNumber(ed.spd, 'enemy.spd');
+  assertPositiveNumber(ed.rwd, 'enemy.rwd');
+
   const state = getState();
   const { COLS, ROWS, SPAWNS, wave, scene } = state;
   const hw = COLS / 2;
   const hh = ROWS / 2;
+
+  // Validate game state
+  warnIf(SPAWNS.length === 0, 'No spawn points defined');
 
   // Deterministic spawn point selection
   const spawnIndex = state.enemies.length % SPAWNS.length;
@@ -399,6 +410,7 @@ function handleEnemyDeath(e, index) {
   // Award rewards
   addMoney(e.rwd);
   addScore(Math.floor(e.rwd * 1.5));
+  incrementKills();
 
   // Remove from array
   state.enemies.splice(index, 1);

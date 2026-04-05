@@ -5,6 +5,7 @@ import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpaw
 import { emit, GameEvents } from '../engine/events.js';
 import { spawnEnemy } from './enemies.js';
 import { updateHUD } from '../ui/hud.js';
+import { createSpawnPulse, createWaveComplete } from './particles.js';
 
 // Spawn queue state
 let spawnQueue = [];
@@ -26,6 +27,9 @@ export function startWave() {
   const currentWave = state.wave;
   emit(GameEvents.WAVE_START, { wave: currentWave });
   updateHUD();
+
+  // Visual effect - spawn portal pulse
+  createSpawnPulse();
 
   const waveData = WAVES[currentWave - 1] || {};
 
@@ -82,6 +86,10 @@ export function checkWaveCompletion() {
     setWaveActive(false);
     emit(GameEvents.WAVE_END, { wave: state.wave });
     updateHUD();
+
+    // Visual effect - wave complete celebration
+    createWaveComplete();
+
     return true;
   }
 
@@ -93,13 +101,13 @@ export function checkWaveCompletion() {
  */
 export function toggleAutoWave() {
   const state = getState();
-  const newMode = !state.autoWave;
-  setAutoWave(newMode); // Use dispatch to update state properly
+  const newAutoWave = !state.autoWave;
+  setAutoWave(newAutoWave);
 
   const b = document.getElementById('autoBtn');
   if (b) {
-    b.textContent = newMode ? 'AUTO: ON' : 'AUTO: OFF';
-    b.classList.toggle('on', newMode);
+    b.textContent = newAutoWave ? 'AUTO: ON' : 'AUTO: OFF';
+    b.classList.toggle('on', newAutoWave);
   }
 }
 

@@ -6,6 +6,18 @@ import { onNavChanged } from '../systems/pathfinding.js';
 import { createTowerMesh } from '../rendering/tower-meshes.js';
 import { updateHUD } from './hud.js';
 
+// Tower role descriptions for upgrade sheet
+const ROLE_DESCRIPTIONS = {
+  'ANTI-SWARM': 'Fast Attack',
+  'SNIPER': 'Long Range',
+  'SPLASH': 'Area Damage',
+  'CROWD_CONTROL': 'Slows Enemies',
+  'CHOKEPOINT': 'High Damage',
+  'CHAIN': 'Multi-Target',
+  'DOT': 'Burn Damage',
+  'BOSS_KILLER': 'Boss Killer'
+};
+
 export function showUpgrade(tower) {
   const state = getState();
   const { themeData } = state;
@@ -16,6 +28,7 @@ export function showUpgrade(tower) {
   document.getElementById('upIcon').textContent = td.icon;
   document.getElementById('upName').textContent = td.nm;
   document.getElementById('upLevel').textContent = 'Level ' + (tower.lv + 1);
+  document.getElementById('upRole').textContent = ROLE_DESCRIPTIONS[td.role] || td.role || '';
   document.getElementById('upDmg').textContent = td.dmg[tower.lv];
   document.getElementById('upRng').textContent = td.rng[tower.lv].toFixed(1);
   document.getElementById('upRate').textContent = td.rate[tower.lv].toFixed(2);

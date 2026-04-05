@@ -96,11 +96,18 @@
   <div class="hud">
     <div class="hud-left">
       <button class="hud-menu" onclick="exitGame()">✕</button>
-      <div class="hud-wave">🌊 <span id="waveNum">0</span>/<span id="waveMax">20</span></div>
+      <div class="hud-wave-group">
+        <div class="hud-wave">🌊 <span id="waveNum">0</span>/<span id="waveMax">20</span></div>
+        <div class="hud-wave-theme" id="waveTheme"></div>
+      </div>
+    </div>
+    <div class="hud-center">
+      <div class="hud-stat enemies" id="enemyCounter">👾<span id="enemyCount">0</span></div>
     </div>
     <div class="hud-right">
-      <div class="hud-stat money">💰<span id="moneyVal">500</span></div>
-      <div class="hud-stat lives">❤️<span id="livesVal">20</span></div>
+      <div class="hud-stat kills">💀<span id="killsVal">0</span></div>
+      <div class="hud-stat money" id="moneyStat">💰<span id="moneyVal">500</span></div>
+      <div class="hud-stat lives" id="livesStat">❤️<span id="livesVal">20</span></div>
       <div class="hud-stat score">⭐<span id="scoreVal">0</span></div>
     </div>
   </div>
@@ -139,7 +146,11 @@
   <div class="upgrade-handle"></div>
   <div class="upgrade-header">
     <div class="upgrade-icon" id="upIcon">🏒</div>
-    <div class="upgrade-info"><h3 id="upName">Tower</h3><p id="upLevel">Level 1</p></div>
+    <div class="upgrade-info">
+      <h3 id="upName">Tower</h3>
+      <p id="upLevel">Level 1</p>
+      <span class="upgrade-role" id="upRole">Fast</span>
+    </div>
   </div>
   <div class="upgrade-stats">
     <div class="upgrade-stat"><div class="upgrade-stat-label">DMG</div><div class="upgrade-stat-value" id="upDmg">50</div><div class="upgrade-stat-next" id="upDmgNext">→75</div></div>

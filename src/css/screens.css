@@ -206,10 +206,51 @@
   opacity: 0.2;
 }
 
-.map-stars span.on {
+.map-stars span.on,
+.map-stars span.diff {
+  opacity: 0.5;
+}
+
+.map-stars.earned span {
+  color: var(--gold);
   opacity: 1;
 }
 
+/* Locked map cards */
+.map-card.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.map-card.locked .map-card-name {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.map-card.locked:active {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Completed map cards */
+.map-card.completed {
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.map-card.completed .map-card-icon::after {
+  content: '✓';
+  position: absolute;
+  font-size: 0.6rem;
+  color: var(--grass);
+}
+
+/* Best score display */
+.map-best-score {
+  font-size: 0.65rem;
+  color: var(--gold);
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* High score display (legacy support) */
 .map-card-highscore {
   font-size: 0.7rem;
   color: var(--gold);
@@ -217,6 +258,18 @@
   font-weight: 600;
   opacity: 0.8;
 }
+
+/* Shake animation for locked cards */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.map-card.shake {
+  animation: shake 0.3s ease;
+}
+
 
 /* Game Screen */
 #gameScreen {

@@ -1,8 +1,10 @@
 // HUD updates and tower bar rendering
 
-import { getState, setSelectedTower, setSellMode, subscribeToState } from '../engine/state.js';
+import { getState, setSelectedTower, setSellMode, subscribeToState, setRunning } from '../engine/state.js';
 import { on, GameEvents } from '../engine/events.js';
 import { hideUpgrade } from './upgrade-sheet.js';
+import { createDefeatEffect } from '../systems/particles.js';
+import { getWaveThemeName } from '../config/waves.js';
 
 // DOM element cache
 let domCache = null;
@@ -10,16 +12,37 @@ let domCache = null;
 // Initialization flag
 let initialized = false;
 
+// Track previous money for animation direction
+let prevMoneyValue = 0;
+
+// Tower role display names
+const ROLE_DISPLAY = {
+  'ANTI-SWARM': 'Fast',
+  'SNIPER': 'Sniper',
+  'SPLASH': 'AOE',
+  'CROWD_CONTROL': 'Slow',
+  'CHOKEPOINT': 'Guard',
+  'CHAIN': 'Chain',
+  'DOT': 'Burn',
+  'BOSS_KILLER': 'Boss'
+};
+
 /**
  * Cache DOM elements
  */
 function cacheDOMElements() {
   domCache = {
     moneyVal: document.getElementById('moneyVal'),
+    moneyStat: document.getElementById('moneyStat'),
     waveNum: document.getElementById('waveNum'),
     waveMax: document.getElementById('waveMax'),
+    waveTheme: document.getElementById('waveTheme'),
     livesVal: document.getElementById('livesVal'),
+    livesStat: document.getElementById('livesStat'),
     scoreVal: document.getElementById('scoreVal'),
+    killsVal: document.getElementById('killsVal'),
+    enemyCount: document.getElementById('enemyCount'),
+    enemyCounter: document.getElementById('enemyCounter'),
     startBtn: document.getElementById('startBtn'),
     towerBar: document.getElementById('towerBar'),
     sellBtn: document.getElementById('sellBtn'),
@@ -35,33 +58,88 @@ export function initHUD() {
   if (initialized) return;
 
   cacheDOMElements();
+  prevMoneyValue = getState().money;
 
   // Subscribe to state changes
-  subscribeToState('money', (newVal) => {
+  subscribeToState('money', (newVal, oldVal) => {
     if (domCache.moneyVal) domCache.moneyVal.textContent = newVal;
+
+    // Trigger money animation
+    if (domCache.moneyStat && oldVal !== undefined) {
+      const delta = newVal - oldVal;
+      domCache.moneyStat.classList.remove('pulse-gain', 'pulse-spend');
+
+      // Force reflow to restart animation
+      void domCache.moneyStat.offsetWidth;
+
+      if (delta > 0) {
+        domCache.moneyStat.classList.add('pulse-gain');
+      } else if (delta < 0) {
+        domCache.moneyStat.classList.add('pulse-spend');
+      }
+    }
+
     renderTowers();
   });
 
   subscribeToState('lives', (newVal) => {
     if (domCache.livesVal) domCache.livesVal.textContent = newVal;
+
+    // Low lives warning
+    if (domCache.livesStat) {
+      const state = getState();
+      const maxLives = state.mapData?.lives || 20;
+      const threshold = Math.ceil(maxLives * 0.25);
+
+      if (newVal <= threshold && newVal > 0) {
+        domCache.livesStat.classList.add('warning');
+      } else {
+        domCache.livesStat.classList.remove('warning');
+      }
+    }
   });
 
   subscribeToState('score', (newVal) => {
     if (domCache.scoreVal) domCache.scoreVal.textContent = newVal;
   });
 
+  subscribeToState('kills', (newVal) => {
+    if (domCache.killsVal) domCache.killsVal.textContent = newVal;
+  });
+
   // Subscribe to events
   on(GameEvents.WAVE_START, ({ wave }) => {
     if (domCache.waveNum) domCache.waveNum.textContent = wave;
     if (domCache.startBtn) domCache.startBtn.disabled = true;
+
     // Hide wave preview while wave is active
     if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
+
+    // Update wave theme
+    updateWaveTheme(wave);
+
+    // Activate enemy counter
+    if (domCache.enemyCounter) {
+      domCache.enemyCounter.classList.add('active');
+    }
   });
 
   on(GameEvents.WAVE_COMPLETE, () => {
     if (domCache.startBtn) domCache.startBtn.disabled = false;
+
     // Show preview of upcoming wave
     showWavePreview();
+
+    // Clear wave theme after wave
+    if (domCache.waveTheme) {
+      domCache.waveTheme.textContent = '';
+      domCache.waveTheme.className = 'hud-wave-theme';
+    }
+
+    // Deactivate enemy counter
+    if (domCache.enemyCounter) {
+      domCache.enemyCounter.classList.remove('active');
+    }
   });
 
   on(GameEvents.GAME_LOSE, () => {
@@ -75,6 +153,30 @@ export function initHUD() {
   });
 
   initialized = true;
+}
+
+/**
+ * Update wave theme display
+ */
+function updateWaveTheme(wave) {
+  if (!domCache.waveTheme) return;
+
+  const state = getState();
+  const totalWaves = state.mapData?.waves || 20;
+  const themeName = getWaveThemeName(wave, totalWaves);
+
+  domCache.waveTheme.textContent = themeName;
+  domCache.waveTheme.className = 'hud-wave-theme';
+
+  // Add theme-specific class for coloring
+  const themeClass = themeName.toLowerCase().replace(' ', '-');
+  if (themeClass === 'air-raid') {
+    domCache.waveTheme.classList.add('air');
+  } else if (themeClass === 'inferno') {
+    domCache.waveTheme.classList.add('fire');
+  } else {
+    domCache.waveTheme.classList.add(themeClass);
+  }
 }
 
 /**
@@ -99,8 +201,43 @@ export function updateHUD() {
   // Update score
   if (domCache.scoreVal) domCache.scoreVal.textContent = state.score;
 
+  // Update kills
+  if (domCache.killsVal) domCache.killsVal.textContent = state.kills;
+
+  // Update enemy count
+  if (domCache.enemyCount) {
+    const remaining = state.enemies.length + state.spawnsPending;
+    domCache.enemyCount.textContent = remaining;
+  }
+
   // Update wave button
   if (domCache.startBtn) domCache.startBtn.disabled = state.waveActive;
+
+  // Update lives warning
+  if (domCache.livesStat && state.mapData) {
+    const threshold = Math.ceil(state.mapData.lives * 0.25);
+    if (state.lives <= threshold && state.lives > 0) {
+      domCache.livesStat.classList.add('warning');
+    } else {
+      domCache.livesStat.classList.remove('warning');
+    }
+  }
+
+  // Update enemy counter active state
+  if (domCache.enemyCounter) {
+    if (state.waveActive) {
+      domCache.enemyCounter.classList.add('active');
+    } else {
+      domCache.enemyCounter.classList.remove('active');
+    }
+  }
+
+  // Check for game over (handled by loop.js and modals.js)
+  if (state.lives <= 0 && state.running) {
+    // Defeat visual effect
+    createDefeatEffect();
+    // Modal display handled by modals.js event listener
+  }
 
   renderTowers();
 }
@@ -190,9 +327,13 @@ export function renderTowers() {
 
     btn.style.setProperty('--c', t.clr);
 
+    // Get role display name
+    const roleDisplay = ROLE_DISPLAY[t.role] || '';
+
     btn.innerHTML = `
       <div class="tower-btn-icon">${t.icon}</div>
       <div class="tower-btn-name">${t.nm}</div>
+      ${roleDisplay ? `<div class="tower-btn-role">${roleDisplay}</div>` : ''}
       <div class="tower-btn-cost">$${t.cost}</div>
     `;
 
@@ -264,6 +405,9 @@ function showWavePreview() {
 export function resetHUD() {
   if (!domCache) cacheDOMElements();
 
+  // Reset previous money tracking
+  prevMoneyValue = getState().money;
+
   updateHUD();
 
   // Hide wave preview on reset
@@ -283,4 +427,25 @@ export function resetHUD() {
   document.querySelectorAll('.speed-btn').forEach(btn => {
     btn.classList.toggle('active', +btn.dataset.speed === 1);
   });
+
+  // Reset wave theme
+  if (domCache.waveTheme) {
+    domCache.waveTheme.textContent = '';
+    domCache.waveTheme.className = 'hud-wave-theme';
+  }
+
+  // Reset lives warning
+  if (domCache.livesStat) {
+    domCache.livesStat.classList.remove('warning');
+  }
+
+  // Reset money animations
+  if (domCache.moneyStat) {
+    domCache.moneyStat.classList.remove('pulse-gain', 'pulse-spend');
+  }
+
+  // Reset enemy counter
+  if (domCache.enemyCounter) {
+    domCache.enemyCounter.classList.remove('active');
+  }
 }

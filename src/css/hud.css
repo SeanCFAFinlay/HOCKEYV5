@@ -10,7 +10,7 @@
   padding-right: calc(12px + env(safe-area-inset-right));
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 80%, transparent 100%);
   pointer-events: none;
 }
@@ -21,8 +21,14 @@
 
 .hud-left {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
+}
+
+.hud-wave-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .hud-menu {
@@ -53,22 +59,51 @@
   backdrop-filter: blur(10px);
 }
 
+.hud-wave-theme {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  padding: 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-height: 18px;
+}
+
+.hud-wave-theme.swarm { color: #22c55e; }
+.hud-wave-theme.heavy { color: #f97316; }
+.hud-wave-theme.air { color: #38bdf8; }
+.hud-wave-theme.fire { color: #ef4444; }
+.hud-wave-theme.boss { color: #ffd700; text-shadow: 0 0 8px #ffd700; }
+.hud-wave-theme.breather { color: #a855f7; }
+
+.hud-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(10px + var(--safe-top));
+}
+
 .hud-right {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 50%;
 }
 
 .hud-stat {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   background: rgba(0, 0, 0, 0.7);
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .hud-stat.money {
@@ -81,6 +116,52 @@
 
 .hud-stat.score {
   color: var(--grass);
+}
+
+.hud-stat.kills {
+  color: #a855f7;
+}
+
+.hud-stat.enemies {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+/* Money pulse animation */
+.hud-stat.money.pulse-gain {
+  animation: money-gain 0.4s ease-out;
+}
+
+.hud-stat.money.pulse-spend {
+  animation: money-spend 0.3s ease-out;
+}
+
+@keyframes money-gain {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); box-shadow: 0 0 15px var(--gold); }
+  100% { transform: scale(1); }
+}
+
+@keyframes money-spend {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Lives warning animation */
+.hud-stat.lives.warning {
+  animation: lives-warning 0.8s ease-in-out infinite;
+}
+
+@keyframes lives-warning {
+  0%, 100% { box-shadow: 0 0 5px var(--red); }
+  50% { box-shadow: 0 0 20px var(--red), 0 0 30px var(--red); border-color: var(--red); }
+}
+
+/* Enemy counter active during wave */
+.hud-stat.enemies.active {
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 /* Wave preview banner shown between waves */

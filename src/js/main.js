@@ -4,6 +4,16 @@
 // Import event system first
 import { on, GameEvents } from './engine/events.js';
 
+// Import config validation
+import { runValidation } from './config/validation.js';
+import { THEMES } from './config/themes.js';
+
+// Import productization systems
+import { initStorage } from './systems/storage.js';
+import { initProgression } from './systems/progression.js';
+import { initAchievements, getAllAchievements, getAchievementProgress } from './systems/achievements.js';
+import * as Settings from './systems/settings.js';
+
 // Import UI modules (these set up window handlers)
 import './ui/screens.js';
 import { initModals } from './ui/modals.js';
@@ -38,6 +48,18 @@ const DEBUG = false;
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Hockey vs Soccer TD - Initializing...');
 
+  // Validate all config data on startup
+  const configValid = runValidation(THEMES, false);
+  if (!configValid) {
+    console.warn('Config validation failed - game may have issues');
+  }
+
+  // Initialize productization systems
+  initStorage();
+  initProgression();
+  initAchievements();
+  console.log('Save/progression systems initialized');
+
   // Set up input handlers
   setupInputHandlers();
 
@@ -46,6 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize modal event listeners (win/lose handlers via game events)
   initModals();
+
+  // Set up achievement notification listener
+  on(GameEvents.ACHIEVEMENT_UNLOCKED, ({ achievement }) => {
+    showAchievementNotification(achievement);
+  });
 
   // Set up global event handlers for debugging
   if (DEBUG) {
@@ -62,6 +89,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('Initialization complete');
 });
+
+/**
+ * Show achievement unlock notification
+ * @param {Object} achievement - Achievement data
+ */
+function showAchievementNotification(achievement) {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = 'achievement-notification';
+  notification.innerHTML = `
+    <div class="achievement-icon">${achievement.icon}</div>
+    <div class="achievement-text">
+      <div class="achievement-title">Achievement Unlocked!</div>
+      <div class="achievement-name">${achievement.name}</div>
+    </div>
+  `;
+
+  document.body.appendChild(notification);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    notification.classList.add('show');
+  });
+
+  // Remove after delay
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
 
 // Debug event listeners
 function setupDebugListeners() {

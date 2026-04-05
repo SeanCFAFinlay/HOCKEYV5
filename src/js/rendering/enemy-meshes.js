@@ -700,6 +700,134 @@ export function createEnemyMesh(enemy) {
   // Motion trail group (populated during movement)
   enemy.trailParticles = [];
 
+  // === STATUS EFFECT VISUALS ===
+  // These are created once and toggled visible based on status
+
+  // Slow effect - ice crystals and frost aura
+  const slowGroup = new THREE.Group();
+  slowGroup.visible = false;
+
+  // Frost aura ring
+  const frostAura = new THREE.Mesh(
+    new THREE.RingGeometry(sz * 0.9, sz * 1.1, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0x88ddff,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.DoubleSide
+    })
+  );
+  frostAura.rotation.x = -Math.PI / 2;
+  frostAura.position.y = 0.05;
+  slowGroup.add(frostAura);
+
+  // Ice crystals orbiting
+  enemy.iceCrystals = [];
+  for (let i = 0; i < 6; i++) {
+    const crystal = new THREE.Mesh(
+      new THREE.OctahedronGeometry(sz * 0.08, 0),
+      new THREE.MeshBasicMaterial({
+        color: 0xaaeeff,
+        transparent: true,
+        opacity: 0.85
+      })
+    );
+    const angle = (i / 6) * Math.PI * 2;
+    crystal.position.set(
+      Math.cos(angle) * sz * 1.0,
+      sz * 0.3 + Math.sin(i) * sz * 0.1,
+      Math.sin(angle) * sz * 1.0
+    );
+    slowGroup.add(crystal);
+    enemy.iceCrystals.push({ mesh: crystal, baseAngle: angle });
+  }
+
+  // Frost particles floating up
+  enemy.frostParticles = [];
+  for (let i = 0; i < 4; i++) {
+    const frost = new THREE.Mesh(
+      new THREE.SphereGeometry(sz * 0.04, 6, 6),
+      new THREE.MeshBasicMaterial({
+        color: 0xccffff,
+        transparent: true,
+        opacity: 0.7
+      })
+    );
+    const angle = (i / 4) * Math.PI * 2;
+    frost.position.set(
+      Math.cos(angle) * sz * 0.6,
+      sz * 0.5,
+      Math.sin(angle) * sz * 0.6
+    );
+    slowGroup.add(frost);
+    enemy.frostParticles.push({ mesh: frost, offset: i });
+  }
+
+  group.add(slowGroup);
+  enemy.slowGroup = slowGroup;
+  enemy.frostAura = frostAura;
+
+  // Burn effect - fire particles and heat shimmer
+  const burnGroup = new THREE.Group();
+  burnGroup.visible = false;
+
+  // Heat shimmer aura
+  const heatAura = new THREE.Mesh(
+    new THREE.SphereGeometry(sz * 1.2, 12, 12),
+    new THREE.MeshBasicMaterial({
+      color: 0xff4400,
+      transparent: true,
+      opacity: 0.15,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  burnGroup.add(heatAura);
+
+  // Burn flames
+  enemy.burnFlames = [];
+  for (let i = 0; i < 8; i++) {
+    const burnFlame = new THREE.Mesh(
+      new THREE.ConeGeometry(sz * 0.1, sz * 0.25, 6),
+      new THREE.MeshBasicMaterial({
+        color: i % 2 === 0 ? 0xff2200 : 0xff6600,
+        transparent: true,
+        opacity: 0.85
+      })
+    );
+    const angle = (i / 8) * Math.PI * 2;
+    burnFlame.position.set(
+      Math.cos(angle) * sz * 0.75,
+      sz * 0.15,
+      Math.sin(angle) * sz * 0.75
+    );
+    burnGroup.add(burnFlame);
+    enemy.burnFlames.push({ mesh: burnFlame, baseAngle: angle });
+  }
+
+  // Ember particles
+  enemy.burnEmbers = [];
+  for (let i = 0; i < 5; i++) {
+    const ember = new THREE.Mesh(
+      new THREE.SphereGeometry(sz * 0.03, 4, 4),
+      new THREE.MeshBasicMaterial({
+        color: 0xffaa00,
+        transparent: true,
+        opacity: 0.9
+      })
+    );
+    ember.position.set(
+      (Math.random() - 0.5) * sz * 1.0,
+      sz * 0.8 + Math.random() * sz * 0.3,
+      (Math.random() - 0.5) * sz * 1.0
+    );
+    burnGroup.add(ember);
+    enemy.burnEmbers.push({ mesh: ember, offset: i });
+  }
+
+  group.add(burnGroup);
+  enemy.burnGroup = burnGroup;
+  enemy.heatAura = heatAura;
+
   group.position.set(enemy.x, enemy.flying ? 1.2 : 0.2, enemy.z);
 
   return group;
