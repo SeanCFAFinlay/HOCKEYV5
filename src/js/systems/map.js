@@ -3,6 +3,7 @@
 import { getState, setGrid, setSpawnsAndBase, incrementNavVersion } from '../engine/state.js';
 import { mulberry32, makeSeededRng, hash2 } from '../utils/rng.js';
 import { findPathGrid } from './pathfinding.js';
+import { HOCKEY_LEVEL_LAYOUTS } from '../config/level-layouts.js';
 
 export function generateMap() {
   const state = getState();
@@ -63,6 +64,11 @@ export function generateObstacles() {
     }
   }
 
+  // Get level-specific layout if available (hockey only for now)
+  const levelLayout = (theme === 'hockey' && mapIndex < HOCKEY_LEVEL_LAYOUTS.length) 
+    ? HOCKEY_LEVEL_LAYOUTS[mapIndex] 
+    : null;
+
   const themeSalt = (theme === 'hockey') ? 17 : 29;
   const seed = ((mapIndex + 1) * 10007 + themeSalt) >>> 0;
   const rng = mulberry32(seed);
@@ -109,7 +115,13 @@ export function generateObstacles() {
     return best;
   };
 
-  const target = Math.max(10, Math.floor(COLS * ROWS * (0.09 + mapIndex * 0.01)));
+  // Use level-specific obstacle count if available
+  let target;
+  if (levelLayout && levelLayout.layout.obstacleCount) {
+    target = levelLayout.layout.obstacleCount;
+  } else {
+    target = Math.max(10, Math.floor(COLS * ROWS * (0.09 + mapIndex * 0.01)));
+  }
 
   const addWall = (sx, sy, horiz, len) => {
     let ok = 0;
@@ -211,8 +223,34 @@ export function generateObstacles() {
     }
   };
 
-  // Select generator based on map index (cycle through 5 patterns for all 10 maps)
-  [gen0, gen1, gen2, gen3, gen4][mapIndex % 5]();
+  // Select generator based on level layout or map index
+  let patternIndex = mapIndex % 5;
+  if (levelLayout) {
+    const { obstaclePattern } = levelLayout.layout;
+    const patternMap = {
+      'scattered': 0,
+      'corridor': 1,
+      'split': 2,
+      'defensive': 3,
+      'winding': 4,
+      'organic': 0,
+      'minimal': 0,
+      'maze': 2,
+      'multi': 3,
+      'ultimate': 4,
+      'narrow': 1,
+      'tight': 3,
+      'long': 4,
+      'curved': 2,
+      'direct': 0,
+      'complex': 4,
+      'split3': 3,
+      'extreme': 4
+    };
+    patternIndex = patternMap[obstaclePattern] !== undefined ? patternMap[obstaclePattern] : patternIndex;
+  }
+  
+  [gen0, gen1, gen2, gen3, gen4][patternIndex]();
 
   // Top up if under-filled
   let placed = 0;

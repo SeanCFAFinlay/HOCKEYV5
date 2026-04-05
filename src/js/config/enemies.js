@@ -72,6 +72,33 @@ export const HOCKEY_ENEMIES = [
     armor: 0.35,
     boss: true,
     sz: 2.2
+  },
+  // NEW HOCKEY-THEMED ENEMIES
+  {
+    id: 'e8',
+    nm: 'Speed Skater',
+    hp: 35,
+    spd: 3.5, // Very fast
+    rwd: 12,
+    sz: 0.85
+  },
+  {
+    id: 'e9',
+    nm: 'Defenseman',
+    hp: 350,
+    spd: 0.6, // Slow but tanky
+    rwd: 50,
+    armor: 0.45,
+    sz: 1.6
+  },
+  {
+    id: 'e10',
+    nm: 'Enforcer',
+    hp: 180,
+    spd: 1.5, // Medium speed
+    rwd: 35,
+    armor: 0.25,
+    sz: 1.3
   }
 ];
 
