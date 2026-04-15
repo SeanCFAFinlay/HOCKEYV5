@@ -10,39 +10,39 @@ function getTowerMaterials() {
   if (towerMaterials) return towerMaterials;
 
   towerMaterials = {
-    // Base platform - dark with subtle sheen
+    // Base platform - darker for contrast against arena
     base: new THREE.MeshStandardMaterial({
-      color: 0x1a1a2e,
-      metalness: 0.4,
-      roughness: 0.6,
-      envMapIntensity: 0.5
+      color: 0x141428,
+      metalness: 0.35,
+      roughness: 0.65,
+      envMapIntensity: 0.4
     }),
-    // Chrome/steel parts
+    // Chrome/steel parts - slightly tinted for warmth
     metal: new THREE.MeshStandardMaterial({
-      color: 0x99aabb,
-      metalness: 0.9,
-      roughness: 0.1,
-      envMapIntensity: 1.2
+      color: 0x8899aa,
+      metalness: 0.85,
+      roughness: 0.15,
+      envMapIntensity: 0.9
     }),
-    // Dark accents
+    // Dark accents - deeper for contrast
     dark: new THREE.MeshStandardMaterial({
-      color: 0x222233,
-      metalness: 0.5,
-      roughness: 0.5
+      color: 0x1a1a2a,
+      metalness: 0.45,
+      roughness: 0.55
     }),
-    // White parts (player bodies, pads)
+    // White parts (player bodies, pads) - slightly toned down
     white: new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      metalness: 0.1,
-      roughness: 0.7
+      color: 0xeeeeee,
+      metalness: 0.08,
+      roughness: 0.70
     }),
-    // Gold/trophy parts
+    // Gold/trophy parts - warmer, richer
     gold: new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      metalness: 0.95,
-      roughness: 0.05,
-      emissive: 0xaa8800,
-      emissiveIntensity: 0.2
+      color: 0xffcc00,
+      metalness: 0.90,
+      roughness: 0.08,
+      emissive: 0x996600,
+      emissiveIntensity: 0.18
     })
   };
 
@@ -66,10 +66,10 @@ export function createTowerMesh(tower) {
   const baseMat = mats.base;
   const bodyMat = new THREE.MeshStandardMaterial({
     color,
-    metalness: 0.5,
-    roughness: 0.4,
+    metalness: 0.45,
+    roughness: 0.45,
     emissive: color,
-    emissiveIntensity: 0.15
+    emissiveIntensity: 0.12
   });
   const glowMat = new THREE.MeshBasicMaterial({
     color,

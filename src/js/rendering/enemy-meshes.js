@@ -16,50 +16,50 @@ function getSharedMaterials() {
   if (sharedMaterials) return sharedMaterials;
 
   sharedMaterials = {
-    // Puck body - dark with subtle metallic sheen
+    // Puck body - dark rubber with subtle sheen for contrast against ice
     puckBody: new THREE.MeshStandardMaterial({
-      color: 0x111111,
-      metalness: 0.6,
-      roughness: 0.3,
-      envMapIntensity: 0.8
+      color: 0x0a0a0a,
+      metalness: 0.5,
+      roughness: 0.35,
+      envMapIntensity: 0.6
     }),
-    // Soccer ball - glossy white
+    // Soccer ball - clean white with controlled brightness
     ballBody: new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      metalness: 0.1,
-      roughness: 0.4,
-      envMapIntensity: 0.5
+      color: 0xeeeeee,
+      metalness: 0.08,
+      roughness: 0.45,
+      envMapIntensity: 0.4
     }),
-    // Fire body - emissive glow
+    // Fire body - vivid emissive glow
     fireBody: new THREE.MeshStandardMaterial({
-      color: 0xff3300,
-      metalness: 0.2,
+      color: 0xff2200,
+      metalness: 0.15,
       roughness: 0.5,
-      emissive: 0xff2200,
-      emissiveIntensity: 0.6
+      emissive: 0xff1800,
+      emissiveIntensity: 0.5
     }),
-    // Gold crown
+    // Gold crown - rich metallic
     gold: new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      metalness: 0.95,
-      roughness: 0.05,
-      emissive: 0xaa8800,
-      emissiveIntensity: 0.3
+      color: 0xffcc00,
+      metalness: 0.90,
+      roughness: 0.08,
+      emissive: 0x996600,
+      emissiveIntensity: 0.25
     }),
-    // Crown gem - glowing red
+    // Crown gem - vivid glowing red
     gemRed: new THREE.MeshStandardMaterial({
       color: 0xff0000,
-      metalness: 0.3,
+      metalness: 0.25,
       roughness: 0.2,
       emissive: 0xff0000,
-      emissiveIntensity: 0.8
+      emissiveIntensity: 0.7
     }),
-    // Armor plates
+    // Armor plates - steel blue-grey for contrast
     armor: new THREE.MeshStandardMaterial({
-      color: 0x556677,
-      metalness: 0.85,
-      roughness: 0.2,
-      envMapIntensity: 1.0
+      color: 0x4a5c6e,
+      metalness: 0.80,
+      roughness: 0.25,
+      envMapIntensity: 0.8
     }),
     // Health bar gradient
     hpFull: new THREE.MeshBasicMaterial({ color: 0x22c55e, side: THREE.DoubleSide }),
@@ -148,29 +148,30 @@ export function createEnemyMesh(enemy) {
     const isDefenseman = enemyName.includes('Defenseman');
     const isEnforcer = enemyName.includes('Enforcer');
     
-    // Adjust body material for new enemy types
+    // Adjust body material for new enemy types – vivid distinct colors
     if (isSpeedSkater) {
       bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x00ffff, // Bright cyan for speed
-        metalness: 0.7,
-        roughness: 0.2,
-        emissive: 0x00aaaa,
-        emissiveIntensity: 0.5
+        color: 0x00ddee, // Bright cyan for speed
+        metalness: 0.6,
+        roughness: 0.25,
+        emissive: 0x008899,
+        emissiveIntensity: 0.4
       });
     } else if (isDefenseman) {
       bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x2244aa, // Dark blue for defenseman
-        metalness: 0.6,
-        roughness: 0.3,
-        envMapIntensity: 0.8
+        color: 0x1a3388, // Bold blue for defenseman
+        metalness: 0.55,
+        roughness: 0.35,
+        emissive: 0x0a1844,
+        emissiveIntensity: 0.2
       });
     } else if (isEnforcer) {
       bodyMat = new THREE.MeshStandardMaterial({
-        color: 0xaa2222, // Dark red for enforcer
-        metalness: 0.6,
-        roughness: 0.4,
-        emissive: 0x440000,
-        emissiveIntensity: 0.3
+        color: 0xbb2222, // Saturated red for enforcer
+        metalness: 0.55,
+        roughness: 0.40,
+        emissive: 0x550000,
+        emissiveIntensity: 0.25
       });
     }
     
@@ -181,13 +182,13 @@ export function createEnemyMesh(enemy) {
     puckBody.receiveShadow = true;
     group.add(puckBody);
 
-    // Polished edge ring with subtle glow
+    // Polished edge ring with subtle themed glow
     const edgeMat = new THREE.MeshStandardMaterial({
-      color: 0x444455,
-      metalness: 0.8,
-      roughness: 0.2,
-      emissive: enemy.fire ? 0x331100 : 0x001122,
-      emissiveIntensity: 0.3
+      color: 0x3a3a4a,
+      metalness: 0.75,
+      roughness: 0.25,
+      emissive: enemy.fire ? 0x441100 : 0x0a1830,
+      emissiveIntensity: 0.25
     });
     const edgeRing = new THREE.Mesh(
       new THREE.TorusGeometry(sz, sz * 0.06, 12, 48),

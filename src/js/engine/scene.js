@@ -50,8 +50,8 @@ export function init3D() {
   const bgColor = isHockey ? 0x060d18 : 0x050e07;
   scene.background = new THREE.Color(bgColor);
 
-  // Atmospheric exponential fog for depth
-  scene.fog = new THREE.FogExp2(bgColor, isHockey ? 0.012 : 0.010);
+  // Atmospheric exponential fog – lighter density for better readability
+  scene.fog = new THREE.FogExp2(bgColor, isHockey ? 0.009 : 0.008);
 
   // Camera with good FOV
   const camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 200);
@@ -76,9 +76,9 @@ export function init3D() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // Cinematic tone mapping
+  // Tone mapping – ACES filmic with restrained exposure to prevent washout
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = isHockey ? 1.15 : 1.05;
+  renderer.toneMappingExposure = isHockey ? 0.90 : 0.85;
   renderer.outputEncoding = THREE.sRGBEncoding;
 
   // === STADIUM SKY DOME ===
@@ -86,19 +86,19 @@ export function init3D() {
 
   // === ENHANCED LIGHTING SYSTEM ===
 
-  // Hemisphere light – sky/ground ambient bounce
+  // Hemisphere light – sky/ground ambient bounce (reduced to prevent washout)
   const hemiLight = new THREE.HemisphereLight(
     isHockey ? 0x9fc8e8 : 0x9fd8a8,   // sky
     isHockey ? 0x334466 : 0x1a3320,   // ground
-    isHockey ? 0.55 : 0.50
+    isHockey ? 0.40 : 0.35
   );
   hemiLight.position.set(0, 50, 0);
   scene.add(hemiLight);
 
-  // Main directional light (sun / overhead floodlight)
+  // Main directional light (sun / overhead floodlight) – reduced for readability
   const sun = new THREE.DirectionalLight(
     isHockey ? 0xddeeff : 0xfff5e8,
-    isHockey ? 1.5 : 1.3
+    isHockey ? 1.1 : 1.0
   );
   sun.position.set(COLS * 0.4, 28, ROWS * 0.25);
   sun.castShadow = true;
@@ -116,10 +116,10 @@ export function init3D() {
   sun.shadow.normalBias = 0.02;
   scene.add(sun);
 
-  // Rim/fill light – adds depth from opposite side
+  // Rim/fill light – adds depth from opposite side (gentle)
   const rimLight = new THREE.DirectionalLight(
     isHockey ? 0x2255aa : 0x22aa44,
-    0.35
+    0.25
   );
   rimLight.position.set(-COLS * 0.5, 18, -ROWS * 0.5);
   scene.add(rimLight);
@@ -128,7 +128,7 @@ export function init3D() {
   const hw = COLS / 2;
   const hh = ROWS / 2;
   const spotColor   = isHockey ? 0xddeeff : 0xfff8ee;
-  const spotIntensity = isMobileDevice() ? 0 : (isHockey ? 60 : 50); // skip on mobile
+  const spotIntensity = isMobileDevice() ? 0 : (isHockey ? 22 : 18); // Reduced from 60/50 to prevent washout
 
   const spotPositions = [
     [-hw - 3, 9, -hh - 3],
@@ -147,20 +147,20 @@ export function init3D() {
       scene.add(spot.target);
     }
 
-    // Subtle point light glow at fixture position
-    const pt = new THREE.PointLight(spotColor, isHockey ? 0.5 : 0.4, 12);
+    // Subtle point light glow at fixture position (reduced intensity)
+    const pt = new THREE.PointLight(spotColor, isHockey ? 0.25 : 0.20, 12);
     pt.position.set(x, y, z);
     scene.add(pt);
   });
 
-  // Subtle colored accent lights
+  // Subtle colored accent lights (reduced for color preservation)
   const accentColor = isHockey ? 0x0066ff : 0x00aa44;
   const accentPositions = [
     [-hw * 0.5, 2, -hh * 0.5],
     [ hw * 0.5, 2,  hh * 0.5]
   ];
   accentPositions.forEach(([x, y, z]) => {
-    const pt = new THREE.PointLight(accentColor, 0.25, 10);
+    const pt = new THREE.PointLight(accentColor, 0.15, 10);
     pt.position.set(x, y, z);
     scene.add(pt);
   });
@@ -285,8 +285,8 @@ function buildHockeyRink() {
   iceCanvas.height = 512;
   const ctx = iceCanvas.getContext('2d');
 
-  // Base ice color
-  ctx.fillStyle = '#e2f0f8';
+  // Base ice color – slightly more blue to retain color identity
+  ctx.fillStyle = '#c8dce8';
   ctx.fillRect(0, 0, 512, 512);
 
   // Subtle snow-groomed directional lines
@@ -314,8 +314,8 @@ function buildHockeyRink() {
     ctx.stroke();
   }
 
-  // Sparkle specular highlights
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  // Sparkle specular highlights (reduced brightness)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
   for (let i = 0; i < 120; i++) {
     const r = Math.random() * 1.8 + 0.3;
     ctx.beginPath();
@@ -330,11 +330,11 @@ function buildHockeyRink() {
   iceTexture.anisotropy = 4;
 
   const iceMat = new THREE.MeshStandardMaterial({
-    color: 0xdcf0f8,
+    color: 0xb0d0e0,
     map: iceTexture,
-    metalness: 0.08,
-    roughness: 0.04,
-    envMapIntensity: 0.8
+    metalness: 0.05,
+    roughness: 0.18,
+    envMapIntensity: 0.5
   });
 
   const ice = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), iceMat);
@@ -342,23 +342,23 @@ function buildHockeyRink() {
   ice.receiveShadow = true;
   scene.add(ice);
 
-  // Subtle reflective gloss layer
+  // Subtle reflective gloss layer (reduced opacity to prevent washout)
   const reflectMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    metalness: 0.95,
-    roughness: 0.06,
+    color: 0xeeeeff,
+    metalness: 0.85,
+    roughness: 0.15,
     transparent: true,
-    opacity: 0.12
+    opacity: 0.06
   });
   const reflect = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), reflectMat);
   reflect.rotation.x = -Math.PI / 2;
   reflect.position.y = 0.005;
   scene.add(reflect);
 
-  // === BOARDS ===
+  // === BOARDS === (tinted slightly to not blow out white)
   const boardMat = new THREE.MeshStandardMaterial({
-    color: 0xf0f4f8,
-    roughness: 0.25,
+    color: 0xd8dfe8,
+    roughness: 0.35,
     metalness: 0.08
   });
 
@@ -389,19 +389,19 @@ function buildHockeyRink() {
     scene.add(cap);
   });
 
-  // === ICE LINES ===
+  // === ICE LINES (bolder colors for contrast) ===
   const redMat = new THREE.MeshStandardMaterial({
-    color: 0xcc0000,
-    emissive: 0xcc0000,
-    emissiveIntensity: 0.2,
-    roughness: 0.75
+    color: 0xdd1111,
+    emissive: 0xdd1111,
+    emissiveIntensity: 0.25,
+    roughness: 0.70
   });
 
   const blueMat = new THREE.MeshStandardMaterial({
-    color: 0x0055cc,
-    emissive: 0x0044bb,
-    emissiveIntensity: 0.15,
-    roughness: 0.75
+    color: 0x1166dd,
+    emissive: 0x0055cc,
+    emissiveIntensity: 0.20,
+    roughness: 0.70
   });
 
   const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.22, ROWS), redMat);
@@ -451,10 +451,10 @@ function buildSoccerPitch() {
   grassCanvas.height = 512;
   const ctx = grassCanvas.getContext('2d');
 
-  // Alternating mow stripes
+  // Alternating mow stripes (richer, more saturated greens)
   const stripH = 512 / 10;
   for (let i = 0; i < 10; i++) {
-    ctx.fillStyle = i % 2 === 0 ? '#286e38' : '#2f8040';
+    ctx.fillStyle = i % 2 === 0 ? '#1f6030' : '#267538';
     ctx.fillRect(0, i * stripH, 512, stripH);
   }
 
@@ -474,9 +474,9 @@ function buildSoccerPitch() {
   grassTexture.anisotropy = 4;
 
   const grassMat = new THREE.MeshStandardMaterial({
-    color: 0x38a050,
+    color: 0x2a8842,
     map: grassTexture,
-    roughness: 0.92,
+    roughness: 0.88,
     metalness: 0.0
   });
 
