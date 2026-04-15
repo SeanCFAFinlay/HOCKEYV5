@@ -1,7 +1,6 @@
 /* =====================================================
-   BASE – Google Fonts + Reset + Global Styles
+   BASE – Reset + Global Styles
    ===================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 * {
   margin: 0;
