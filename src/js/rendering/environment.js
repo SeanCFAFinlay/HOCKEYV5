@@ -1,4 +1,4 @@
-// Environment rendering - cells, lights, perimeter decor
+// Environment rendering - cells, lights, perimeter decor, and stadium stands
 
 import { getState } from '../engine/state.js';
 
@@ -25,29 +25,197 @@ export function buildCells(hw, hh) {
 
 export function buildLights(hw, hh) {
   const state = getState();
-  const { scene } = state;
+  const { scene, theme } = state;
+  const isHockey = theme === 'hockey';
 
   const positions = [
     [-hw - 3, -hh - 3],
-    [-hw - 3, hh + 3],
-    [hw + 3, -hh - 3],
-    [hw + 3, hh + 3]
+    [-hw - 3,  hh + 3],
+    [ hw + 3, -hh - 3],
+    [ hw + 3,  hh + 3]
   ];
 
+  const poleMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2a3a,
+    metalness: 0.7,
+    roughness: 0.4
+  });
+
+  const fixtureGlowMat = new THREE.MeshStandardMaterial({
+    color: 0xfff8e0,
+    emissive: 0xfff8e0,
+    emissiveIntensity: 1.2,
+    roughness: 0.2,
+    metalness: 0.3
+  });
+
+  const fixtureMat = new THREE.MeshStandardMaterial({
+    color: 0xaaaaaa,
+    metalness: 0.8,
+    roughness: 0.3
+  });
+
   positions.forEach(([x, z]) => {
+    // Pole
     const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.2, 8, 8),
-      new THREE.MeshLambertMaterial({ color: 0x333333 })
+      new THREE.CylinderGeometry(0.12, 0.16, 9, 10),
+      poleMat
     );
-    pole.position.set(x, 4, z);
+    pole.position.set(x, 4.5, z);
+    pole.castShadow = true;
     scene.add(pole);
 
-    const light = new THREE.Mesh(
-      new THREE.BoxGeometry(1.4, 0.25, 1.4),
-      new THREE.MeshBasicMaterial({ color: 0xffffdd })
+    // Cross arm
+    const arm = new THREE.Mesh(
+      new THREE.BoxGeometry(1.8, 0.14, 0.14),
+      poleMat
     );
-    light.position.set(x, 8.15, z);
-    scene.add(light);
+    arm.position.set(x, 9.1, z);
+    scene.add(arm);
+
+    // Light fixture housing
+    const housing = new THREE.Mesh(
+      new THREE.BoxGeometry(1.6, 0.22, 0.8),
+      fixtureMat
+    );
+    housing.position.set(x, 8.9, z);
+    scene.add(housing);
+
+    // Glowing lens panel
+    const lens = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 0.08, 0.7),
+      fixtureGlowMat
+    );
+    lens.position.set(x, 8.76, z);
+    scene.add(lens);
+
+    // Flare halo
+    const halo = new THREE.Mesh(
+      new THREE.CircleGeometry(0.55, 24),
+      new THREE.MeshBasicMaterial({
+        color: isHockey ? 0x88ccff : 0xffeecc,
+        transparent: true,
+        opacity: 0.12,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      })
+    );
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.set(x, 8.75, z);
+    scene.add(halo);
+  });
+
+  // Stadium bleacher stands (simple stepped geometry)
+  buildStadiumStands(hw, hh, isHockey);
+}
+
+/**
+ * Build simple stadium stands around the arena for atmosphere
+ */
+function buildStadiumStands(hw, hh, isHockey) {
+  const state = getState();
+  const { scene } = state;
+
+  const standDepth = 2.5;
+  const rowCount   = 4;
+  const rowHeight  = 0.45;
+  const rowDepth   = standDepth / rowCount;
+
+  // Seat colors – alternating accent colors
+  const seatColors = isHockey
+    ? [0x1a3a6e, 0x0d2050, 0xcc1111, 0x0a1838]
+    : [0x1a5c1a, 0x0d4010, 0xcc8800, 0x103010];
+
+  // Define stands on all 4 sides
+  const sides = [
+    // [centerX, centerZ, width, rotY]
+    [0,      -(hh + 1.5 + standDepth / 2), hw * 2 + 2, 0          ],
+    [0,       (hh + 1.5 + standDepth / 2), hw * 2 + 2, Math.PI    ],
+    [-(hw + 1.5 + standDepth / 2), 0,      hh * 2 + 2, Math.PI / 2],
+    [ (hw + 1.5 + standDepth / 2), 0,      hh * 2 + 2, -Math.PI / 2]
+  ];
+
+  sides.forEach(([cx, cz, sideWidth, rotY]) => {
+    for (let row = 0; row < rowCount; row++) {
+      const y     = row * rowHeight + rowHeight / 2;
+      const depth = rowDepth;
+
+      // Stepped platform
+      const stepMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1a2e,
+        roughness: 0.9,
+        metalness: 0.1
+      });
+      const step = new THREE.Mesh(
+        new THREE.BoxGeometry(sideWidth, rowHeight, depth),
+        stepMat
+      );
+      step.receiveShadow = true;
+      scene.add(step);
+
+      // Seat row – randomize individual seat colors for crowd feel
+      const seatsPerRow = Math.floor(sideWidth / 0.6);
+      const seatW = sideWidth / seatsPerRow;
+
+      for (let s = 0; s < seatsPerRow; s++) {
+        const colorIdx = Math.floor(Math.random() * seatColors.length);
+        const seatMat = new THREE.MeshStandardMaterial({
+          color: seatColors[colorIdx],
+          roughness: 0.8,
+          metalness: 0.05
+        });
+        const seat = new THREE.Mesh(
+          new THREE.BoxGeometry(seatW * 0.72, rowHeight * 0.55, depth * 0.6),
+          seatMat
+        );
+        seat.castShadow = false;
+        seat.receiveShadow = true;
+
+        // Position in local stand space, then transform
+        const localX = -sideWidth / 2 + s * seatW + seatW / 2;
+        const localY = y + rowHeight * 0.2;
+        const localZ = row * rowDepth;
+
+        const cosR = Math.cos(rotY);
+        const sinR = Math.sin(rotY);
+
+        seat.position.set(
+          cx + localX * cosR - localZ * sinR,
+          localY,
+          cz + localX * sinR + localZ * cosR
+        );
+        seat.rotation.y = rotY;
+        scene.add(seat);
+      }
+
+      // Position the step platform
+      const localZ = row * rowDepth;
+      const cosR = Math.cos(rotY);
+      const sinR = Math.sin(rotY);
+      step.position.set(
+        cx - localZ * sinR,
+        y,
+        cz + localZ * cosR
+      );
+      step.rotation.y = rotY;
+    }
+
+    // Concrete barrier at front of stand
+    const barrierMat = new THREE.MeshStandardMaterial({
+      color: 0x2a2a3a,
+      roughness: 0.7,
+      metalness: 0.2
+    });
+    const barrier = new THREE.Mesh(
+      new THREE.BoxGeometry(sideWidth, 0.5, 0.2),
+      barrierMat
+    );
+    barrier.castShadow = true;
+    barrier.receiveShadow = true;
+    barrier.position.set(cx, 0.25, cz);
+    barrier.rotation.y = rotY;
+    scene.add(barrier);
   });
 }
 
@@ -61,18 +229,17 @@ export function addPerimeterDecor(hw, hh) {
 
   for (let x = -hw - pad; x <= hw + pad; x += 1.2) {
     ring.push([x, -hh - pad]);
-    ring.push([x, hh + pad]);
+    ring.push([x,  hh + pad]);
   }
   for (let z = -hh - pad; z <= hh + pad; z += 1.2) {
     ring.push([-hw - pad, z]);
-    ring.push([hw + pad, z]);
+    ring.push([ hw + pad, z]);
   }
 
   const place = (wx, wz) => {
     if (isHockey) {
       const kind = Math.floor(Math.random() * 4);
       if (kind === 0) {
-        // Stack of pucks
         for (let i = 0; i < 3; i++) {
           const puck = new THREE.Mesh(
             new THREE.CylinderGeometry(0.14, 0.14, 0.05, 18),
@@ -83,7 +250,6 @@ export function addPerimeterDecor(hw, hh) {
           scene.add(puck);
         }
       } else if (kind === 1) {
-        // Mini stick
         const shaft = new THREE.Mesh(
           new THREE.CylinderGeometry(0.02, 0.02, 0.65, 10),
           new THREE.MeshStandardMaterial({ color: 0xcaa472, roughness: 0.85 })
@@ -101,16 +267,14 @@ export function addPerimeterDecor(hw, hh) {
         blade.castShadow = true;
         scene.add(blade);
       } else if (kind === 2) {
-        // Helmet
         const helm = new THREE.Mesh(
           new THREE.SphereGeometry(0.22, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.7),
-          new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.6 })
+          new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.6, metalness: 0.1 })
         );
         helm.position.set(wx, 0.20, wz);
         helm.castShadow = true;
         scene.add(helm);
       } else {
-        // Glove
         const glove = new THREE.Mesh(
           new THREE.BoxGeometry(0.28, 0.16, 0.22),
           new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 })
@@ -123,10 +287,9 @@ export function addPerimeterDecor(hw, hh) {
     } else {
       const kind = Math.floor(Math.random() * 4);
       if (kind === 0) {
-        // Soccer ball
         const ball = new THREE.Mesh(
           new THREE.SphereGeometry(0.18, 16, 12),
-          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 })
+          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.65, metalness: 0.05 })
         );
         ball.position.set(wx, 0.18, wz);
         ball.castShadow = true;
@@ -141,16 +304,14 @@ export function addPerimeterDecor(hw, hh) {
         band.castShadow = true;
         scene.add(band);
       } else if (kind === 1) {
-        // Cone
         const cone = new THREE.Mesh(
           new THREE.ConeGeometry(0.16, 0.40, 12),
-          new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.65 })
+          new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.65, metalness: 0.05 })
         );
         cone.position.set(wx, 0.20, wz);
         cone.castShadow = true;
         scene.add(cone);
       } else if (kind === 2) {
-        // Corner flag
         const pole = new THREE.Mesh(
           new THREE.CylinderGeometry(0.02, 0.02, 0.60, 10),
           new THREE.MeshStandardMaterial({ color: 0xcfd3df, metalness: 0.8, roughness: 0.2 })
@@ -167,10 +328,9 @@ export function addPerimeterDecor(hw, hh) {
         flag.rotation.y = Math.PI / 2;
         scene.add(flag);
       } else {
-        // Cleat
         const shoe = new THREE.Mesh(
           new THREE.BoxGeometry(0.34, 0.12, 0.16),
-          new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.65 })
+          new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.65, metalness: 0.05 })
         );
         shoe.position.set(wx, 0.12, wz);
         shoe.rotation.y = Math.random() * Math.PI;
@@ -180,7 +340,6 @@ export function addPerimeterDecor(hw, hh) {
     }
   };
 
-  // Place a subset
   for (let i = 0; i < ring.length; i++) {
     if (Math.random() < 0.24) {
       place(ring[i][0] + (Math.random() - 0.5) * 0.25, ring[i][1] + (Math.random() - 0.5) * 0.25);

@@ -7,11 +7,16 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Hockey vs Soccer TD</title>
 
+  <!-- Fonts preconnect + stylesheet for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+
   <!-- Three.js r128 with CDN fallback error notification -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     if (typeof THREE === 'undefined') {
-      document.body.innerHTML = '<div style="color:#fff;background:#000;padding:24px;text-align:center;font-family:sans-serif"><h2>⚠️ Failed to load 3D engine</h2><p>Please check your internet connection and reload.</p><button onclick="location.reload()" style="margin-top:12px;padding:12px 24px;font-size:1rem;cursor:pointer;border-radius:8px;border:none">Reload</button></div>';
+      document.body.innerHTML = '<div style="color:#fff;background:#07090f;padding:24px;text-align:center;font-family:sans-serif"><h2>⚠️ Failed to load 3D engine</h2><p>Please check your internet connection and reload.</p><button onclick="location.reload()" style="margin-top:12px;padding:12px 24px;font-size:1rem;cursor:pointer;border-radius:8px;border:none">Reload</button></div>';
     }
   </script>
 
@@ -20,22 +25,57 @@
     #appLoader {
       position: fixed;
       inset: 0;
-      background: #0a0a1a;
+      background: #07090f;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 20px;
       z-index: 9999;
       color: #fff;
-      font-family: sans-serif;
+      font-family: 'Rajdhani', sans-serif;
     }
     #appLoader.hidden { display: none; }
+
+    .loader-logo {
+      font-size: 1.2rem;
+      letter-spacing: 6px;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .loader-logo span.ice  { color: #00d4ff; }
+    .loader-logo span.sep  { color: rgba(255,255,255,0.2); margin: 0 6px; }
+    .loader-logo span.soccer { color: #22c55e; }
+
+    .loader-bar-wrap {
+      width: 120px;
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .loader-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00d4ff, #22c55e);
+      border-radius: 2px;
+      animation: loader-fill 1.2s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+    @keyframes loader-fill {
+      0%   { width: 0%;   opacity: 1; }
+      80%  { width: 88%;  opacity: 1; }
+      100% { width: 100%; opacity: 0; }
+    }
     .loader-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255,255,255,0.2);
+      width: 36px;
+      height: 36px;
+      border: 2.5px solid rgba(255,255,255,0.1);
       border-top-color: #00d4ff;
+      border-right-color: #22c55e;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      animation: spin 0.75s linear infinite;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
@@ -59,6 +99,14 @@
 <!-- Loading Indicator -->
 <div id="appLoader">
   <div class="loader-spinner"></div>
+  <div class="loader-logo">
+    <span class="ice">Hockey</span>
+    <span class="sep">vs</span>
+    <span class="soccer">Soccer</span>
+  </div>
+  <div class="loader-bar-wrap">
+    <div class="loader-bar"></div>
+  </div>
 </div>
 
 <!-- Menu Screen -->

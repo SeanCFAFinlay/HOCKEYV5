@@ -382,36 +382,6 @@ export function generateObstacles(layout) {
     }
   };
 
-<<<<<<< HEAD
-  // Select generator based on level layout or map index
-  let patternIndex = mapIndex % 5;
-  if (levelLayout) {
-    const { obstaclePattern } = levelLayout.layout;
-    const patternMap = {
-      'scattered': 0,
-      'corridor': 1,
-      'split': 2,
-      'defensive': 3,
-      'winding': 4,
-      'organic': 0,
-      'minimal': 0,
-      'maze': 2,
-      'multi': 3,
-      'ultimate': 4,
-      'narrow': 1,
-      'tight': 3,
-      'long': 4,
-      'curved': 2,
-      'direct': 0,
-      'complex': 4,
-      'split3': 3,
-      'extreme': 4
-    };
-    patternIndex = patternMap[obstaclePattern] !== undefined ? patternMap[obstaclePattern] : patternIndex;
-  }
-  
-  [gen0, gen1, gen2, gen3, gen4][patternIndex]();
-=======
   const genGauntlet = () => {
     // Long corridors with obstacles on sides - sustained firepower test
     const corridorWidth = Math.max(3, Math.floor(ROWS * 0.35));
@@ -478,7 +448,6 @@ export function generateObstacles(layout) {
     case MapLayout.MULTI_BASE: genMultiBase(); break;
     default: genFunnel(); break;
   }
->>>>>>> c851a3e (feat: Complete game polish phases 5-9)
 
   // Top up if under-filled
   let placed = 0;
