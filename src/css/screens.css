@@ -1,6 +1,10 @@
+/* =====================================================
+   SCREENS – Menu, Map Selection, Game Screen
+   ===================================================== */
+
 /* Menu Screen */
 #menuScreen {
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+  background: var(--bg);
   justify-content: center;
   align-items: center;
   padding: 20px;
@@ -8,8 +12,50 @@
   padding-bottom: calc(20px + env(safe-area-inset-bottom));
   padding-left: calc(20px + env(safe-area-inset-left));
   padding-right: calc(20px + env(safe-area-inset-right));
+  position: relative;
+  overflow: hidden;
 }
 
+/* Animated aurora background */
+#menuScreen::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 30%, rgba(0, 212, 255, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 80% 70%, rgba(34, 197, 94, 0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 10%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+  animation: aurora-drift 12s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Subtle grid overlay */
+#menuScreen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes aurora-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(4%, -3%) scale(1.05); }
+  66%  { transform: translate(-3%, 4%) scale(0.97); }
+  100% { transform: translate(2%, 2%) scale(1.02); }
+}
+
+#menuScreen > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Logo */
 .logo {
   text-align: center;
   margin-bottom: 40px;
@@ -17,33 +63,50 @@
 
 .logo-icons {
   font-size: 3.5rem;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 16px rgba(0,212,255,0.6));
+  animation: logo-icons-float 4s ease-in-out infinite;
+}
+
+@keyframes logo-icons-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
 }
 
 .logo h1 {
-  font-size: 1.8rem;
-  font-weight: 800;
+  font-family: var(--font-game);
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  text-shadow: 0 0 40px rgba(0,0,0,0.5);
 }
 
 .logo h1 .ice {
   color: var(--ice);
+  text-shadow: 0 0 20px var(--ice-glow), 0 0 40px rgba(0,212,255,0.2);
 }
 
 .logo h1 .grass {
   color: var(--grass);
+  text-shadow: 0 0 20px var(--grass-glow), 0 0 40px rgba(34,197,94,0.2);
 }
 
 .logo p {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.9rem;
-  letter-spacing: 4px;
-  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.75rem;
+  letter-spacing: 6px;
+  margin-top: 10px;
+  font-family: var(--font-game);
+  font-weight: 500;
+  text-transform: uppercase;
 }
 
+/* Menu cards */
 .menu-cards {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
   max-width: 380px;
 }
@@ -52,44 +115,75 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 24px 22px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  transition: all 0.2s ease;
+  padding: 22px 20px;
+  background: var(--glass);
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  transition: all var(--t-mid);
   cursor: pointer;
   min-height: 88px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shimmer sweep on hover */
+.menu-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255,255,255,0.07) 50%,
+    transparent 100%
+  );
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.menu-card:hover::before,
+.menu-card:focus::before {
+  left: 150%;
 }
 
 .menu-card:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .menu-card.hockey {
-  border-color: rgba(0, 212, 255, 0.3);
+  border-color: rgba(0, 212, 255, 0.25);
+  box-shadow: inset 0 0 40px rgba(0,212,255,0.03), 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .menu-card.hockey:active {
   border-color: var(--ice);
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 30px var(--ice-glow), inset 0 0 20px rgba(0,212,255,0.06);
 }
 
 .menu-card.soccer {
-  border-color: rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.25);
+  box-shadow: inset 0 0 40px rgba(34,197,94,0.03), 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .menu-card.soccer:active {
   border-color: var(--grass);
-  box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 30px var(--grass-glow), inset 0 0 20px rgba(34,197,94,0.06);
 }
 
 .menu-card-icon {
   font-size: 3rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 10px rgba(0,0,0,0.4));
 }
 
 .menu-card h3 {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 700;
+  font-family: var(--font-game);
+  letter-spacing: 0.5px;
 }
 
 .menu-card.hockey h3 {
@@ -101,25 +195,52 @@
 }
 
 .menu-card p {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.45);
   margin-top: 4px;
+  line-height: 1.4;
 }
 
 .menu-card-arrow {
   margin-left: auto;
-  font-size: 1.5rem;
-  opacity: 0.3;
+  font-size: 1.4rem;
+  opacity: 0.25;
+  transition: opacity var(--t-fast), transform var(--t-fast);
+  flex-shrink: 0;
 }
 
-/* Map Screen */
+.menu-card:hover .menu-card-arrow,
+.menu-card:active .menu-card-arrow {
+  opacity: 0.6;
+  transform: translateX(3px);
+}
+
+/* ── Map Screen ─────────────────────────────────────── */
 #mapScreen {
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+  background: var(--bg);
   padding: 16px;
   padding-top: calc(16px + env(safe-area-inset-top));
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   padding-left: calc(16px + env(safe-area-inset-left));
   padding-right: calc(16px + env(safe-area-inset-right));
+  position: relative;
+  overflow: hidden;
+}
+
+#mapScreen::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(0,212,255,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 0% 100%, rgba(34,197,94,0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#mapScreen > * {
+  position: relative;
+  z-index: 1;
 }
 
 .map-header {
@@ -134,21 +255,28 @@
   height: 48px;
   min-width: 48px;
   min-height: 48px;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 12px;
+  background: var(--glass);
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--r-md);
   color: #fff;
   font-size: 1.4rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all var(--t-fast);
+}
+
+.back-btn:active {
+  background: rgba(255,255,255,0.12);
+  transform: scale(0.95);
 }
 
 .map-title {
   font-size: 1.4rem;
   font-weight: 700;
+  font-family: var(--font-game);
+  letter-spacing: 1px;
 }
 
 .map-grid {
@@ -161,38 +289,54 @@
 }
 
 .map-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  background: var(--glass);
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--r-lg);
   padding: 16px 14px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--t-mid);
   min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.map-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .map-card:active {
   border-color: var(--c);
+  transform: scale(0.97);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--c) 40%, transparent);
 }
 
 .map-card-icon {
   font-size: 2rem;
   margin-bottom: 6px;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
 }
 
 .map-card-name {
   font-size: 1rem;
   font-weight: 700;
+  font-family: var(--font-game);
   color: var(--c);
+  letter-spacing: 0.5px;
 }
 
 .map-card-info {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.45);
   margin: 4px 0 8px;
+  line-height: 1.4;
 }
 
 .map-stars {
@@ -218,16 +362,18 @@
 
 /* Locked map cards */
 .map-card.locked {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .map-card.locked .map-card-name {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .map-card.locked:active {
   border-color: rgba(255, 255, 255, 0.1);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Completed map cards */
@@ -271,7 +417,7 @@
 }
 
 
-/* Game Screen */
+/* ── Game Screen ─────────────────────────────────────── */
 #gameScreen {
   background: #000;
 }
