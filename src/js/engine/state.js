@@ -129,13 +129,10 @@ const initialState = {
   mouse: null,
   cells: [],
 
-  // Camera state
+  // Camera state (actual interpolated values; targets managed in camera.js)
   camAngle: Math.PI / 4,
   camHeight: 14,
   camDist: 22,
-  targetCamAngle: Math.PI / 4,
-  targetCamHeight: 14,
-  targetCamDist: 22,
 
   // Input state
   dragging: false,

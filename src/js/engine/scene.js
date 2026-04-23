@@ -11,6 +11,7 @@ import { isMobileDevice } from '../utils/device.js';
 
 // Store ambient particles for animation
 let ambientParticles = null;
+let ambientTime = 0;
 
 export function init3D() {
   const state = getState();
@@ -607,6 +608,8 @@ export function updateAmbientParticles(dt) {
   const positions = ambientParticles.geometry.attributes.position.array;
   const state = getState();
 
+  ambientTime += dt;
+
   for (let i = 0; i < positions.length; i += 3) {
     positions[i + 1] += dt * 0.25;
 
@@ -614,8 +617,9 @@ export function updateAmbientParticles(dt) {
       positions[i + 1] = 0.5;
     }
 
-    positions[i]     += Math.sin(Date.now() * 0.0008 + i) * dt * 0.08;
-    positions[i + 2] += Math.cos(Date.now() * 0.0008 + i) * dt * 0.08;
+    // Slight drift using accumulated time instead of Date.now()
+    positions[i]     += Math.sin(ambientTime * 0.8 + i) * dt * 0.08;
+    positions[i + 2] += Math.cos(ambientTime * 0.8 + i) * dt * 0.08;
   }
 
   ambientParticles.geometry.attributes.position.needsUpdate = true;
