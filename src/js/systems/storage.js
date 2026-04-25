@@ -57,6 +57,9 @@ export function initStorage() {
       saveData = { ...DEFAULT_SAVE };
       persistSave();
     }
+
+    // Migrate data from legacy persistence systems
+    migrateLegacyStorage();
   } catch (err) {
     console.warn('Failed to load save data, creating new save:', err);
     saveData = { ...DEFAULT_SAVE };
@@ -64,6 +67,73 @@ export function initStorage() {
   }
 
   return saveData;
+}
+
+/**
+ * One-time migration from legacy persistence.js (hockeyTD_v1)
+ * and highscores.js (hockeyVsSoccerTD_highscores) into unified storage.
+ * Merges best scores/waves, then removes legacy keys.
+ */
+function migrateLegacyStorage() {
+  let dirty = false;
+
+  // Migrate from legacy persistence.js (key: 'hockeyTD_v1')
+  try {
+    const legacyRaw = localStorage.getItem('hockeyTD_v1');
+    if (legacyRaw) {
+      const legacy = JSON.parse(legacyRaw);
+      if (legacy.bestScores) {
+        for (const [key, score] of Object.entries(legacy.bestScores)) {
+          const [theme, mapIdx] = key.split('_');
+          const idx = parseInt(mapIdx, 10);
+          if (!isNaN(idx)) {
+            const existing = saveData.progression[theme]?.[idx];
+            if (!existing || score > (existing.bestScore || 0)) {
+              if (!saveData.progression[theme]) saveData.progression[theme] = {};
+              saveData.progression[theme][idx] = {
+                ...( existing || { stars: 0, completed: false }),
+                bestScore: Math.max(score, existing?.bestScore || 0)
+              };
+              dirty = true;
+            }
+          }
+        }
+      }
+      localStorage.removeItem('hockeyTD_v1');
+      console.log('[Storage] Migrated legacy persistence.js data');
+    }
+  } catch (e) {
+    console.warn('[Storage] Failed to migrate legacy persistence data:', e);
+  }
+
+  // Migrate from legacy highscores.js (key: 'hockeyVsSoccerTD_highscores')
+  try {
+    const hsRaw = localStorage.getItem('hockeyVsSoccerTD_highscores');
+    if (hsRaw) {
+      const hs = JSON.parse(hsRaw);
+      for (const [key, entry] of Object.entries(hs)) {
+        const theme = entry.theme || key.split('_')[0];
+        const idx = entry.mapIndex ?? parseInt(key.split('_')[1], 10);
+        if (!isNaN(idx) && theme) {
+          const existing = saveData.progression[theme]?.[idx];
+          const bestScore = Math.max(entry.score || 0, existing?.bestScore || 0);
+          if (!saveData.progression[theme]) saveData.progression[theme] = {};
+          saveData.progression[theme][idx] = {
+            ...( existing || { stars: 0, completed: false }),
+            bestScore,
+            completed: existing?.completed || false
+          };
+          dirty = true;
+        }
+      }
+      localStorage.removeItem('hockeyVsSoccerTD_highscores');
+      console.log('[Storage] Migrated legacy highscores.js data');
+    }
+  } catch (e) {
+    console.warn('[Storage] Failed to migrate legacy highscores data:', e);
+  }
+
+  if (dirty) persistSave();
 }
 
 /**

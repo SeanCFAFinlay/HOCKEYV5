@@ -1,8 +1,8 @@
 // Input handling - touch, mouse, keyboard events
 // Mobile-first input state machine with improved gesture handling
 
-import { getState, setDragging, setDragMoved, setLastPosition, setTouchStart, dispatch, ActionTypes } from './state.js';
-import { rotateCamera, zoomIn, zoomOut } from './camera.js';
+import { getState, setDragging, setDragMoved, setLastPosition, setTouchStart } from './state.js';
+import { rotateCamera, zoomIn, zoomOut, setCameraZoom } from './camera.js';
 import { handleCellTap } from '../systems/towers.js';
 import { onResize } from './scene.js';
 import { showUpgrade } from '../ui/upgrade-sheet.js';
@@ -394,7 +394,7 @@ function onTouchMove(e) {
 
       rotateCamera(-moveDx * DRAG_SENSITIVITY);
       const newHeight = Math.max(5, Math.min(30, state.camHeight - moveDy * HEIGHT_SENSITIVITY));
-      dispatch(ActionTypes.SET_CAMERA_STATE, { height: newHeight });
+      setCameraZoom(state.camDist, newHeight);
 
       setLastPosition(touch.clientX, touch.clientY);
     }
@@ -405,7 +405,7 @@ function onTouchMove(e) {
     const pinchDelta = currentDist - state.touchStart;
 
     const newDist = Math.max(8, Math.min(40, state.camDist - pinchDelta * PINCH_SENSITIVITY));
-    dispatch(ActionTypes.SET_CAMERA_STATE, { dist: newDist });
+    setCameraZoom(newDist, state.camHeight);
     setTouchStart(currentDist);
   }
 }
@@ -434,7 +434,7 @@ function onTouchEnd(e) {
   inputState = InputState.IDLE;
   setDragging(false);
   lastTouchCell = null;
-  hidePreview();
+  if (!state.selectedTower) hidePreview();
 }
 
 function onTouchCancel(e) {
@@ -493,7 +493,7 @@ function onMouseMove(e) {
 
     rotateCamera(-moveDx * DRAG_SENSITIVITY);
     const newHeight = Math.max(5, Math.min(30, state.camHeight - moveDy * HEIGHT_SENSITIVITY));
-    dispatch(ActionTypes.SET_CAMERA_STATE, { height: newHeight });
+    setCameraZoom(state.camDist, newHeight);
 
     setLastPosition(e.clientX, e.clientY);
   }
@@ -564,8 +564,17 @@ function getCellUnderPoint(e) {
  */
 function handleTap(e) {
   const cell = getCellUnderPoint(e);
+  const state = getState();
 
   if (cell) {
+    const isTouch = 'identifier' in e;
+    if (isTouch && state.selectedTower) {
+      const sameCell = previewCell?.x === cell.x && previewCell?.y === cell.y;
+      if (!sameCell) {
+        showPreview(cell.x, cell.y, true);
+        return;
+      }
+    }
     handleCellTap(cell.x, cell.y);
     hidePreview();
   }
@@ -588,13 +597,8 @@ function updatePreview(e) {
   if (cell) {
     const gridCell = grid[cell.y]?.[cell.x];
 
-    // Only show preview on valid cells
-    if (gridCell?.type === 'ground' && !gridCell.tower) {
-      if (previewCell?.x !== cell.x || previewCell?.y !== cell.y) {
-        showPreview(cell.x, cell.y);
-      }
-    } else {
-      hidePreview();
+    if (previewCell?.x !== cell.x || previewCell?.y !== cell.y) {
+      showPreview(cell.x, cell.y, true);
     }
   } else {
     hidePreview();
@@ -606,9 +610,9 @@ function updatePreview(e) {
  * @param {number} x - Grid X
  * @param {number} y - Grid Y
  */
-function showPreview(x, y) {
+function showPreview(x, y, showInvalid = false) {
   const state = getState();
-  const { COLS, ROWS, scene, selectedTower, themeData, money } = state;
+  const { COLS, ROWS, scene, selectedTower, themeData, money, grid } = state;
 
   if (!scene || !selectedTower) return;
 
@@ -617,7 +621,12 @@ function showPreview(x, y) {
 
   initPreviewMaterials();
 
+  const gridCell = grid[y]?.[x];
+  const validCell = gridCell?.type === 'ground' && !gridCell.tower;
+  if (!validCell && !showInvalid) return;
+
   const affordable = money >= td.cost;
+  const validPlacement = affordable && validCell;
   const hw = COLS / 2;
   const hh = ROWS / 2;
   const worldX = x - hw + 0.5;
@@ -640,7 +649,7 @@ function showPreview(x, y) {
 
   // Hexagonal base platform
   const baseGeo = new THREE.CylinderGeometry(0.4, 0.45, 0.12, 6);
-  const baseMat = affordable ? previewMaterials.validBase : previewMaterials.invalidBase;
+  const baseMat = validPlacement ? previewMaterials.validBase : previewMaterials.invalidBase;
   const baseMesh = new THREE.Mesh(baseGeo, baseMat);
   baseMesh.position.y = 0.06;
   previewGroup.add(baseMesh);
@@ -648,7 +657,7 @@ function showPreview(x, y) {
 
   // Glow ring underneath
   const glowGeo = new THREE.CylinderGeometry(0.42, 0.47, 0.02, 6);
-  const glowMat = affordable ? previewMaterials.validGlow : previewMaterials.invalidGlow;
+  const glowMat = validPlacement ? previewMaterials.validGlow : previewMaterials.invalidGlow;
   const glowMesh = new THREE.Mesh(glowGeo, glowMat);
   glowMesh.position.y = 0.01;
   previewGroup.add(glowMesh);
@@ -664,7 +673,7 @@ function showPreview(x, y) {
 
   // Range indicator - outer edge
   const rangeGeo = new THREE.RingGeometry(td.rng[0] - 0.08, td.rng[0], 64);
-  const rangeMat = affordable ? previewMaterials.validRange : previewMaterials.invalidRange;
+  const rangeMat = validPlacement ? previewMaterials.validRange : previewMaterials.invalidRange;
   const rangeMesh = new THREE.Mesh(rangeGeo, rangeMat);
   rangeMesh.rotation.x = -Math.PI / 2;
   rangeMesh.position.y = 0.02;
@@ -674,7 +683,7 @@ function showPreview(x, y) {
   // Range indicator - inner fill (very subtle)
   const rangeFillGeo = new THREE.CircleGeometry(td.rng[0] - 0.08, 64);
   const rangeFillMat = new THREE.MeshBasicMaterial({
-    color: affordable ? 0x22c55e : 0xef4444,
+    color: validPlacement ? 0x22c55e : 0xef4444,
     transparent: true,
     opacity: 0.05,
     side: THREE.DoubleSide

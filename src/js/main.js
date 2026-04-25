@@ -24,7 +24,7 @@ import './ui/controls.js';
 import { setupInputHandlers } from './engine/input.js';
 
 // Import camera controls
-import { zoomIn, zoomOut, resetCam } from './engine/camera.js';
+import { zoomIn, zoomOut, resetCam, shakeCamera } from './engine/camera.js';
 
 // Import control initializers
 import { initSpeedButtons } from './ui/controls.js';
@@ -40,6 +40,7 @@ import { startWave, toggleAutoWave } from './systems/waves.js';
 
 // Import HUD
 import { initHUD } from './ui/hud.js';
+import { initPerfOverlay, showPerfOverlay } from './ui/perf-overlay.js';
 
 // Debug mode
 const DEBUG = false;
@@ -65,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize speed buttons
   initSpeedButtons();
+  initPerfOverlay();
 
   // Initialize modal event listeners (win/lose handlers via game events)
   initModals();
@@ -72,6 +74,28 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set up achievement notification listener
   on(GameEvents.ACHIEVEMENT_UNLOCKED, ({ achievement }) => {
     showAchievementNotification(achievement);
+  });
+
+  // Wire camera shake to gameplay events for game feel
+  on(GameEvents.ENEMY_ESCAPE, () => {
+    shakeCamera(0.4, 0.35);
+  });
+
+  on(GameEvents.ENEMY_DEATH, ({ enemy }) => {
+    if (enemy.boss) {
+      shakeCamera(0.7, 0.5);
+    }
+  });
+
+  on(GameEvents.WAVE_START, ({ wave }) => {
+    // Shake on boss waves (every 5th)
+    if (wave % 5 === 0 && wave > 0) {
+      shakeCamera(0.5, 0.4);
+    }
+  });
+
+  on(GameEvents.GAME_LOSE, () => {
+    shakeCamera(0.8, 0.6);
   });
 
   // Set up global event handlers for debugging
@@ -169,6 +193,9 @@ if (DEBUG) {
   window.__debug = {
     getState: () => import('./engine/state.js').then(m => m.getState()),
     getPoolStats: () => import('./engine/pools.js').then(m => m.getPoolStats()),
-    getPathCacheStats: () => import('./systems/pathfinding.js').then(m => m.getPathCacheStats())
+    getPathCacheStats: () => import('./systems/pathfinding.js').then(m => m.getPathCacheStats()),
+    showPerf: showPerfOverlay
   };
 }
+
+window.__perf = { show: showPerfOverlay };

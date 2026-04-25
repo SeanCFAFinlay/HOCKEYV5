@@ -1,31 +1,69 @@
 // Environment rendering - cells, lights, perimeter decor, and stadium stands
 
 import { getState } from '../engine/state.js';
+import { getVisualProfile } from '../config/visual-profiles.js';
 
 export function buildCells(hw, hh) {
   const state = getState();
-  const { COLS, ROWS, scene } = state;
+  const { COLS, ROWS, scene, grid, themeData } = state;
+  const visuals = getVisualProfile(themeData);
 
   state.cells = [];
 
+  const rayGeo = new THREE.PlaneGeometry(1, 1);
+  const rayMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
+  const pathMat = new THREE.MeshBasicMaterial({
+    color: visuals.map.path.color,
+    transparent: true,
+    opacity: visuals.map.path.opacity,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+  const buildMat = new THREE.MeshBasicMaterial({
+    color: visuals.map.buildZone.color,
+    transparent: true,
+    opacity: visuals.map.buildZone.opacity,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+  const obstacleMat = new THREE.MeshBasicMaterial({
+    color: visuals.map.obstacle.accent,
+    transparent: true,
+    opacity: 0.14,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
-      const cell = new THREE.Mesh(
-        new THREE.PlaneGeometry(1, 1),
-        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
-      );
+      const cell = new THREE.Mesh(rayGeo, rayMat);
       cell.rotation.x = -Math.PI / 2;
       cell.position.set(x - hw + 0.5, 0.22, y - hh + 0.5);
       cell.userData = { x, y, isCell: true };
       scene.add(cell);
       state.cells.push(cell);
+
+      const type = grid[y]?.[x]?.type;
+      let mat = null;
+      if (type === 'spawn' || type === 'base') mat = pathMat;
+      else if (type === 'ground') mat = buildMat;
+      else if (type === 'obstacle') mat = obstacleMat;
+
+      if (mat) {
+        const visual = new THREE.Mesh(new THREE.PlaneGeometry(type === 'ground' ? 0.84 : 0.96, type === 'ground' ? 0.84 : 0.96), mat);
+        visual.rotation.x = -Math.PI / 2;
+        visual.position.set(x - hw + 0.5, type === 'ground' ? 0.026 : 0.035, y - hh + 0.5);
+        visual.renderOrder = type === 'ground' ? 2 : 3;
+        scene.add(visual);
+      }
     }
   }
 }
 
 export function buildLights(hw, hh) {
   const state = getState();
-  const { scene, theme } = state;
+  const { scene, theme, themeData } = state;
+  const visuals = getVisualProfile(themeData);
   const isHockey = theme === 'hockey';
 
   const positions = [
@@ -44,7 +82,7 @@ export function buildLights(hw, hh) {
   const fixtureGlowMat = new THREE.MeshStandardMaterial({
     color: 0xfff8e0,
     emissive: 0xfff8e0,
-    emissiveIntensity: 1.2,
+    emissiveIntensity: 0.8,
     roughness: 0.2,
     metalness: 0.3
   });
@@ -93,7 +131,7 @@ export function buildLights(hw, hh) {
     const halo = new THREE.Mesh(
       new THREE.CircleGeometry(0.55, 24),
       new THREE.MeshBasicMaterial({
-        color: isHockey ? 0x88ccff : 0xffeecc,
+        color: visuals.lighting.accent,
         transparent: true,
         opacity: 0.12,
         side: THREE.DoubleSide,
@@ -107,13 +145,13 @@ export function buildLights(hw, hh) {
   });
 
   // Stadium bleacher stands (simple stepped geometry)
-  buildStadiumStands(hw, hh, isHockey);
+  buildStadiumStands(hw, hh, isHockey, visuals);
 }
 
 /**
  * Build simple stadium stands around the arena for atmosphere
  */
-function buildStadiumStands(hw, hh, isHockey) {
+function buildStadiumStands(hw, hh, isHockey, visuals) {
   const state = getState();
   const { scene } = state;
 
@@ -125,7 +163,7 @@ function buildStadiumStands(hw, hh, isHockey) {
   // Seat colors – alternating accent colors
   const seatColors = isHockey
     ? [0x1a3a6e, 0x0d2050, 0xcc1111, 0x0a1838]
-    : [0x1a5c1a, 0x0d4010, 0xcc8800, 0x103010];
+    : [visuals.lighting.accent, visuals.map.floor.meshColor || 0x1a5c1a, 0xcc8800, 0x103010];
 
   // Define stands on all 4 sides
   const sides = [
@@ -221,8 +259,10 @@ function buildStadiumStands(hw, hh, isHockey) {
 
 export function addPerimeterDecor(hw, hh) {
   const state = getState();
-  const { theme, scene } = state;
+  const { theme, scene, themeData } = state;
+  const visuals = getVisualProfile(themeData);
   const isHockey = theme === 'hockey';
+  const isSoccer = theme === 'soccer';
 
   const ring = [];
   const pad = 1.6;
@@ -284,7 +324,7 @@ export function addPerimeterDecor(hw, hh) {
         glove.castShadow = true;
         scene.add(glove);
       }
-    } else {
+    } else if (isSoccer) {
       const kind = Math.floor(Math.random() * 4);
       if (kind === 0) {
         const ball = new THREE.Mesh(
@@ -336,6 +376,41 @@ export function addPerimeterDecor(hw, hh) {
         shoe.rotation.y = Math.random() * Math.PI;
         shoe.castShadow = true;
         scene.add(shoe);
+      }
+    } else {
+      const kind = Math.floor(Math.random() * 4);
+      const neon = new THREE.MeshStandardMaterial({
+        color: visuals.lighting.accent,
+        emissive: visuals.lighting.accent,
+        emissiveIntensity: 0.65,
+        roughness: 0.35,
+        metalness: 0.4
+      });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.45, metalness: 0.7 });
+      if (kind === 0) {
+        const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.8, 8), dark);
+        pylon.position.set(wx, 0.4, wz);
+        scene.add(pylon);
+        const cap = new THREE.Mesh(new THREE.OctahedronGeometry(0.18, 0), neon);
+        cap.position.set(wx, 0.88, wz);
+        scene.add(cap);
+      } else if (kind === 1) {
+        const crate = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.28, 0.44), dark);
+        crate.position.set(wx, 0.16, wz);
+        crate.rotation.y = Math.random() * Math.PI;
+        scene.add(crate);
+      } else if (kind === 2) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.03, 8, 24), neon);
+        ring.position.set(wx, 0.26, wz);
+        ring.rotation.x = Math.PI / 2;
+        scene.add(ring);
+      } else {
+        const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.7, 8), dark);
+        antenna.position.set(wx, 0.35, wz);
+        scene.add(antenna);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), neon);
+        dot.position.set(wx, 0.75, wz);
+        scene.add(dot);
       }
     }
   };

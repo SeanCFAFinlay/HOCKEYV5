@@ -133,8 +133,8 @@
 .hud-stat.score  { color: var(--grass); }
 .hud-stat.kills  { color: var(--purple); }
 .hud-stat.enemies {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.25);
+  color: var(--theme-accent, #38bdf8);
+  border-color: color-mix(in srgb, var(--theme-accent, #38bdf8) 35%, transparent);
 }
 
 /* Money pulse animation */
@@ -170,8 +170,8 @@
 
 /* Enemy counter active during wave */
 .hud-stat.enemies.active {
-  border-color: rgba(56, 189, 248, 0.5);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  border-color: color-mix(in srgb, var(--theme-accent, #38bdf8) 65%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--theme-accent, #38bdf8) 30%, transparent);
 }
 
 /* Wave preview banner shown between waves */

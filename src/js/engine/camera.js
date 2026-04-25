@@ -44,9 +44,24 @@ export function updateCamera(dt = 0.016) {
   state.camDist = newDist;
 
   // Calculate camera position from spherical coordinates
-  const x = Math.sin(newAngle) * newDist;
-  const y = newHeight;
-  const z = Math.cos(newAngle) * newDist;
+  let x = Math.sin(newAngle) * newDist;
+  let y = newHeight;
+  let z = Math.cos(newAngle) * newDist;
+
+  // Apply screen shake
+  if (shakeDuration > 0) {
+    shakeDuration -= dt;
+    const decay = Math.max(0, shakeDuration / shakeMaxDuration);
+    const intensity = shakeIntensity * decay;
+    x += (Math.random() - 0.5) * 2 * intensity;
+    y += (Math.random() - 0.5) * 2 * intensity * 0.5;
+    z += (Math.random() - 0.5) * 2 * intensity;
+    if (shakeDuration <= 0) {
+      shakeIntensity = 0;
+      shakeDuration = 0;
+      shakeMaxDuration = 0;
+    }
+  }
 
   // Apply camera position and look at center
   camera.position.set(x, y, z);
@@ -109,10 +124,12 @@ export function setCameraZoom(dist, height) {
  */
 let shakeIntensity = 0;
 let shakeDuration = 0;
+let shakeMaxDuration = 0;
 
-export function shakeCamera(intensity = 0.5, duration = 0.2) {
-  shakeIntensity = intensity;
-  shakeDuration = duration;
+export function shakeCamera(intensity = 0.5, duration = 0.3) {
+  shakeIntensity = Math.max(shakeIntensity, intensity);
+  shakeDuration = Math.max(shakeDuration, duration);
+  shakeMaxDuration = shakeDuration;
 }
 
 /**
@@ -143,7 +160,4 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-// Expose to window for HTML onclick
-window.zoomIn = zoomIn;
-window.zoomOut = zoomOut;
-window.resetCam = resetCam;
+// Window exposure handled by main.js

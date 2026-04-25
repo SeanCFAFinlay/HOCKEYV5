@@ -7,14 +7,18 @@ import { attachHandlers } from './input.js';
 import { addObstacleVisuals } from '../rendering/obstacles.js';
 import { addSpawnAndPenVisuals } from '../rendering/markers.js';
 import { buildCells, buildLights, addPerimeterDecor } from '../rendering/environment.js';
-import { isMobileDevice } from '../utils/device.js';
+import { getQualityTier, applyRendererQuality } from '../rendering/quality.js';
+import { getVisualProfile } from '../config/visual-profiles.js';
 
 // Store ambient particles for animation
 let ambientParticles = null;
+let ambientTime = 0;
 
 export function init3D() {
   const state = getState();
   const { themeData, COLS, ROWS } = state;
+  const quality = getQualityTier();
+  const visuals = getVisualProfile(themeData);
 
   const wrap = document.querySelector('.canvas-wrap');
 
@@ -45,13 +49,12 @@ export function init3D() {
   // Create scene
   const scene = new THREE.Scene();
   const isHockey = state.theme === 'hockey';
+  const isSoccer = state.theme === 'soccer';
 
-  // Deeper, richer background color
-  const bgColor = isHockey ? 0x060d18 : 0x050e07;
+  const bgColor = visuals.map.background;
   scene.background = new THREE.Color(bgColor);
 
-  // Atmospheric exponential fog for depth
-  scene.fog = new THREE.FogExp2(bgColor, isHockey ? 0.012 : 0.010);
+  scene.fog = new THREE.FogExp2(visuals.map.fog || bgColor, visuals.map.fogDensity || 0.007);
 
   // Camera with good FOV
   const camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 200);
@@ -61,49 +64,46 @@ export function init3D() {
   // High-performance renderer
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: quality.antialias,
     powerPreference: 'high-performance',
     alpha: false
   });
 
   renderer.setSize(w, h);
-
-  // Adaptive pixel ratio: cap at 1.5x on mobile, 2x on desktop
-  const maxPixelRatio = isMobileDevice() ? 1.5 : 2;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
+  applyRendererQuality(renderer);
 
   // Enhanced shadows
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = quality.shadows;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // Cinematic tone mapping
+  // Tone mapping – ACES filmic with restrained exposure to prevent washout
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = isHockey ? 1.15 : 1.05;
+  renderer.toneMappingExposure = visuals.lighting.exposure || 0.9;
   renderer.outputEncoding = THREE.sRGBEncoding;
 
   // === STADIUM SKY DOME ===
-  buildSkyDome(scene, isHockey, COLS, ROWS);
+  buildSkyDome(scene, isHockey, COLS, ROWS, visuals);
 
   // === ENHANCED LIGHTING SYSTEM ===
 
-  // Hemisphere light – sky/ground ambient bounce
+  // Hemisphere light – sky/ground ambient bounce (reduced to prevent washout)
   const hemiLight = new THREE.HemisphereLight(
-    isHockey ? 0x9fc8e8 : 0x9fd8a8,   // sky
-    isHockey ? 0x334466 : 0x1a3320,   // ground
-    isHockey ? 0.55 : 0.50
+    visuals.lighting.hemiSky,
+    visuals.lighting.hemiGround,
+    visuals.lighting.hemiIntensity
   );
   hemiLight.position.set(0, 50, 0);
   scene.add(hemiLight);
 
-  // Main directional light (sun / overhead floodlight)
+  // Main directional light (sun / overhead floodlight) – reduced for readability
   const sun = new THREE.DirectionalLight(
-    isHockey ? 0xddeeff : 0xfff5e8,
-    isHockey ? 1.5 : 1.3
+    visuals.lighting.sun,
+    visuals.lighting.sunIntensity
   );
   sun.position.set(COLS * 0.4, 28, ROWS * 0.25);
   sun.castShadow = true;
 
-  const shadowMapSize = isMobileDevice() ? 1024 : 2048;
+  const shadowMapSize = quality.shadowMapSize;
   sun.shadow.mapSize.width = shadowMapSize;
   sun.shadow.mapSize.height = shadowMapSize;
   sun.shadow.camera.near = 1;
@@ -116,10 +116,10 @@ export function init3D() {
   sun.shadow.normalBias = 0.02;
   scene.add(sun);
 
-  // Rim/fill light – adds depth from opposite side
+  // Rim/fill light – adds depth from opposite side (gentle)
   const rimLight = new THREE.DirectionalLight(
-    isHockey ? 0x2255aa : 0x22aa44,
-    0.35
+    visuals.lighting.rim,
+    visuals.lighting.rimIntensity
   );
   rimLight.position.set(-COLS * 0.5, 18, -ROWS * 0.5);
   scene.add(rimLight);
@@ -127,8 +127,8 @@ export function init3D() {
   // Stadium SpotLights from corner poles (real illumination, not just decorative)
   const hw = COLS / 2;
   const hh = ROWS / 2;
-  const spotColor   = isHockey ? 0xddeeff : 0xfff8ee;
-  const spotIntensity = isMobileDevice() ? 0 : (isHockey ? 60 : 50); // skip on mobile
+  const spotColor   = visuals.lighting.sun;
+  const spotIntensity = quality.spotLights ? (isHockey ? 22 : 18) : 0; // Reduced from 60/50 to prevent washout
 
   const spotPositions = [
     [-hw - 3, 9, -hh - 3],
@@ -147,22 +147,26 @@ export function init3D() {
       scene.add(spot.target);
     }
 
-    // Subtle point light glow at fixture position
-    const pt = new THREE.PointLight(spotColor, isHockey ? 0.5 : 0.4, 12);
-    pt.position.set(x, y, z);
-    scene.add(pt);
+    // Subtle point light glow at fixture position (reduced intensity)
+    if (quality.pointLights) {
+      const pt = new THREE.PointLight(spotColor, isHockey ? 0.25 : 0.20, 12);
+      pt.position.set(x, y, z);
+      scene.add(pt);
+    }
   });
 
-  // Subtle colored accent lights
-  const accentColor = isHockey ? 0x0066ff : 0x00aa44;
+  // Subtle colored accent lights (reduced for color preservation)
+  const accentColor = visuals.lighting.accent;
   const accentPositions = [
     [-hw * 0.5, 2, -hh * 0.5],
     [ hw * 0.5, 2,  hh * 0.5]
   ];
   accentPositions.forEach(([x, y, z]) => {
-    const pt = new THREE.PointLight(accentColor, 0.25, 10);
-    pt.position.set(x, y, z);
-    scene.add(pt);
+    if (quality.pointLights) {
+      const pt = new THREE.PointLight(accentColor, 0.15, 10);
+      pt.position.set(x, y, z);
+      scene.add(pt);
+    }
   });
 
   const raycaster = new THREE.Raycaster();
@@ -180,12 +184,14 @@ export function init3D() {
   // Build arena based on theme
   if (isHockey) {
     buildHockeyRink();
-  } else {
+  } else if (isSoccer) {
     buildSoccerPitch();
+  } else {
+    buildOrbitalPlatform();
   }
 
   // Add ambient particles
-  createAmbientParticles(isHockey);
+  createAmbientParticles(visuals);
 
   // Setup input handlers on canvas
   attachHandlers(canvas);
@@ -194,24 +200,19 @@ export function init3D() {
 /**
  * Build a large hemisphere sky dome with a gradient texture
  */
-function buildSkyDome(scene, isHockey, COLS, ROWS) {
+function buildSkyDome(scene, isHockey, COLS, ROWS, visuals) {
   const skyCanvas = document.createElement('canvas');
   skyCanvas.width = 4;
   skyCanvas.height = 256;
   const ctx = skyCanvas.getContext('2d');
 
   const gradient = ctx.createLinearGradient(0, 0, 0, 256);
-  if (isHockey) {
-    gradient.addColorStop(0,    '#0a1828');
-    gradient.addColorStop(0.35, '#0d1e30');
-    gradient.addColorStop(0.65, '#091420');
-    gradient.addColorStop(1,    '#060d18');
-  } else {
-    gradient.addColorStop(0,    '#071208');
-    gradient.addColorStop(0.35, '#0a1a0c');
-    gradient.addColorStop(0.65, '#081510');
-    gradient.addColorStop(1,    '#050e07');
-  }
+  const bg = new THREE.Color(visuals.map.background);
+  const fog = new THREE.Color(visuals.map.fog || visuals.map.background);
+  gradient.addColorStop(0, `#${fog.clone().multiplyScalar(1.45).getHexString()}`);
+  gradient.addColorStop(0.42, `#${fog.getHexString()}`);
+  gradient.addColorStop(0.72, `#${bg.clone().multiplyScalar(0.9).getHexString()}`);
+  gradient.addColorStop(1, `#${bg.getHexString()}`);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 4, 256);
 
@@ -230,7 +231,8 @@ function buildSkyDome(scene, isHockey, COLS, ROWS) {
   scene.add(sky);
 
   // Stars / dust field for hockey; subtle for soccer
-  const starCount = isHockey ? 200 : 80;
+  const quality = getQualityTier();
+  const starCount = isHockey ? quality.skyParticles : Math.floor(quality.skyParticles * 0.45);
   const starPositions = new Float32Array(starCount * 3);
   const starColors    = new Float32Array(starCount * 3);
 
@@ -243,15 +245,10 @@ function buildSkyDome(scene, isHockey, COLS, ROWS) {
     starPositions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
 
     const brightness = 0.4 + Math.random() * 0.6;
-    if (isHockey) {
-      starColors[i * 3]     = brightness * 0.7;
-      starColors[i * 3 + 1] = brightness * 0.85;
-      starColors[i * 3 + 2] = brightness;
-    } else {
-      starColors[i * 3]     = brightness * 0.7;
-      starColors[i * 3 + 1] = brightness;
-      starColors[i * 3 + 2] = brightness * 0.7;
-    }
+    const accent = new THREE.Color(visuals.lighting.accent);
+    starColors[i * 3]     = accent.r * brightness;
+    starColors[i * 3 + 1] = accent.g * brightness;
+    starColors[i * 3 + 2] = accent.b * brightness;
   }
 
   const starGeo = new THREE.BufferGeometry();
@@ -274,6 +271,7 @@ function buildSkyDome(scene, isHockey, COLS, ROWS) {
 function buildHockeyRink() {
   const state = getState();
   const { scene, themeData, COLS, ROWS } = state;
+  const visuals = getVisualProfile(themeData);
   const hw = COLS / 2;
   const hh = ROWS / 2;
 
@@ -285,12 +283,19 @@ function buildHockeyRink() {
   iceCanvas.height = 512;
   const ctx = iceCanvas.getContext('2d');
 
-  // Base ice color
-  ctx.fillStyle = '#e2f0f8';
+  // Base ice color – slightly more blue to retain color identity
+  ctx.fillStyle = visuals.map.floor.base;
+  ctx.fillRect(0, 0, 512, 512);
+
+  const iceGrad = ctx.createRadialGradient(256, 256, 40, 256, 256, 390);
+  iceGrad.addColorStop(0, 'rgba(255,255,255,0.22)');
+  iceGrad.addColorStop(0.55, 'rgba(110,190,225,0.08)');
+  iceGrad.addColorStop(1, 'rgba(20,80,120,0.18)');
+  ctx.fillStyle = iceGrad;
   ctx.fillRect(0, 0, 512, 512);
 
   // Subtle snow-groomed directional lines
-  ctx.strokeStyle = 'rgba(180, 210, 228, 0.35)';
+  ctx.strokeStyle = visuals.map.floor.line;
   ctx.lineWidth = 1.5;
   for (let i = 0; i < 48; i++) {
     const y = i * 11;
@@ -301,9 +306,9 @@ function buildHockeyRink() {
   }
 
   // Subtle cross scratches
-  ctx.strokeStyle = 'rgba(200, 225, 238, 0.2)';
+  ctx.strokeStyle = visuals.map.floor.scratch;
   ctx.lineWidth = 0.8;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 105; i++) {
     const x1 = Math.random() * 512;
     const y1 = Math.random() * 512;
     const len = 20 + Math.random() * 60;
@@ -314,8 +319,8 @@ function buildHockeyRink() {
     ctx.stroke();
   }
 
-  // Sparkle specular highlights
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  // Sparkle specular highlights (reduced brightness)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
   for (let i = 0; i < 120; i++) {
     const r = Math.random() * 1.8 + 0.3;
     ctx.beginPath();
@@ -327,14 +332,14 @@ function buildHockeyRink() {
   iceTexture.wrapS = THREE.RepeatWrapping;
   iceTexture.wrapT = THREE.RepeatWrapping;
   iceTexture.repeat.set(COLS / 4, ROWS / 4);
-  iceTexture.anisotropy = 4;
+  iceTexture.anisotropy = getQualityTier().anisotropy;
 
   const iceMat = new THREE.MeshStandardMaterial({
-    color: 0xdcf0f8,
+    color: visuals.map.floor.meshColor,
     map: iceTexture,
-    metalness: 0.08,
-    roughness: 0.04,
-    envMapIntensity: 0.8
+    metalness: 0.12,
+    roughness: 0.12,
+    envMapIntensity: 0.75
   });
 
   const ice = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), iceMat);
@@ -342,23 +347,23 @@ function buildHockeyRink() {
   ice.receiveShadow = true;
   scene.add(ice);
 
-  // Subtle reflective gloss layer
+  // Subtle reflective gloss layer (reduced opacity to prevent washout)
   const reflectMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    metalness: 0.95,
-    roughness: 0.06,
+    color: 0xeeeeff,
+    metalness: 0.85,
+    roughness: 0.15,
     transparent: true,
-    opacity: 0.12
+    opacity: 0.095
   });
   const reflect = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), reflectMat);
   reflect.rotation.x = -Math.PI / 2;
   reflect.position.y = 0.005;
   scene.add(reflect);
 
-  // === BOARDS ===
+  // === BOARDS === (tinted slightly to not blow out white)
   const boardMat = new THREE.MeshStandardMaterial({
-    color: 0xf0f4f8,
-    roughness: 0.25,
+    color: 0xd8dfe8,
+    roughness: 0.35,
     metalness: 0.08
   });
 
@@ -389,19 +394,19 @@ function buildHockeyRink() {
     scene.add(cap);
   });
 
-  // === ICE LINES ===
+  // === ICE LINES (bolder colors for contrast) ===
   const redMat = new THREE.MeshStandardMaterial({
-    color: 0xcc0000,
-    emissive: 0xcc0000,
-    emissiveIntensity: 0.2,
-    roughness: 0.75
+    color: 0xdd1111,
+    emissive: 0xdd1111,
+    emissiveIntensity: 0.25,
+    roughness: 0.70
   });
 
   const blueMat = new THREE.MeshStandardMaterial({
-    color: 0x0055cc,
-    emissive: 0x0044bb,
-    emissiveIntensity: 0.15,
-    roughness: 0.75
+    color: 0x1166dd,
+    emissive: 0x0055cc,
+    emissiveIntensity: 0.20,
+    roughness: 0.70
   });
 
   const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.22, ROWS), redMat);
@@ -430,6 +435,39 @@ function buildHockeyRink() {
   dot.position.y = 0.018;
   scene.add(dot);
 
+  // Faceoff circles and defensive goal creases
+  const creaseMat = new THREE.MeshStandardMaterial({
+    color: 0x6ed7ff,
+    emissive: 0x1e90ff,
+    emissiveIntensity: 0.16,
+    transparent: true,
+    opacity: 0.58,
+    roughness: 0.55
+  });
+  const faceoffXs = [-hw * 0.55, hw * 0.55];
+  const faceoffZs = [-hh * 0.42, hh * 0.42];
+  faceoffXs.forEach(x => {
+    faceoffZs.forEach(z => {
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.82, 56), redMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(x, 0.018, z);
+      scene.add(ring);
+
+      const faceDot = new THREE.Mesh(new THREE.CircleGeometry(0.09, 20), redMat);
+      faceDot.rotation.x = -Math.PI / 2;
+      faceDot.position.set(x, 0.019, z);
+      scene.add(faceDot);
+    });
+  });
+
+  [BASE_SAFE_X(-hw), BASE_SAFE_X(hw)].forEach(x => {
+    const crease = new THREE.Mesh(new THREE.CircleGeometry(0.72, 36), creaseMat);
+    crease.rotation.x = -Math.PI / 2;
+    crease.position.set(x, 0.0185, 0);
+    crease.scale.z = 0.62;
+    scene.add(crease);
+  });
+
   // Add visual elements
   addObstacleVisuals(hw, hh);
   addSpawnAndPenVisuals(hw, hh);
@@ -437,9 +475,14 @@ function buildHockeyRink() {
   buildLights(hw, hh);
 }
 
+function BASE_SAFE_X(x) {
+  return x < 0 ? x + 1.0 : x - 1.0;
+}
+
 function buildSoccerPitch() {
   const state = getState();
   const { scene, themeData, COLS, ROWS } = state;
+  const visuals = getVisualProfile(themeData);
   const hw = COLS / 2;
   const hh = ROWS / 2;
 
@@ -451,19 +494,25 @@ function buildSoccerPitch() {
   grassCanvas.height = 512;
   const ctx = grassCanvas.getContext('2d');
 
-  // Alternating mow stripes
-  const stripH = 512 / 10;
-  for (let i = 0; i < 10; i++) {
-    ctx.fillStyle = i % 2 === 0 ? '#286e38' : '#2f8040';
+  // Alternating mow stripes (richer, more saturated greens)
+  const stripH = 512 / 12;
+  for (let i = 0; i < 12; i++) {
+    ctx.fillStyle = i % 2 === 0 ? visuals.map.floor.alt : visuals.map.floor.base;
     ctx.fillRect(0, i * stripH, 512, stripH);
+  }
+
+  // Faint lengthwise mowing variation to avoid flat green wash.
+  for (let i = 0; i < 8; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.035)';
+    ctx.fillRect(i * 64, 0, 64, 512);
   }
 
   // Grass blade texture noise
   for (let i = 0; i < 2400; i++) {
     const alpha = 0.06 + Math.random() * 0.06;
     ctx.fillStyle = Math.random() > 0.5
-      ? `rgba(0,60,10,${alpha})`
-      : `rgba(60,130,60,${alpha})`;
+      ? `rgba(0,70,20,${alpha})`
+      : visuals.map.floor.blade;
     ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random(), 3 + Math.random() * 3);
   }
 
@@ -471,12 +520,12 @@ function buildSoccerPitch() {
   grassTexture.wrapS = THREE.RepeatWrapping;
   grassTexture.wrapT = THREE.RepeatWrapping;
   grassTexture.repeat.set(COLS / 8, ROWS / 8);
-  grassTexture.anisotropy = 4;
+  grassTexture.anisotropy = getQualityTier().anisotropy;
 
   const grassMat = new THREE.MeshStandardMaterial({
-    color: 0x38a050,
+    color: visuals.map.floor.meshColor,
     map: grassTexture,
-    roughness: 0.92,
+    roughness: 0.88,
     metalness: 0.0
   });
 
@@ -548,6 +597,40 @@ function buildSoccerPitch() {
     endLine.rotation.x = -Math.PI / 2;
     endLine.position.set(baseX + boxW * side, 0.022, z);
     scene.add(endLine);
+
+    // Six-yard box, penalty spot, and bright goal mouth.
+    const smallBoxW = Math.max(1.2, boxW * 0.42);
+    const smallBoxH = Math.max(1.2, boxH * 0.42);
+    const smallCenterX = baseX + (smallBoxW / 2) * side;
+    [
+      [smallCenterX, z - smallBoxH / 2, smallBoxW, 0.11],
+      [smallCenterX, z + smallBoxH / 2, smallBoxW, 0.11],
+      [baseX + smallBoxW * side, z, 0.11, smallBoxH]
+    ].forEach(([lx, lz, lw, lh]) => {
+      const smallLine = new THREE.Mesh(new THREE.PlaneGeometry(lw, lh), lineMat);
+      smallLine.rotation.x = -Math.PI / 2;
+      smallLine.position.set(lx, 0.024, lz);
+      scene.add(smallLine);
+    });
+
+    const penaltySpot = new THREE.Mesh(new THREE.CircleGeometry(0.09, 24), lineMat);
+    penaltySpot.rotation.x = -Math.PI / 2;
+    penaltySpot.position.set(baseX + boxW * 0.65 * side, 0.025, z);
+    scene.add(penaltySpot);
+
+    const goalMouth = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.16, Math.max(1.5, ROWS * 0.18)),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.28,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+    goalMouth.rotation.x = -Math.PI / 2;
+    goalMouth.position.set(baseX + 0.08 * side, 0.026, z);
+    scene.add(goalMouth);
   });
 
   // Add visual elements
@@ -557,18 +640,99 @@ function buildSoccerPitch() {
   buildLights(hw, hh);
 }
 
+function buildOrbitalPlatform() {
+  const state = getState();
+  const { scene, themeData, COLS, ROWS } = state;
+  const visuals = getVisualProfile(themeData);
+  const hw = COLS / 2;
+  const hh = ROWS / 2;
+
+  clearCells();
+
+  const panelCanvas = document.createElement('canvas');
+  panelCanvas.width = 512;
+  panelCanvas.height = 512;
+  const ctx = panelCanvas.getContext('2d');
+  ctx.fillStyle = visuals.map.floor.base;
+  ctx.fillRect(0, 0, 512, 512);
+  ctx.strokeStyle = visuals.map.floor.line;
+  ctx.lineWidth = 3;
+  for (let i = 0; i <= 8; i++) {
+    const p = i * 64;
+    ctx.beginPath();
+    ctx.moveTo(p, 0);
+    ctx.lineTo(p, 512);
+    ctx.moveTo(0, p);
+    ctx.lineTo(512, p);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(103, 232, 249, 0.34)';
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 32; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    ctx.strokeRect(x, y, 22 + Math.random() * 50, 8 + Math.random() * 30);
+  }
+
+  const panelTexture = new THREE.CanvasTexture(panelCanvas);
+  panelTexture.wrapS = THREE.RepeatWrapping;
+  panelTexture.wrapT = THREE.RepeatWrapping;
+  panelTexture.repeat.set(COLS / 6, ROWS / 6);
+  panelTexture.anisotropy = getQualityTier().anisotropy;
+
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(COLS + 4, ROWS + 4),
+    new THREE.MeshStandardMaterial({
+      color: visuals.map.floor.meshColor,
+      map: panelTexture,
+      roughness: visuals.map.floor.roughness,
+      metalness: visuals.map.floor.metalness,
+      emissive: 0x130b2e,
+      emissiveIntensity: 0.18
+    })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const edgeMat = new THREE.MeshStandardMaterial({
+    color: 0x111827,
+    roughness: 0.34,
+    metalness: 0.75,
+    emissive: visuals.map.path.emissive,
+    emissiveIntensity: 0.18
+  });
+  [
+    [0, -hh - 0.8, COLS + 1.8, 0.34],
+    [0, hh + 0.8, COLS + 1.8, 0.34],
+    [-hw - 0.8, 0, 0.34, ROWS + 1.8],
+    [hw + 0.8, 0, 0.34, ROWS + 1.8]
+  ].forEach(([x, z, w, d]) => {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(w, 0.34, d), edgeMat);
+    rail.position.set(x, 0.17, z);
+    rail.castShadow = true;
+    rail.receiveShadow = true;
+    scene.add(rail);
+  });
+
+  addObstacleVisuals(hw, hh);
+  addSpawnAndPenVisuals(hw, hh);
+  buildCells(hw, hh);
+  buildLights(hw, hh);
+}
+
 /**
  * Create floating ambient particles
  */
-function createAmbientParticles(isHockey) {
+function createAmbientParticles(visuals) {
   const state = getState();
   const { scene, COLS, ROWS } = state;
 
-  const particleCount = isMobileDevice() ? 50 : 100;
+  const particleCount = getQualityTier().ambientParticles;
   const positions = new Float32Array(particleCount * 3);
   const colors    = new Float32Array(particleCount * 3);
 
-  const color = isHockey ? new THREE.Color(0x66bbee) : new THREE.Color(0x66ee88);
+  const color = new THREE.Color(visuals.lighting.accent);
 
   for (let i = 0; i < particleCount; i++) {
     positions[i * 3]     = (Math.random() - 0.5) * COLS * 1.5;
@@ -607,6 +771,8 @@ export function updateAmbientParticles(dt) {
   const positions = ambientParticles.geometry.attributes.position.array;
   const state = getState();
 
+  ambientTime += dt;
+
   for (let i = 0; i < positions.length; i += 3) {
     positions[i + 1] += dt * 0.25;
 
@@ -614,8 +780,9 @@ export function updateAmbientParticles(dt) {
       positions[i + 1] = 0.5;
     }
 
-    positions[i]     += Math.sin(Date.now() * 0.0008 + i) * dt * 0.08;
-    positions[i + 2] += Math.cos(Date.now() * 0.0008 + i) * dt * 0.08;
+    // Slight drift using accumulated time instead of Date.now()
+    positions[i]     += Math.sin(ambientTime * 0.8 + i) * dt * 0.08;
+    positions[i + 2] += Math.cos(ambientTime * 0.8 + i) * dt * 0.08;
   }
 
   ambientParticles.geometry.attributes.position.needsUpdate = true;
@@ -639,6 +806,7 @@ export function onResize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
+  applyRendererQuality(renderer);
 }
 
 /**
