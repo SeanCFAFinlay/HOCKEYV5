@@ -44,7 +44,7 @@ export function buildLights(hw, hh) {
   const fixtureGlowMat = new THREE.MeshStandardMaterial({
     color: 0xfff8e0,
     emissive: 0xfff8e0,
-    emissiveIntensity: 0.8,
+    emissiveIntensity: 1.2,
     roughness: 0.2,
     metalness: 0.3
   });
