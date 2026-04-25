@@ -2,21 +2,31 @@
 
 import { getState, removeProjectile } from '../engine/state.js';
 import { handleHit } from './damage.js';
+import { getVisualProfile } from '../config/visual-profiles.js';
 
 // Trail particle pool for reuse
 const trailPool = [];
 const MAX_TRAIL_PARTICLES = 100;
 
-function getTrailParticle(color) {
+function getTrailParticle(color, kind = 'default') {
   let particle = trailPool.pop();
+  if (particle && particle.userData.kind !== kind) {
+    disposeObject(particle);
+    particle = null;
+  }
   if (!particle) {
-    const geo = new THREE.SphereGeometry(0.04, 6, 6);
+    const geo = kind === 'electric' || kind === 'laser'
+      ? new THREE.OctahedronGeometry(0.045, 0)
+      : new THREE.SphereGeometry(kind === 'spin' ? 0.055 : 0.04, 6, 6);
     const mat = new THREE.MeshBasicMaterial({
       color,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
     particle = new THREE.Mesh(geo, mat);
+    particle.userData.kind = kind;
   } else {
     particle.material.color.set(color);
     particle.material.opacity = 0.6;
@@ -29,16 +39,33 @@ function returnTrailParticle(particle, scene) {
   scene.remove(particle);
   if (trailPool.length < MAX_TRAIL_PARTICLES) {
     trailPool.push(particle);
+  } else {
+    disposeObject(particle);
   }
+}
+
+function disposeObject(obj) {
+  obj.traverse?.((child) => {
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      if (Array.isArray(child.material)) {
+        child.material.forEach(mat => mat.dispose());
+      } else {
+        child.material.dispose();
+      }
+    }
+  });
 }
 
 export function createProjectile(tw, target, sx, sz) {
   const state = getState();
   const { theme, themeData, scene } = state;
+  const visuals = getVisualProfile(themeData);
 
   const td = themeData.towers.find(t => t.id === tw.type);
   const idx = themeData.towers.indexOf(td);
   const isHockey = theme === 'hockey';
+  const profile = visuals.projectiles[td.projectile] || Object.values(visuals.projectiles)[0];
 
   let geo, mat;
   let speed = 8.5;
@@ -46,7 +73,11 @@ export function createProjectile(tw, target, sx, sz) {
   const c = new THREE.Color(td.clr);
 
   // Theme-specific projectile shapes with enhanced visuals
-  if (isHockey) {
+  if (theme === 'space') {
+    ({ geo, mat } = createProfileProjectile(profile, c));
+    trailColor = profile.color || c;
+    speed = profile.speed || 12;
+  } else if (isHockey) {
     switch (idx) {
       case 0: // Slap Shot - glowing puck projectile
         geo = new THREE.CylinderGeometry(0.08, 0.08, 0.025, 20);
@@ -292,9 +323,49 @@ export function createProjectile(tw, target, sx, sz) {
     t: 0,
     speed,
     trailColor,
+    trailKind: profile.trail,
+    impactKind: profile.impact,
+    curve: profile.curve || 0,
+    beam: !!profile.beam,
     trail: [],
     trailTimer: 0
   };
+}
+
+function createProfileProjectile(profile, fallbackColor) {
+  const color = profile?.color || fallbackColor;
+  const meshType = profile?.mesh || 'sphere';
+  let geo;
+  let mat;
+
+  switch (meshType) {
+    case 'laser':
+      geo = new THREE.CylinderGeometry(0.018, 0.035, 0.55, 8);
+      mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.96, blending: THREE.AdditiveBlending });
+      break;
+    case 'plasma':
+      geo = new THREE.SphereGeometry(0.1, 16, 12);
+      mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending });
+      break;
+    case 'ring':
+      geo = new THREE.TorusGeometry(0.09, 0.025, 8, 22);
+      mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.86, blending: THREE.AdditiveBlending });
+      break;
+    case 'bolt':
+    case 'beam':
+      geo = new THREE.CylinderGeometry(0.025, 0.045, 0.24, 6);
+      mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending });
+      break;
+    case 'star':
+      geo = new THREE.OctahedronGeometry(0.11, 1);
+      mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.9, roughness: 0.08, metalness: 0.8 });
+      break;
+    default:
+      geo = new THREE.SphereGeometry(0.08, 14, 12);
+      mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.25, metalness: 0.3 });
+  }
+
+  return { geo, mat };
 }
 
 export function updateProjectiles(dt) {
@@ -319,7 +390,10 @@ export function updateProjectiles(dt) {
 
     if (dist <= move) {
       handleHit(p);
-      if (p.mesh) scene.remove(p.mesh);
+      if (p.mesh) {
+        scene.remove(p.mesh);
+        disposeObject(p.mesh);
+      }
       // Clean up trail particles
       if (p.trail) {
         p.trail.forEach(t => returnTrailParticle(t, scene));
@@ -331,8 +405,12 @@ export function updateProjectiles(dt) {
         p.trailTimer += dt;
         if (p.trailTimer >= 0.03) {
           p.trailTimer = 0;
-          const particle = getTrailParticle(p.trailColor);
+          const particle = getTrailParticle(p.trailColor, p.trailKind);
           particle.position.set(p.x, p.y, p.z);
+          if (p.trailKind === 'spin' || p.trailKind === 'curve') {
+            particle.position.x += Math.sin(p.t * 12) * 0.08;
+            particle.position.z += Math.cos(p.t * 12) * 0.08;
+          }
           scene.add(particle);
           p.trail.push(particle);
 
@@ -351,9 +429,10 @@ export function updateProjectiles(dt) {
         });
       }
 
-      p.x += (dx / dist) * move;
+      const curveOffset = p.curve ? Math.sin(p.t * 7) * p.curve * 0.015 : 0;
+      p.x += (dx / dist) * move + curveOffset * dz;
       p.y += (dy / dist) * move;
-      p.z += (dz / dist) * move;
+      p.z += (dz / dist) * move - curveOffset * dx;
 
       if (p.mesh) {
         p.mesh.position.set(p.x, p.y, p.z);

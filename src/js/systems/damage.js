@@ -36,9 +36,15 @@ export function handleHit(p) {
       if (dist < tw.splash) {
         const splashDmg = dmg * (1 - dist / tw.splash / 2);
         hurtEnemy(e, splashDmg, isCrit);
+        if (p.impactKind === 'gravity' && dist > 0.05) {
+          const pull = 0.18 * (1 - dist / tw.splash);
+          e.x -= (dx / dist) * pull;
+          e.z -= (dz / dist) * pull;
+          e.slow = Math.max(e.slow || 0, 0.6);
+        }
       }
     });
-    createExplosion(p.x, p.y, p.z, false);
+    createThemedImpact(p);
   }
   // Chain lightning
   else if (tw.chain && p.target && enemies.includes(p.target)) {
@@ -95,8 +101,7 @@ export function handleHit(p) {
       }
     }
 
-    // Create impact particles
-    createImpact(p.x, p.y, p.z, isCrit ? 0xffd700 : 0xffffff);
+    createThemedImpact(p, isCrit);
   }
 
   emit(GameEvents.PROJECTILE_HIT, {
@@ -106,6 +111,31 @@ export function handleHit(p) {
     damage: dmg,
     critical: isCrit
   });
+}
+
+function createThemedImpact(p, isCrit = false) {
+  const color = isCrit ? 0xffd700 : (p.trailColor || 0xffffff);
+  switch (p.impactKind) {
+    case 'frost':
+    case 'freeze':
+      createImpact(p.x, p.y, p.z, 0x9be8ff);
+      createExplosion(p.x, p.y, p.z, false, 0xaaffff);
+      break;
+    case 'burn':
+      createExplosion(p.x, p.y, p.z, true, color);
+      break;
+    case 'ring':
+    case 'gravity':
+    case 'slam':
+      createExplosion(p.x, p.y, p.z, false, color);
+      createImpact(p.x, p.y, p.z, color);
+      break;
+    case 'crit':
+      createExplosion(p.x, p.y, p.z, false, 0xffd700);
+      break;
+    default:
+      createImpact(p.x, p.y, p.z, color);
+  }
 }
 
 /**
@@ -125,6 +155,9 @@ export function hurtEnemy(e, dmg, isCrit = false) {
 
     // Scale punch effect
     punchScale(e.mesh, isCrit ? 1.3 : 1.15);
+
+    // Floating damage number
+    showDamageNumber(e.x, e.y || 0.5, e.z, actualDmg, isCrit);
   }
 
   emit(GameEvents.ENEMY_HIT, {
@@ -192,7 +225,7 @@ function punchScale(mesh, scale) {
 }
 
 /**
- * Show damage number (floating text)
+ * Show damage number (floating text sprite)
  * @param {number} x - World X
  * @param {number} y - World Y
  * @param {number} z - World Z
@@ -200,6 +233,62 @@ function punchScale(mesh, scale) {
  * @param {boolean} isCrit - Is critical
  */
 export function showDamageNumber(x, y, z, damage, isCrit) {
-  // This would require a sprite/DOM overlay system
-  // For now, we use the particle effects as feedback
+  const state = getState();
+  if (!state.scene) return;
+
+  const text = Math.floor(damage).toString();
+  const fontSize = isCrit ? 48 : 32;
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+
+  ctx.font = `bold ${fontSize}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Outline
+  ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+  ctx.lineWidth = 4;
+  ctx.strokeText(text, 64, 32);
+
+  // Fill
+  ctx.fillStyle = isCrit ? '#ffd700' : '#ffffff';
+  ctx.fillText(text, 64, 32);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: false
+  });
+  const sprite = new THREE.Sprite(mat);
+  sprite.position.set(x, y + 0.5, z);
+  sprite.scale.set(1.2, 0.6, 1);
+  if (isCrit) sprite.scale.multiplyScalar(1.4);
+  sprite.renderOrder = 999;
+  state.scene.add(sprite);
+
+  // Animate upward and fade out
+  const startY = y + 0.5;
+  const duration = 800;
+  const startTime = performance.now();
+
+  function animate() {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(1, elapsed / duration);
+
+    sprite.position.y = startY + t * 1.5;
+    mat.opacity = 1 - t * t;
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      state.scene.remove(sprite);
+      mat.dispose();
+      texture.dispose();
+    }
+  }
+
+  requestAnimationFrame(animate);
 }

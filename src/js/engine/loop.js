@@ -1,7 +1,7 @@
 // Main game loop with fixed timestep
 // Uses accumulator pattern for deterministic physics
 
-import { getState, setLastTime, addAnimTime, setWaveActive, setRunning, setAutoWaveTimer } from './state.js';
+import { getState, setLastTime, addAnimTime, setWaveActive, setRunning, setAutoWaveTimer, updateRunStats } from './state.js';
 import { emit, GameEvents } from './events.js';
 import { updateEnemies } from '../systems/enemies.js';
 import { updateTowers } from '../systems/towers.js';
@@ -13,6 +13,7 @@ import { updateHUD } from '../ui/hud.js';
 import { processWaveSpawns, startWave } from '../systems/waves.js';
 import { updatePreviewAnimation } from './input.js';
 import { createVictoryEffect, createDefeatEffect } from '../systems/particles.js';
+import { updatePerfOverlay } from '../ui/perf-overlay.js';
 
 // Fixed timestep configuration
 const FIXED_DT = 1 / 60;         // 60 FPS physics
@@ -80,6 +81,8 @@ export function gameLoop(currentTime) {
     state.renderer.render(state.scene, state.camera);
   }
 
+  updatePerfOverlay(frameTime, steps);
+
   // Check wave completion
   checkWaveCompletion();
 
@@ -96,6 +99,7 @@ function checkWaveCompletion() {
   // Check game-over condition first
   if (state.lives <= 0 && state.running) {
     setRunning(false);
+    updateRunStats({ result: 'lose', enemiesEscaped: Math.max(0, (state.mapData?.lives || 0) - state.lives) });
     emit(GameEvents.GAME_LOSE, { wave: state.wave, score: state.score });
     return;
   }
@@ -106,6 +110,7 @@ function checkWaveCompletion() {
       state.projectiles.length === 0) {
 
     setWaveActive(false);
+    updateRunStats({ wavesCompleted: state.wave });
     emit(GameEvents.WAVE_COMPLETE, { wave: state.wave });
     updateHUD();
 
@@ -128,10 +133,11 @@ function checkWaveCompletion() {
     }
 
     // Check win condition
-    if (state.mapData && state.wave >= state.mapData.waves) {
+    if (state.gameMode !== 'endless' && state.mapData && state.wave >= state.mapData.waves) {
       // Victory celebration effect
       createVictoryEffect();
 
+      updateRunStats({ result: 'win' });
       emit(GameEvents.GAME_WIN, { score: state.score, wave: state.wave }); // modals.js handles display
       setRunning(false);
     }
