@@ -69,7 +69,7 @@ export function init3D() {
 
   renderer.setSize(w, h);
 
-  // Adaptive pixel ratio: cap at 1.5x on mobile, 2x on desktop
+  // Adaptive pixel ratio: cap at 1.5x on mobile for better performance, 2x on desktop
   const maxPixelRatio = isMobileDevice() ? 1.5 : 2;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
 
@@ -104,6 +104,7 @@ export function init3D() {
   sun.position.set(COLS * 0.4, 28, ROWS * 0.25);
   sun.castShadow = true;
 
+  // Adaptive shadow quality: lower on mobile for better performance
   const shadowMapSize = isMobileDevice() ? 1024 : 2048;
   sun.shadow.mapSize.width = shadowMapSize;
   sun.shadow.mapSize.height = shadowMapSize;
@@ -565,6 +566,7 @@ function createAmbientParticles(isHockey) {
   const state = getState();
   const { scene, COLS, ROWS } = state;
 
+  // Reduce particle count on mobile for better performance
   const particleCount = isMobileDevice() ? 50 : 100;
   const positions = new Float32Array(particleCount * 3);
   const colors    = new Float32Array(particleCount * 3);
