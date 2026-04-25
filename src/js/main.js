@@ -40,6 +40,7 @@ import { startWave, toggleAutoWave } from './systems/waves.js';
 
 // Import HUD
 import { initHUD } from './ui/hud.js';
+import { initPerfOverlay, showPerfOverlay } from './ui/perf-overlay.js';
 
 // Debug mode
 const DEBUG = false;
@@ -65,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize speed buttons
   initSpeedButtons();
+  initPerfOverlay();
 
   // Initialize modal event listeners (win/lose handlers via game events)
   initModals();
@@ -191,6 +193,9 @@ if (DEBUG) {
   window.__debug = {
     getState: () => import('./engine/state.js').then(m => m.getState()),
     getPoolStats: () => import('./engine/pools.js').then(m => m.getPoolStats()),
-    getPathCacheStats: () => import('./systems/pathfinding.js').then(m => m.getPathCacheStats())
+    getPathCacheStats: () => import('./systems/pathfinding.js').then(m => m.getPathCacheStats()),
+    showPerf: showPerfOverlay
   };
 }
+
+window.__perf = { show: showPerfOverlay };

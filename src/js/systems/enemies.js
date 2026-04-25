@@ -62,6 +62,13 @@ export function spawnEnemy(ed) {
   const e = {
     // Identity
     type: ed.id,
+    configId: ed.id,
+    nm: ed.nm,
+    role: ed.role,
+    slot: ed.slot || ed.role?.toLowerCase(),
+    threatTags: ed.threatTags || [],
+    speedClass: ed.speedClass,
+    rewardClass: ed.rewardClass,
     id: `enemy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 
     // State machine
@@ -130,7 +137,6 @@ export function spawnEnemy(ed) {
 
   addEnemy(e);
   decrementSpawnsPending();
-  emit(GameEvents.ENEMY_SPAWN, { enemy: e });
 }
 
 /**

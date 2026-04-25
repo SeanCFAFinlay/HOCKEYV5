@@ -19,6 +19,8 @@ export const ActionTypes = {
   SET_KILLS: 'SET_KILLS',
   INCREMENT_KILLS: 'INCREMENT_KILLS',
   SET_GAME_SPEED: 'SET_GAME_SPEED',
+  SET_GAME_MODE: 'SET_GAME_MODE',
+  SET_RUN_STATS: 'SET_RUN_STATS',
 
   // Wave state
   SET_WAVE_ACTIVE: 'SET_WAVE_ACTIVE',
@@ -96,6 +98,14 @@ const initialState = {
   score: 0,
   kills: 0,
   gameSpeed: 1,
+  gameMode: 'campaign',
+  runStats: {
+    wavesStarted: 0,
+    wavesCompleted: 0,
+    enemiesEscaped: 0,
+    towersLost: 0,
+    result: null
+  },
   autoWave: false,
   autoWaveTimer: null,
   spawnsPending: 0,
@@ -285,6 +295,14 @@ export function dispatch(type, payload) {
       state.gameSpeed = payload;
       break;
 
+    case ActionTypes.SET_GAME_MODE:
+      state.gameMode = payload;
+      break;
+
+    case ActionTypes.SET_RUN_STATS:
+      state.runStats = { ...state.runStats, ...payload };
+      break;
+
     // Wave state
     case ActionTypes.SET_WAVE_ACTIVE:
       state.waveActive = payload;
@@ -445,6 +463,7 @@ export function dispatch(type, payload) {
       state.autoWaveTimer = null;
       state.animTime = 0;
       state.kills = 0;
+      state.runStats = { ...initialState.runStats };
       break;
 
     default:
@@ -524,6 +543,14 @@ export function incrementKills() {
 
 export function setGameSpeed(speed) {
   dispatch(ActionTypes.SET_GAME_SPEED, speed);
+}
+
+export function setGameMode(mode) {
+  dispatch(ActionTypes.SET_GAME_MODE, mode);
+}
+
+export function updateRunStats(stats) {
+  dispatch(ActionTypes.SET_RUN_STATS, stats);
 }
 
 export function setAutoWave(autoWave) {

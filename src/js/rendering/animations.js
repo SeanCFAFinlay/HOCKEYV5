@@ -163,6 +163,14 @@ export function updateAnimations(dt) {
       e.logoGlow.material.opacity = 0.4 + Math.sin(t * 3) * 0.2;
     }
 
+    if (e.orbitalRings) {
+      e.orbitalRings.forEach((ring, i) => {
+        ring.rotation.z += dt * (1.2 + i * 0.45);
+        ring.rotation.y += dt * (0.7 + i * 0.25);
+        ring.material.opacity = 0.45 + Math.sin(t * 4 + i) * 0.18;
+      });
+    }
+
     // Update health bar color based on HP percentage
     if (e.hpBar && e.hp !== undefined && e.maxHp !== undefined && e.hpMats) {
       const hpPercent = e.hp / e.maxHp;

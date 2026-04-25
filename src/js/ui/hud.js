@@ -4,7 +4,7 @@ import { getState, setSelectedTower, setSellMode, subscribeToState, setRunning }
 import { on, GameEvents } from '../engine/events.js';
 import { hideUpgrade } from './upgrade-sheet.js';
 import { createDefeatEffect } from '../systems/particles.js';
-import { getWaveThemeName } from '../config/waves.js';
+import { getWaveThemeName, getWavePreview } from '../config/waves.js';
 
 // DOM element cache
 let domCache = null;
@@ -381,13 +381,10 @@ function showWavePreview() {
   }
 
   const parts = [];
-  Object.entries(nextWaveData).forEach(([id, count]) => {
-    const ed = themeData.enemies.find(e => e.id === id);
-    if (ed && count > 0) {
-      // Build a compact label: count × name, with icon cues for flags
-      const flags = (ed.boss ? '👑' : '') + (ed.flying ? '✈' : '') + (ed.fire ? '🔥' : '') + (ed.armor ? '🛡' : '');
-      parts.push(`${count}×${ed.nm}${flags ? ' ' + flags : ''}`);
-    }
+  const preview = getWavePreview(nextWaveData, themeData.enemies);
+  preview.entries.forEach(entry => {
+    const flags = getThreatBadges(entry);
+    parts.push(`${entry.count}×${entry.name}${flags ? ' ' + flags : ''}`);
   });
 
   if (parts.length === 0) {
@@ -395,8 +392,21 @@ function showWavePreview() {
     return;
   }
 
-  if (domCache.wavePreviewContent) domCache.wavePreviewContent.textContent = parts.join('  ·  ');
+  const pressure = preview.pressureTags.length ? ` [${preview.pressureTags.join(', ')}]` : '';
+  if (domCache.wavePreviewContent) domCache.wavePreviewContent.textContent = `${parts.join('  ·  ')}${pressure}`;
   if (domCache.wavePreview) domCache.wavePreview.style.display = 'flex';
+}
+
+function getThreatBadges(entry) {
+  const tags = new Set(entry.tags || []);
+  const badges = [];
+  if (entry.boss || tags.has('boss')) badges.push('Boss');
+  if (entry.flying || tags.has('air')) badges.push('Air');
+  if (entry.armor || tags.has('armor')) badges.push('Armor');
+  if (entry.fire || tags.has('fire')) badges.push('Fire');
+  if (tags.has('speed')) badges.push('Fast');
+  if (tags.has('bruiser')) badges.push('Bruiser');
+  return badges.join('/');
 }
 
 /**

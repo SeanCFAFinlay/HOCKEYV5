@@ -58,9 +58,7 @@ export function initProgression() {
   // Track lives lost
   on(GameEvents.LIVES_CHANGE, ({ lives }) => {
     const state = getState();
-    if (lives < state.lives) {
-      sessionStats.livesLost++;
-    }
+    sessionStats.livesLost = Math.max(0, sessionStats.startLives - lives);
   });
 
   // Track towers placed
@@ -102,13 +100,15 @@ export function initProgression() {
  */
 function handleGameComplete(won, score) {
   const state = getState();
-  const { theme, mapIndex, mapData, kills } = state;
+  const { theme, mapIndex, mapData, kills, gameMode } = state;
 
   // Calculate grade
   const grade = calculateGrade(score, mapData, won);
 
-  // Save progress
-  saveMapCompletion(theme, mapIndex, score, grade.stars, won);
+  // Save progression only for campaign runs. Endless and sandbox have separate stats.
+  if (gameMode === 'campaign') {
+    saveMapCompletion(theme, mapIndex, score, grade.stars, won);
+  }
 
   // Update global stats
   updateStats({
@@ -117,7 +117,8 @@ function handleGameComplete(won, score) {
     totalGamesPlayed: 1,
     totalGamesWon: won ? 1 : 0,
     totalTowersPlaced: sessionStats.towersPlaced,
-    totalMoneyEarned: sessionStats.moneyEarned
+    totalMoneyEarned: sessionStats.moneyEarned,
+    playTime: Math.floor((sessionStats.endTime - sessionStats.startTime) / 1000)
   });
 
   // Emit progression event with grade details
@@ -128,11 +129,12 @@ function handleGameComplete(won, score) {
     score,
     grade,
     sessionStats,
-    newRecord: grade.isNewRecord
+    newRecord: gameMode === 'campaign' && grade.isNewRecord,
+    mode: gameMode
   });
 
   // Check for newly unlocked map
-  if (won && mapIndex + 1 < state.themeData.maps.length) {
+  if (gameMode === 'campaign' && won && mapIndex + 1 < state.themeData.maps.length) {
     const nextMapUnlocked = isMapUnlocked(theme, mapIndex + 1);
     if (nextMapUnlocked) {
       emit(GameEvents.MAP_UNLOCKED, {
