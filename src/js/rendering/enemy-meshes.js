@@ -1,6 +1,7 @@
 // Enemy mesh creation with pooling support and enhanced visuals
 
 import { getState } from '../engine/state.js';
+import { getVisualProfile } from '../config/visual-profiles.js';
 
 // Mesh pool for recycling
 const meshPool = [];
@@ -16,50 +17,50 @@ function getSharedMaterials() {
   if (sharedMaterials) return sharedMaterials;
 
   sharedMaterials = {
-    // Puck body - dark with subtle metallic sheen
+    // Puck body - dark rubber with subtle sheen for contrast against ice
     puckBody: new THREE.MeshStandardMaterial({
-      color: 0x111111,
-      metalness: 0.6,
-      roughness: 0.3,
-      envMapIntensity: 0.8
+      color: 0x0a0a0a,
+      metalness: 0.5,
+      roughness: 0.35,
+      envMapIntensity: 0.6
     }),
-    // Soccer ball - glossy white
+    // Soccer ball - clean white with controlled brightness
     ballBody: new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      metalness: 0.1,
-      roughness: 0.4,
-      envMapIntensity: 0.5
+      color: 0xeeeeee,
+      metalness: 0.08,
+      roughness: 0.45,
+      envMapIntensity: 0.4
     }),
-    // Fire body - emissive glow
+    // Fire body - vivid emissive glow
     fireBody: new THREE.MeshStandardMaterial({
-      color: 0xff3300,
-      metalness: 0.2,
+      color: 0xff2200,
+      metalness: 0.15,
       roughness: 0.5,
-      emissive: 0xff2200,
-      emissiveIntensity: 0.6
+      emissive: 0xff1800,
+      emissiveIntensity: 0.5
     }),
-    // Gold crown
+    // Gold crown - rich metallic
     gold: new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      metalness: 0.95,
-      roughness: 0.05,
-      emissive: 0xaa8800,
-      emissiveIntensity: 0.3
+      color: 0xffcc00,
+      metalness: 0.90,
+      roughness: 0.08,
+      emissive: 0x996600,
+      emissiveIntensity: 0.25
     }),
-    // Crown gem - glowing red
+    // Crown gem - vivid glowing red
     gemRed: new THREE.MeshStandardMaterial({
       color: 0xff0000,
-      metalness: 0.3,
+      metalness: 0.25,
       roughness: 0.2,
       emissive: 0xff0000,
-      emissiveIntensity: 0.8
+      emissiveIntensity: 0.7
     }),
-    // Armor plates
+    // Armor plates - steel blue-grey for contrast
     armor: new THREE.MeshStandardMaterial({
-      color: 0x556677,
-      metalness: 0.85,
-      roughness: 0.2,
-      envMapIntensity: 1.0
+      color: 0x4a5c6e,
+      metalness: 0.80,
+      roughness: 0.25,
+      envMapIntensity: 0.8
     }),
     // Health bar gradient
     hpFull: new THREE.MeshBasicMaterial({ color: 0x22c55e, side: THREE.DoubleSide }),
@@ -107,14 +108,17 @@ export function returnEnemyMesh(enemy) {
  * @param {THREE.Group} group
  */
 function disposeGroup(group) {
+  const shared = sharedMaterials ? Object.values(sharedMaterials) : [];
   group.traverse((obj) => {
     if (obj.geometry) {
       obj.geometry.dispose();
     }
     if (obj.material) {
       if (Array.isArray(obj.material)) {
-        obj.material.forEach(m => m.dispose());
-      } else {
+        obj.material.forEach(m => {
+          if (!shared.includes(m)) m.dispose();
+        });
+      } else if (!shared.includes(obj.material)) {
         obj.material.dispose();
       }
     }
@@ -123,21 +127,33 @@ function disposeGroup(group) {
 
 export function createEnemyMesh(enemy) {
   const state = getState();
-  const { theme, COLS, ROWS } = state;
+  const { theme, themeData, COLS, ROWS } = state;
+  const visuals = getVisualProfile(themeData);
   const hw = COLS / 2;
   const hh = ROWS / 2;
   const group = new THREE.Group();
   const isHockey = theme === 'hockey';
+  const isSpace = theme === 'space';
   const sz = (enemy.sz || 1) * 0.28;
   const mats = getSharedMaterials();
+  const roleKey = enemy.slot || enemy.role?.toLowerCase() || 'swarm';
+  const visual = visuals.enemies[roleKey] || visuals.enemies[enemy.role?.toLowerCase()] || visuals.enemies.swarm;
 
   // Select appropriate body material
   let bodyMat;
   if (enemy.fire) {
     bodyMat = mats.fireBody;
+  } else if (visual?.color !== undefined) {
+    bodyMat = new THREE.MeshStandardMaterial({
+      color: visual.color,
+      metalness: isSpace ? 0.65 : 0.45,
+      roughness: isSpace ? 0.22 : 0.38,
+      emissive: visual.accent || visual.color,
+      emissiveIntensity: isSpace ? 0.36 : 0.16
+    });
   } else if (isHockey) {
     bodyMat = mats.puckBody;
-  } else {
+  } else if (!isSpace) {
     bodyMat = mats.ballBody;
   }
 
@@ -148,29 +164,30 @@ export function createEnemyMesh(enemy) {
     const isDefenseman = enemyName.includes('Defenseman');
     const isEnforcer = enemyName.includes('Enforcer');
     
-    // Adjust body material for new enemy types
+    // Adjust body material for new enemy types – vivid distinct colors
     if (isSpeedSkater) {
       bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x00ffff, // Bright cyan for speed
-        metalness: 0.7,
-        roughness: 0.2,
-        emissive: 0x00aaaa,
-        emissiveIntensity: 0.5
+        color: 0x00ddee, // Bright cyan for speed
+        metalness: 0.6,
+        roughness: 0.25,
+        emissive: 0x008899,
+        emissiveIntensity: 0.4
       });
     } else if (isDefenseman) {
       bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x2244aa, // Dark blue for defenseman
-        metalness: 0.6,
-        roughness: 0.3,
-        envMapIntensity: 0.8
+        color: 0x1a3388, // Bold blue for defenseman
+        metalness: 0.55,
+        roughness: 0.35,
+        emissive: 0x0a1844,
+        emissiveIntensity: 0.2
       });
     } else if (isEnforcer) {
       bodyMat = new THREE.MeshStandardMaterial({
-        color: 0xaa2222, // Dark red for enforcer
-        metalness: 0.6,
-        roughness: 0.4,
-        emissive: 0x440000,
-        emissiveIntensity: 0.3
+        color: 0xbb2222, // Saturated red for enforcer
+        metalness: 0.55,
+        roughness: 0.40,
+        emissive: 0x550000,
+        emissiveIntensity: 0.25
       });
     }
     
@@ -181,13 +198,13 @@ export function createEnemyMesh(enemy) {
     puckBody.receiveShadow = true;
     group.add(puckBody);
 
-    // Polished edge ring with subtle glow
+    // Polished edge ring with subtle themed glow
     const edgeMat = new THREE.MeshStandardMaterial({
-      color: 0x444455,
-      metalness: 0.8,
-      roughness: 0.2,
-      emissive: enemy.fire ? 0x331100 : 0x001122,
-      emissiveIntensity: 0.3
+      color: 0x3a3a4a,
+      metalness: 0.75,
+      roughness: 0.25,
+      emissive: enemy.fire ? 0x441100 : 0x0a1830,
+      emissiveIntensity: 0.25
     });
     const edgeRing = new THREE.Mesh(
       new THREE.TorusGeometry(sz, sz * 0.06, 12, 48),
@@ -362,6 +379,51 @@ export function createEnemyMesh(enemy) {
       gemGlow.position.y = sz * 0.58;
       group.add(gemGlow);
       enemy.gemGlow = gemGlow;
+    }
+  } else if (isSpace) {
+    // ORBITAL DRONE - emissive core with class rings
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(sz, 24, 18), bodyMat);
+    orb.castShadow = true;
+    orb.receiveShadow = true;
+    group.add(orb);
+
+    const accent = visual?.accent || 0x67e8f9;
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: accent,
+      transparent: true,
+      opacity: 0.72,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    const ringCount = enemy.boss ? 3 : (enemy.armor ? 2 : 1);
+    for (let i = 0; i < ringCount; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(sz * (0.95 + i * 0.18), sz * 0.035, 8, 32), ringMat);
+      ring.rotation.x = Math.PI / 2 + i * 0.45;
+      ring.rotation.y = i * 0.8;
+      group.add(ring);
+      enemy.orbitalRings = enemy.orbitalRings || [];
+      enemy.orbitalRings.push(ring);
+    }
+
+    if (enemy.role === 'SPEEDSTER' || enemy.speedClass === 'very_fast') {
+      for (let i = 0; i < 4; i++) {
+        const streak = new THREE.Mesh(
+          new THREE.CylinderGeometry(sz * 0.018, sz * 0.03, sz * 1.4, 5),
+          ringMat
+        );
+        streak.rotation.x = Math.PI / 2;
+        streak.position.z = -sz * (0.6 + i * 0.2);
+        group.add(streak);
+      }
+    }
+
+    if (enemy.boss) {
+      const crown = new THREE.Mesh(new THREE.TorusGeometry(sz * 1.25, sz * 0.08, 8, 32), mats.gold);
+      crown.position.y = sz * 0.9;
+      crown.rotation.x = Math.PI / 2;
+      group.add(crown);
+      enemy.crownGlow = crown;
     }
   } else {
     // SOCCER BALL - Enhanced with better geometry and shine
@@ -699,6 +761,134 @@ export function createEnemyMesh(enemy) {
 
   // Motion trail group (populated during movement)
   enemy.trailParticles = [];
+
+  // === STATUS EFFECT VISUALS ===
+  // These are created once and toggled visible based on status
+
+  // Slow effect - ice crystals and frost aura
+  const slowGroup = new THREE.Group();
+  slowGroup.visible = false;
+
+  // Frost aura ring
+  const frostAura = new THREE.Mesh(
+    new THREE.RingGeometry(sz * 0.9, sz * 1.1, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0x88ddff,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.DoubleSide
+    })
+  );
+  frostAura.rotation.x = -Math.PI / 2;
+  frostAura.position.y = 0.05;
+  slowGroup.add(frostAura);
+
+  // Ice crystals orbiting
+  enemy.iceCrystals = [];
+  for (let i = 0; i < 6; i++) {
+    const crystal = new THREE.Mesh(
+      new THREE.OctahedronGeometry(sz * 0.08, 0),
+      new THREE.MeshBasicMaterial({
+        color: 0xaaeeff,
+        transparent: true,
+        opacity: 0.85
+      })
+    );
+    const angle = (i / 6) * Math.PI * 2;
+    crystal.position.set(
+      Math.cos(angle) * sz * 1.0,
+      sz * 0.3 + Math.sin(i) * sz * 0.1,
+      Math.sin(angle) * sz * 1.0
+    );
+    slowGroup.add(crystal);
+    enemy.iceCrystals.push({ mesh: crystal, baseAngle: angle });
+  }
+
+  // Frost particles floating up
+  enemy.frostParticles = [];
+  for (let i = 0; i < 4; i++) {
+    const frost = new THREE.Mesh(
+      new THREE.SphereGeometry(sz * 0.04, 6, 6),
+      new THREE.MeshBasicMaterial({
+        color: 0xccffff,
+        transparent: true,
+        opacity: 0.7
+      })
+    );
+    const angle = (i / 4) * Math.PI * 2;
+    frost.position.set(
+      Math.cos(angle) * sz * 0.6,
+      sz * 0.5,
+      Math.sin(angle) * sz * 0.6
+    );
+    slowGroup.add(frost);
+    enemy.frostParticles.push({ mesh: frost, offset: i });
+  }
+
+  group.add(slowGroup);
+  enemy.slowGroup = slowGroup;
+  enemy.frostAura = frostAura;
+
+  // Burn effect - fire particles and heat shimmer
+  const burnGroup = new THREE.Group();
+  burnGroup.visible = false;
+
+  // Heat shimmer aura
+  const heatAura = new THREE.Mesh(
+    new THREE.SphereGeometry(sz * 1.2, 12, 12),
+    new THREE.MeshBasicMaterial({
+      color: 0xff4400,
+      transparent: true,
+      opacity: 0.15,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  burnGroup.add(heatAura);
+
+  // Burn flames
+  enemy.burnFlames = [];
+  for (let i = 0; i < 8; i++) {
+    const burnFlame = new THREE.Mesh(
+      new THREE.ConeGeometry(sz * 0.1, sz * 0.25, 6),
+      new THREE.MeshBasicMaterial({
+        color: i % 2 === 0 ? 0xff2200 : 0xff6600,
+        transparent: true,
+        opacity: 0.85
+      })
+    );
+    const angle = (i / 8) * Math.PI * 2;
+    burnFlame.position.set(
+      Math.cos(angle) * sz * 0.75,
+      sz * 0.15,
+      Math.sin(angle) * sz * 0.75
+    );
+    burnGroup.add(burnFlame);
+    enemy.burnFlames.push({ mesh: burnFlame, baseAngle: angle });
+  }
+
+  // Ember particles
+  enemy.burnEmbers = [];
+  for (let i = 0; i < 5; i++) {
+    const ember = new THREE.Mesh(
+      new THREE.SphereGeometry(sz * 0.03, 4, 4),
+      new THREE.MeshBasicMaterial({
+        color: 0xffaa00,
+        transparent: true,
+        opacity: 0.9
+      })
+    );
+    ember.position.set(
+      (Math.random() - 0.5) * sz * 1.0,
+      sz * 0.8 + Math.random() * sz * 0.3,
+      (Math.random() - 0.5) * sz * 1.0
+    );
+    burnGroup.add(ember);
+    enemy.burnEmbers.push({ mesh: ember, offset: i });
+  }
+
+  group.add(burnGroup);
+  enemy.burnGroup = burnGroup;
+  enemy.heatAura = heatAura;
 
   group.position.set(enemy.x, enemy.flying ? 1.2 : 0.2, enemy.z);
 

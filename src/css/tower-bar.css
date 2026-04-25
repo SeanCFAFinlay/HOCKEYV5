@@ -5,23 +5,39 @@
   padding-bottom: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
   scroll-behavior: smooth;
   scroll-snap-type: x proximity;
 }
 
 .tower-btn {
   flex-shrink: 0;
-  width: 68px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 14px;
+  width: 70px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.13);
+  border-radius: var(--r-md);
   padding: 8px 4px;
   text-align: center;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
   cursor: pointer;
   scroll-snap-align: start;
-  transition: all 0.2s ease;
+  transition: all var(--t-mid);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle inner highlight */
+.tower-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
+  pointer-events: none;
+  border-radius: var(--r-md) var(--r-md) 0 0;
 }
 
 /* Hide scrollbar for all browsers */
@@ -31,35 +47,50 @@
 
 .tower-btn.selected {
   border-color: var(--c);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--c) 50%, transparent);
-  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--c) 45%, transparent),
+              inset 0 0 12px color-mix(in srgb, var(--c) 10%, transparent);
+  transform: translateY(-5px);
 }
 
 .tower-btn.disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .tower-btn.disabled .tower-btn-cost {
-  color: var(--red); /* Red price = can't afford */
+  color: var(--red);
 }
 
 .tower-btn-icon {
   font-size: 1.5rem;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
 }
 
 .tower-btn-name {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 3px 0 2px;
+  font-size: 0.58rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 3px 0 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--font-ui);
+}
+
+.tower-btn-role {
+  font-size: 0.5rem;
+  color: var(--c);
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 1px 0 2px;
+  font-family: var(--font-game);
+  font-weight: 600;
 }
 
 .tower-btn-cost {
   font-size: 0.8rem;
   font-weight: 700;
+  font-family: var(--font-game);
   color: var(--gold);
 }

@@ -163,6 +163,14 @@ export function updateAnimations(dt) {
       e.logoGlow.material.opacity = 0.4 + Math.sin(t * 3) * 0.2;
     }
 
+    if (e.orbitalRings) {
+      e.orbitalRings.forEach((ring, i) => {
+        ring.rotation.z += dt * (1.2 + i * 0.45);
+        ring.rotation.y += dt * (0.7 + i * 0.25);
+        ring.material.opacity = 0.45 + Math.sin(t * 4 + i) * 0.18;
+      });
+    }
+
     // Update health bar color based on HP percentage
     if (e.hpBar && e.hp !== undefined && e.maxHp !== undefined && e.hpMats) {
       const hpPercent = e.hp / e.maxHp;
@@ -172,6 +180,100 @@ export function updateAnimations(dt) {
         e.hpBar.material.color.setHex(0xeab308);
       } else {
         e.hpBar.material.color.setHex(0x22c55e);
+      }
+    }
+
+    // === STATUS EFFECT ANIMATIONS ===
+
+    // Slow effect (ice)
+    if (e.slowGroup) {
+      const isSlowed = e.slow && e.slow > 0;
+      e.slowGroup.visible = isSlowed;
+
+      if (isSlowed) {
+        // Animate frost aura pulsing
+        if (e.frostAura) {
+          const frostScale = 1 + Math.sin(t * 4) * 0.1;
+          e.frostAura.scale.setScalar(frostScale);
+          e.frostAura.material.opacity = 0.3 + Math.sin(t * 3) * 0.15;
+        }
+
+        // Animate ice crystals orbiting
+        if (e.iceCrystals) {
+          e.iceCrystals.forEach((crystal, i) => {
+            const orbitAngle = crystal.baseAngle + t * 2;
+            const sz = (e.sz || 1) * 0.28;
+            crystal.mesh.position.x = Math.cos(orbitAngle) * sz * 1.0;
+            crystal.mesh.position.z = Math.sin(orbitAngle) * sz * 1.0;
+            crystal.mesh.position.y = sz * 0.3 + Math.sin(t * 4 + i) * sz * 0.15;
+            crystal.mesh.rotation.y = t * 3;
+            crystal.mesh.rotation.x = t * 2;
+          });
+        }
+
+        // Animate frost particles floating
+        if (e.frostParticles) {
+          e.frostParticles.forEach((frost, i) => {
+            frost.mesh.position.y += dt * 0.5;
+            frost.mesh.material.opacity = 0.7 - frost.mesh.position.y * 0.3;
+
+            // Reset when too high
+            const sz = (e.sz || 1) * 0.28;
+            if (frost.mesh.position.y > sz * 1.5) {
+              frost.mesh.position.y = sz * 0.2;
+              frost.mesh.material.opacity = 0.7;
+            }
+          });
+        }
+      }
+    }
+
+    // Burn effect (fire)
+    if (e.burnGroup) {
+      const isBurning = e.burnT && e.burnT > 0;
+      e.burnGroup.visible = isBurning;
+
+      if (isBurning) {
+        // Animate heat aura pulsing
+        if (e.heatAura) {
+          const heatScale = 1 + Math.sin(t * 6) * 0.15;
+          e.heatAura.scale.setScalar(heatScale);
+          e.heatAura.material.opacity = 0.12 + Math.sin(t * 8) * 0.05;
+        }
+
+        // Animate burn flames flickering
+        if (e.burnFlames) {
+          e.burnFlames.forEach((flame, i) => {
+            const sz = (e.sz || 1) * 0.28;
+            const flameScale = 0.7 + Math.sin(t * 12 + i * 0.8) * 0.4;
+            flame.mesh.scale.y = flameScale;
+            flame.mesh.scale.x = 0.8 + Math.sin(t * 10 + i) * 0.3;
+            flame.mesh.rotation.z = Math.sin(t * 8 + i) * 0.2;
+
+            // Slight position wobble
+            const wobbleAngle = flame.baseAngle + Math.sin(t * 5 + i) * 0.1;
+            flame.mesh.position.x = Math.cos(wobbleAngle) * sz * 0.75;
+            flame.mesh.position.z = Math.sin(wobbleAngle) * sz * 0.75;
+          });
+        }
+
+        // Animate burn embers rising
+        if (e.burnEmbers) {
+          e.burnEmbers.forEach((ember, i) => {
+            ember.mesh.position.y += dt * 1.2;
+            ember.mesh.material.opacity = 0.9 - ember.mesh.position.y * 0.4;
+            ember.mesh.scale.setScalar(0.7 + Math.sin(t * 15 + i * 2) * 0.3);
+
+            // Reset when too high
+            const sz = (e.sz || 1) * 0.28;
+            if (ember.mesh.position.y > sz * 2.0) {
+              ember.mesh.position.y = sz * 0.3;
+              ember.mesh.position.x = (Math.random() - 0.5) * sz * 1.0;
+              ember.mesh.position.z = (Math.random() - 0.5) * sz * 1.0;
+              ember.mesh.material.opacity = 0.9;
+            }
+          });
+        }
       }
     }
   });
