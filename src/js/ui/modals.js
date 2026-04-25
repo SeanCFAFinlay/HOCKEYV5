@@ -21,6 +21,15 @@ export function initModals() {
 
 export function closeModal(type) {
   const state = getState();
+
+  // Save high score if applicable
+  if (type === 'win' || type === 'lose') {
+    const { theme, mapIndex, wave, score, mapData } = state;
+    if (theme && mapIndex != null && mapData) {
+      saveHighScore(theme, mapIndex, wave, score, mapData.name);
+    }
+  }
+  
   document.getElementById(type + 'Modal').classList.remove('show');
   selectTheme(state.theme);
 }

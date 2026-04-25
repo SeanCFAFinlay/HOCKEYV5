@@ -141,6 +141,14 @@ export function setupInputHandlers() {
       attachHandlers(canvas);
     }
   };
+
+  // Set up window resize handler immediately
+  window.addEventListener('resize', debouncedResize);
+
+  // Set up keyboard shortcuts
+  setupKeyboardShortcuts();
+
+  // Check for canvas periodically
   checkCanvas();
 }
 
@@ -267,6 +275,9 @@ export function attachHandlers(canvas) {
 
   // Wheel needs preventDefault for zoom control
   canvas.addEventListener('wheel', onWheel, { passive: false });
+
+  // Click for tap handling
+  canvas.addEventListener('click', onClick);
 }
 
 /**
