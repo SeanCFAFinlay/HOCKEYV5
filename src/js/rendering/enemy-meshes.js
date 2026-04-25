@@ -163,7 +163,8 @@ export function createEnemyMesh(enemy) {
         metalness: 0.55,
         roughness: 0.35,
         emissive: 0x0a1844,
-        emissiveIntensity: 0.2
+        emissiveIntensity: 0.2,
+        envMapIntensity: 0.8
       });
     } else if (isEnforcer) {
       bodyMat = new THREE.MeshStandardMaterial({

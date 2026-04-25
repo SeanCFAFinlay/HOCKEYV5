@@ -120,6 +120,18 @@ export function generateWaves(num) {
       if (wv[key] <= 0) delete wv[key];
     }
 
+    // NEW ENEMIES (only for hockey theme - check if they exist)
+    if (e.length > 7) {
+      // e[7] - speed skater: from wave 4, high count
+      if (w >= 4) wv[e[7].id] = Math.floor((w - 2) * 0.8);
+
+      // e[8] - defenseman: from wave 7, moderate count
+      if (w >= 7) wv[e[8].id] = Math.floor((w - 5) * 0.3);
+
+      // e[9] - enforcer: from wave 6, scales steadily
+      if (w >= 6) wv[e[9].id] = Math.floor((w - 4) * 0.5);
+    }
+
     waves.push(wv);
   }
 
