@@ -1,7 +1,5 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "framework": "vite",
-  "rootDirectory": "src"
+  "buildCommand": "cd src && npm install && npx vite build",
+  "outputDirectory": "src/dist",
+  "framework": null
 }
