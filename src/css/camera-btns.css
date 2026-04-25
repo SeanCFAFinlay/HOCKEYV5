@@ -1,6 +1,6 @@
 .cam-btns {
   position: absolute;
-  right: 12px;
+  right: calc(12px + env(safe-area-inset-right));
   top: 50%;
   transform: translateY(-50%);
   display: flex;

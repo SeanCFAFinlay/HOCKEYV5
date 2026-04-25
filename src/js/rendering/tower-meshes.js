@@ -2,6 +2,7 @@
 
 import { getState } from '../engine/state.js';
 import { makeCapsule } from '../utils/math.js';
+import { getVisualProfile } from '../config/visual-profiles.js';
 
 // Shared enhanced materials
 let towerMaterials = null;
@@ -10,39 +11,39 @@ function getTowerMaterials() {
   if (towerMaterials) return towerMaterials;
 
   towerMaterials = {
-    // Base platform - dark with subtle sheen
+    // Base platform - darker for contrast against arena
     base: new THREE.MeshStandardMaterial({
-      color: 0x1a1a2e,
-      metalness: 0.4,
-      roughness: 0.6,
-      envMapIntensity: 0.5
+      color: 0x141428,
+      metalness: 0.35,
+      roughness: 0.65,
+      envMapIntensity: 0.4
     }),
-    // Chrome/steel parts
+    // Chrome/steel parts - slightly tinted for warmth
     metal: new THREE.MeshStandardMaterial({
-      color: 0x99aabb,
-      metalness: 0.9,
-      roughness: 0.1,
-      envMapIntensity: 1.2
+      color: 0x8899aa,
+      metalness: 0.85,
+      roughness: 0.15,
+      envMapIntensity: 0.9
     }),
-    // Dark accents
+    // Dark accents - deeper for contrast
     dark: new THREE.MeshStandardMaterial({
-      color: 0x222233,
-      metalness: 0.5,
-      roughness: 0.5
+      color: 0x1a1a2a,
+      metalness: 0.45,
+      roughness: 0.55
     }),
-    // White parts (player bodies, pads)
+    // White parts (player bodies, pads) - slightly toned down
     white: new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      metalness: 0.1,
-      roughness: 0.7
+      color: 0xeeeeee,
+      metalness: 0.08,
+      roughness: 0.70
     }),
-    // Gold/trophy parts
+    // Gold/trophy parts - warmer, richer
     gold: new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      metalness: 0.95,
-      roughness: 0.05,
-      emissive: 0xaa8800,
-      emissiveIntensity: 0.2
+      color: 0xffcc00,
+      metalness: 0.90,
+      roughness: 0.08,
+      emissive: 0x996600,
+      emissiveIntensity: 0.18
     })
   };
 
@@ -52,6 +53,7 @@ function getTowerMaterials() {
 export function createTowerMesh(tower) {
   const state = getState();
   const { theme, themeData, COLS, ROWS, scene } = state;
+  const visuals = getVisualProfile(themeData);
 
   const td = themeData.towers.find(t => t.id === tower.type);
   const color = new THREE.Color(td.clr);
@@ -63,20 +65,30 @@ export function createTowerMesh(tower) {
   const mats = getTowerMaterials();
 
   // Enhanced materials with emissive glow based on tower color
-  const baseMat = mats.base;
+  const baseMat = new THREE.MeshStandardMaterial({
+    color: visuals.towers.base,
+    metalness: 0.45,
+    roughness: 0.5,
+    emissive: visuals.towers.base,
+    emissiveIntensity: 0.08 + lv * 0.03
+  });
   const bodyMat = new THREE.MeshStandardMaterial({
     color,
-    metalness: 0.5,
-    roughness: 0.4,
+    metalness: 0.45,
+    roughness: 0.45,
     emissive: color,
-    emissiveIntensity: 0.15
+    emissiveIntensity: 0.12
   });
   const glowMat = new THREE.MeshBasicMaterial({
     color,
     transparent: true,
     opacity: 0.9
   });
-  const metalMat = mats.metal;
+  const metalMat = new THREE.MeshStandardMaterial({
+    color: visuals.towers.metal,
+    metalness: theme === 'space' ? 0.92 : 0.85,
+    roughness: theme === 'space' ? 0.12 : 0.18
+  });
   const darkMat = mats.dark;
   const whiteMat = mats.white;
   const goldMat = mats.gold;
@@ -140,9 +152,13 @@ export function createTowerMesh(tower) {
 
   if (theme === 'hockey') {
     buildHockeyTowerMesh(group, towerIdx, scale, bodyMat, glowMat, metalMat, darkMat, whiteMat, goldMat, color);
-  } else {
+  } else if (theme === 'soccer') {
     buildSoccerTowerMesh(group, towerIdx, scale, bodyMat, glowMat, metalMat, darkMat, whiteMat, goldMat, color);
+  } else {
+    buildSpaceTowerMesh(group, towerIdx, scale, bodyMat, glowMat, metalMat, darkMat, whiteMat, goldMat, color, td.projectile);
   }
+
+  addUpgradeCollars(group, lv, scale, visuals.towers.levelGlow);
 
   // Range indicator - enhanced with gradient effect
   const rangeOuter = new THREE.Mesh(
@@ -781,5 +797,104 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
         group.userData.animParts.push({ mesh: sparkle, type: 'orbit', offset: i, radius: 0.3 * scale });
       }
       break;
+  }
+}
+
+function addUpgradeCollars(group, lv, scale, glowColor) {
+  group.userData.animParts = group.userData.animParts || [];
+  for (let i = 0; i < lv; i++) {
+    const collar = new THREE.Mesh(
+      new THREE.TorusGeometry((0.5 + i * 0.08) * scale, 0.018, 8, 32),
+      new THREE.MeshBasicMaterial({
+        color: glowColor,
+        transparent: true,
+        opacity: 0.24 + i * 0.08,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    collar.rotation.x = Math.PI / 2;
+    collar.position.y = 0.2 + i * 0.08;
+    group.add(collar);
+    group.userData.animParts.push({ mesh: collar, type: 'spin', speed: 0.3 + i * 0.15 });
+  }
+}
+
+function buildSpaceTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, darkMat, whiteMat, goldMat, color, projectileType) {
+  group.userData.animParts = group.userData.animParts || [];
+
+  const coreMat = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  const makeEmitter = (height = 0.62) => {
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.13 * scale, height * scale, 10), metalMat);
+    mast.position.y = (0.22 + height / 2) * scale;
+    mast.castShadow = true;
+    group.add(mast);
+
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.14 * scale, 1), coreMat);
+    core.position.y = (0.32 + height) * scale;
+    group.add(core);
+    group.userData.animParts.push({ mesh: core, type: 'spin', speed: 1.4 });
+    group.userData.animParts.push({ mesh: core, type: 'pulse' });
+    return core;
+  };
+
+  if (projectileType === 'ball' || idx === 0) {
+    // Laser emitter
+    makeEmitter(0.55);
+    const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.08 * scale, 0.18 * scale, 16), coreMat);
+    lens.rotation.x = Math.PI / 2;
+    lens.position.set(0, 0.58 * scale, 0.24 * scale);
+    group.add(lens);
+    group.userData.animParts.push({ mesh: lens, type: 'blink' });
+  } else if (projectileType === 'curveBall' || projectileType === 'flare') {
+    // Plasma cannon
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * scale, 0.28 * scale, 0.28 * scale, 12), bodyMat);
+    base.position.y = 0.28 * scale;
+    group.add(base);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.09 * scale, 0.13 * scale, 0.55 * scale, 14), metalMat);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.47 * scale, 0.28 * scale);
+    group.add(barrel);
+    const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.13 * scale, 0.025 * scale, 8, 24), coreMat);
+    muzzle.rotation.x = Math.PI / 2;
+    muzzle.position.set(0, 0.47 * scale, 0.58 * scale);
+    group.add(muzzle);
+    group.userData.animParts.push({ mesh: muzzle, type: 'spin', speed: 1.8 });
+  } else if (projectileType === 'headButt') {
+    // Gravity ring
+    makeEmitter(0.38);
+    for (let i = 0; i < 3; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry((0.18 + i * 0.08) * scale, 0.018 * scale, 8, 36), coreMat);
+      ring.position.y = (0.5 + i * 0.08) * scale;
+      ring.rotation.x = Math.PI / 2 + i * 0.45;
+      group.add(ring);
+      group.userData.animParts.push({ mesh: ring, type: 'spin', speed: 0.8 + i * 0.35 });
+    }
+  } else if (projectileType === 'chain') {
+    // Arc reactor
+    const coil = makeEmitter(0.62);
+    for (let i = 0; i < 5; i++) {
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.018 * scale, 0.018 * scale, 0.34 * scale, 6), metalMat);
+      const a = i / 5 * Math.PI * 2;
+      rod.position.set(Math.cos(a) * 0.22 * scale, 0.52 * scale, Math.sin(a) * 0.22 * scale);
+      rod.rotation.z = Math.PI / 2;
+      group.add(rod);
+    }
+    coil.scale.setScalar(1.2);
+  } else {
+    // Defensive sci-fi turret fallback
+    makeEmitter(0.5);
+    const shield = new THREE.Mesh(new THREE.TorusGeometry(0.28 * scale, 0.022 * scale, 8, 32), coreMat);
+    shield.rotation.x = Math.PI / 2;
+    shield.position.y = 0.36 * scale;
+    group.add(shield);
+    group.userData.animParts.push({ mesh: shield, type: 'spin', speed: 1 });
   }
 }
