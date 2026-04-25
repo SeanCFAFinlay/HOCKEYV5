@@ -426,6 +426,13 @@ export function updateParticles(dt) {
         const expandScale = 1 + (1 - lifeRatio) * 4;
         p.mesh.scale.setScalar(expandScale);
       }
+    } else if (p.isSpawnRing) {
+      // Spawn ring expands faster and fades
+      if (p.mesh) {
+        const expandScale = 1 + (1 - lifeRatio) * 8;
+        p.mesh.scale.setScalar(expandScale);
+        p.mesh.material.opacity = lifeRatio * 0.8;
+      }
     } else {
       p.vy -= 18 * dt; // Gravity
     }
@@ -484,10 +491,11 @@ export function updateParticles(dt) {
     if (p.life <= 0 || p.y < -1) {
       if (p.mesh) {
         scene.remove(p.mesh);
-        // Clean up ring geometry
-        if (p.ringGeo) {
-          p.ringGeo.dispose();
-          p.mesh.material.dispose();
+        // Clean up ring/spawn ring geometry
+        if (p.ringGeo || p.isSpawnRing) {
+          if (p.ringGeo) p.ringGeo.dispose();
+          if (p.mesh.geometry) p.mesh.geometry.dispose();
+          if (p.mesh.material) p.mesh.material.dispose();
         } else {
           releaseMesh(p.mesh);
         }
@@ -523,4 +531,261 @@ export function getParticlePoolStats() {
     active: getState().particles.length,
     materials: materialCache.size
   };
+}
+
+/**
+ * Create spawn portal pulse effect when wave starts
+ */
+export function createSpawnPulse() {
+  const state = getState();
+  const { SPAWNS, COLS, ROWS, scene } = state;
+
+  if (!SPAWNS || !scene) return;
+
+  const hw = COLS / 2;
+  const hh = ROWS / 2;
+
+  for (const spawn of SPAWNS) {
+    const wx = spawn.x - hw + 0.5;
+    const wz = spawn.y - hh + 0.5;
+
+    // Expanding ring
+    const ringGeo = new THREE.RingGeometry(0.1, 0.3, 24);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xdc2626,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.set(wx, 0.1, wz);
+    ring.rotation.x = -Math.PI / 2;
+    scene.add(ring);
+
+    const ringP = {
+      x: wx, y: 0.1, z: wz,
+      vx: 0, vy: 0.5, vz: 0,
+      life: 0.6,
+      maxLife: 0.6,
+      mesh: ring,
+      isSpawnRing: true,
+      ringGeo
+    };
+    addParticle(ringP);
+
+    // Burst particles
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const speed = 2 + Math.random() * 2;
+
+      const p = {
+        x: wx,
+        y: 0.2,
+        z: wz,
+        vx: Math.cos(angle) * speed,
+        vy: 2 + Math.random() * 2,
+        vz: Math.sin(angle) * speed,
+        life: 0.5,
+        maxLife: 0.5,
+        mesh: null,
+        rotSpeed: (Math.random() - 0.5) * 10
+      };
+
+      const mesh = acquireMesh(0xdc2626, true, 'spark');
+      mesh.position.set(wx, 0.2, wz);
+      scene.add(mesh);
+      p.mesh = mesh;
+      addParticle(p);
+    }
+  }
+}
+
+/**
+ * Create wave complete celebration effect
+ */
+export function createWaveComplete() {
+  const state = getState();
+  const { COLS, ROWS, scene, theme } = state;
+
+  if (!scene) return;
+
+  const hw = COLS / 2;
+  const hh = ROWS / 2;
+  const isHockey = theme === 'hockey';
+  const colors = isHockey
+    ? [0x00d4ff, 0x38bdf8, 0xfbbf24, 0xffffff]
+    : [0x22c55e, 0x86efac, 0xfbbf24, 0xffffff];
+
+  // Center celebration burst
+  for (let i = 0; i < 20; i++) {
+    const angle = (i / 20) * Math.PI * 2;
+    const speed = 3 + Math.random() * 3;
+    const c = colors[Math.floor(Math.random() * colors.length)];
+
+    const p = {
+      x: 0,
+      y: 1,
+      z: 0,
+      vx: Math.cos(angle) * speed + (Math.random() - 0.5) * 2,
+      vy: 4 + Math.random() * 3,
+      vz: Math.sin(angle) * speed + (Math.random() - 0.5) * 2,
+      life: 1.0 + Math.random() * 0.5,
+      maxLife: 1.0 + Math.random() * 0.5,
+      mesh: null,
+      rotSpeed: (Math.random() - 0.5) * 8
+    };
+
+    const mesh = acquireMesh(c, true, Math.random() > 0.5 ? 'spark' : 'sphere');
+    mesh.position.set(0, 1, 0);
+    scene.add(mesh);
+    p.mesh = mesh;
+    addParticle(p);
+  }
+
+  // Confetti rising from edges
+  for (let i = 0; i < 15; i++) {
+    const side = Math.floor(Math.random() * 4);
+    let x, z;
+
+    switch (side) {
+      case 0: x = -hw + Math.random() * COLS; z = -hh; break;
+      case 1: x = -hw + Math.random() * COLS; z = hh; break;
+      case 2: x = -hw; z = -hh + Math.random() * ROWS; break;
+      case 3: x = hw; z = -hh + Math.random() * ROWS; break;
+    }
+
+    const c = colors[Math.floor(Math.random() * colors.length)];
+
+    const p = {
+      x, y: 0.5, z,
+      vx: (Math.random() - 0.5) * 2,
+      vy: 5 + Math.random() * 3,
+      vz: (Math.random() - 0.5) * 2,
+      life: 1.2,
+      maxLife: 1.2,
+      mesh: null,
+      rotSpeed: (Math.random() - 0.5) * 12
+    };
+
+    const mesh = acquireMesh(c, true, 'spark');
+    mesh.position.set(x, 0.5, z);
+    scene.add(mesh);
+    p.mesh = mesh;
+    addParticle(p);
+  }
+}
+
+/**
+ * Create victory celebration effect
+ */
+export function createVictoryEffect() {
+  const state = getState();
+  const { COLS, ROWS, scene, theme } = state;
+
+  if (!scene) return;
+
+  const hw = COLS / 2;
+  const hh = ROWS / 2;
+  const isHockey = theme === 'hockey';
+
+  // Gold and celebration colors
+  const colors = [0xffd700, 0xffaa00, 0xffffff, 0xfbbf24];
+
+  // Multiple bursts
+  for (let burst = 0; burst < 3; burst++) {
+    setTimeout(() => {
+      const bx = (Math.random() - 0.5) * COLS * 0.5;
+      const bz = (Math.random() - 0.5) * ROWS * 0.5;
+
+      for (let i = 0; i < 25; i++) {
+        const angle = (i / 25) * Math.PI * 2;
+        const speed = 4 + Math.random() * 4;
+        const c = colors[Math.floor(Math.random() * colors.length)];
+
+        const p = {
+          x: bx,
+          y: 2,
+          z: bz,
+          vx: Math.cos(angle) * speed,
+          vy: 6 + Math.random() * 4,
+          vz: Math.sin(angle) * speed,
+          life: 1.5 + Math.random() * 0.5,
+          maxLife: 1.5 + Math.random() * 0.5,
+          mesh: null,
+          rotSpeed: (Math.random() - 0.5) * 15
+        };
+
+        const mesh = acquireMesh(c, true, Math.random() > 0.3 ? 'spark' : 'sphere');
+        mesh.position.set(bx, 2, bz);
+        state.scene.add(mesh);
+        p.mesh = mesh;
+        addParticle(p);
+      }
+    }, burst * 300);
+  }
+
+  // Trophy sparkles (persistent glow at base)
+  const baseX = state.BASE ? state.BASE.x - hw + 0.5 : hw - 1;
+  const baseZ = state.BASE ? state.BASE.y - hh + 0.5 : 0;
+
+  for (let i = 0; i < 30; i++) {
+    const p = {
+      x: baseX + (Math.random() - 0.5) * 2,
+      y: 0.2,
+      z: baseZ + (Math.random() - 0.5) * 2,
+      vx: (Math.random() - 0.5) * 1,
+      vy: 2 + Math.random() * 2,
+      vz: (Math.random() - 0.5) * 1,
+      life: 1.5 + Math.random() * 1,
+      maxLife: 1.5 + Math.random() * 1,
+      mesh: null,
+      rotSpeed: (Math.random() - 0.5) * 8
+    };
+
+    const mesh = acquireMesh(0xffd700, true, 'spark');
+    mesh.position.set(p.x, p.y, p.z);
+    scene.add(mesh);
+    p.mesh = mesh;
+    addParticle(p);
+  }
+}
+
+/**
+ * Create defeat effect
+ */
+export function createDefeatEffect() {
+  const state = getState();
+  const { BASE, COLS, ROWS, scene } = state;
+
+  if (!scene) return;
+
+  const hw = COLS / 2;
+  const hh = ROWS / 2;
+  const baseX = BASE ? BASE.x - hw + 0.5 : hw - 1;
+  const baseZ = BASE ? BASE.y - hh + 0.5 : 0;
+
+  // Explosion at base
+  createExplosion(baseX, 0.5, baseZ, true, 0xff0000);
+
+  // Smoke rising
+  for (let i = 0; i < 15; i++) {
+    const p = {
+      x: baseX + (Math.random() - 0.5) * 1.5,
+      y: 0.3,
+      z: baseZ + (Math.random() - 0.5) * 1.5,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: 1.5 + Math.random(),
+      vz: (Math.random() - 0.5) * 0.5,
+      life: 2,
+      maxLife: 2,
+      mesh: null,
+      isSmoke: true
+    };
+
+    const mesh = acquireMesh(0x444444, false, 'sphere');
+    mesh.position.set(p.x, p.y, p.z);
+    scene.add(mesh);
+    p.mesh = mesh;
+    addParticle(p);
+  }
 }

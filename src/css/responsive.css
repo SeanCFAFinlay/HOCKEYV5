@@ -1,10 +1,79 @@
 /* Mobile-First Responsive Design */
 
-/* Touch-friendly defaults */
+/* Touch-friendly defaults - ensure minimum 44x44px touch targets */
 button, .tower-btn, .menu-card, .map-card {
   cursor: pointer;
   -webkit-touch-callout: none;
   min-height: 44px;
+  min-width: 44px;
+}
+
+/* Prevent text selection during gameplay */
+.canvas-wrap, .hud, .bottom-ui, .cam-btns {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Very small phones (up to 320px) - extra tight layout */
+@media (max-width: 320px) {
+  .logo-icons {
+    font-size: 2.2rem;
+  }
+
+  .logo h1 {
+    font-size: 1.2rem;
+  }
+
+  .menu-card {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .menu-card-icon {
+    font-size: 2rem;
+  }
+
+  .menu-card h3 {
+    font-size: 1rem;
+  }
+
+  .tower-btn {
+    width: 54px;
+    padding: 5px 2px;
+  }
+
+  .tower-btn-icon {
+    font-size: 1.1rem;
+  }
+
+  .tower-btn-name {
+    font-size: 0.48rem;
+  }
+
+  .tower-btn-cost {
+    font-size: 0.65rem;
+  }
+
+  .hud-stat {
+    padding: 5px 7px;
+    font-size: 0.7rem;
+    gap: 4px;
+  }
+
+  .hud-wave {
+    padding: 5px 8px;
+    font-size: 0.7rem;
+  }
+
+  .action-btn {
+    padding: 9px 3px;
+    font-size: 0.65rem;
+  }
+
+  .speed-btn {
+    width: 28px;
+    font-size: 0.7rem;
+  }
 }
 
 /* Small phones (320px - 375px) */
@@ -48,18 +117,34 @@ button, .tower-btn, .menu-card, .map-card {
     font-size: 0.5rem;
   }
 
+  .tower-btn-role {
+    display: none;
+  }
+
   .tower-btn-cost {
     font-size: 0.7rem;
   }
 
   .hud-stat {
-    padding: 6px 8px;
-    font-size: 0.75rem;
+    padding: 5px 6px;
+    font-size: 0.7rem;
+  }
+
+  .hud-stat.kills {
+    display: none;
   }
 
   .hud-wave {
     padding: 6px 10px;
     font-size: 0.75rem;
+  }
+
+  .hud-wave-theme {
+    font-size: 0.6rem;
+  }
+
+  .hud-center {
+    display: none;
   }
 
   .action-btn {
@@ -82,10 +167,61 @@ button, .tower-btn, .menu-card, .map-card {
     height: 38px;
     font-size: 1.1rem;
   }
+
+  .upgrade-role {
+    font-size: 0.55rem;
+    padding: 2px 6px;
+  }
 }
 
-/* Standard phones (376px - 480px) */
-@media (min-width: 376px) and (max-width: 480px) {
+/* Standard phones (376px - 430px) - optimized for common sizes like iPhone 12/13/14 */
+@media (min-width: 376px) and (max-width: 430px) {
+  .tower-btn {
+    width: 66px;
+    padding: 8px 5px;
+  }
+
+  .tower-btn-icon {
+    font-size: 1.45rem;
+  }
+
+  .tower-btn-name {
+    font-size: 0.58rem;
+  }
+
+  .tower-btn-cost {
+    font-size: 0.78rem;
+  }
+
+  .action-btn {
+    padding: 12px 6px;
+    font-size: 0.78rem;
+  }
+
+  .speed-btn {
+    width: 38px;
+    font-size: 0.8rem;
+  }
+
+  .hud-stat {
+    padding: 8px 11px;
+    font-size: 0.82rem;
+  }
+
+  .hud-wave {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+
+  .cam-btn {
+    width: 46px;
+    height: 46px;
+    font-size: 1.35rem;
+  }
+}
+
+/* Larger phones (431px - 480px) */
+@media (min-width: 431px) and (max-width: 480px) {
   .tower-btn {
     width: 64px;
   }
@@ -199,6 +335,18 @@ button, .tower-btn, .menu-card, .map-card {
     font-size: 0.75rem;
   }
 
+  .hud-stat.kills {
+    display: none;
+  }
+
+  .hud-wave-theme {
+    display: none;
+  }
+
+  .hud-center {
+    display: none;
+  }
+
   .bottom-ui {
     padding-bottom: 4px;
   }
@@ -216,7 +364,8 @@ button, .tower-btn, .menu-card, .map-card {
     font-size: 1.1rem;
   }
 
-  .tower-btn-name {
+  .tower-btn-name,
+  .tower-btn-role {
     display: none;
   }
 
@@ -234,8 +383,9 @@ button, .tower-btn, .menu-card, .map-card {
     width: 30px;
   }
 
+  /* Move camera buttons higher to avoid bottom UI in landscape */
   .cam-btns {
-    top: 45%;
+    top: 35%;
     gap: 4px;
   }
 
@@ -243,6 +393,12 @@ button, .tower-btn, .menu-card, .map-card {
     width: 36px;
     height: 36px;
     font-size: 1rem;
+  }
+  
+  /* Reduce upgrade sheet height in landscape */
+  .upgrade-sheet {
+    max-height: 50vh;
+    overflow-y: auto;
   }
 }
 
@@ -298,13 +454,17 @@ button, .tower-btn, .menu-card, .map-card {
 .action-btn:active:not(:disabled),
 .cam-btn:active,
 .menu-card:active,
-.map-card:active {
-  transform: scale(0.95);
+.map-card:active,
+.modal-btn:active,
+.upgrade-btn:active:not(:disabled),
+.back-btn:active,
+.hud-menu:active {
+  transform: scale(0.96);
   transition: transform 0.1s ease;
 }
 
-/* Hover effects for desktop */
-@media (hover: hover) {
+/* Hover effects for desktop only */
+@media (hover: hover) and (pointer: fine) {
   .tower-btn:hover:not(.disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -320,6 +480,14 @@ button, .tower-btn, .menu-card, .map-card {
   }
 
   .action-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+  
+  .modal-btn:hover {
+    filter: brightness(1.15);
+  }
+  
+  .upgrade-btn:hover:not(:disabled) {
     filter: brightness(1.1);
   }
 }

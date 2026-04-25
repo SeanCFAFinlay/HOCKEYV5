@@ -2,12 +2,15 @@
 
 import { getState } from '../engine/state.js';
 import { hash2 } from '../utils/rng.js';
+import { getVisualProfile } from '../config/visual-profiles.js';
 
 export function addObstacleVisuals(hw, hh) {
   const state = getState();
-  const { theme, mapIndex, grid, ROWS, COLS, scene } = state;
+  const { theme, mapIndex, grid, ROWS, COLS, scene, themeData } = state;
+  const visuals = getVisualProfile(themeData);
   const isHockey = theme === 'hockey';
-  const themeSalt = isHockey ? 17 : 29;
+  const isSoccer = theme === 'soccer';
+  const themeSalt = isHockey ? 17 : (isSoccer ? 29 : 47);
   const seed = ((mapIndex + 1) * 10007 + themeSalt) >>> 0;
 
   const baseY = 0.12;
@@ -22,6 +25,14 @@ export function addObstacleVisuals(hw, hh) {
     red: new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.55, metalness: 0.10 }),
     gold: new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.35, metalness: 0.35 })
   };
+  mat.neon = new THREE.MeshStandardMaterial({
+    color: visuals.lighting.accent,
+    emissive: visuals.lighting.accent,
+    emissiveIntensity: 0.7,
+    roughness: 0.28,
+    metalness: 0.35
+  });
+  mat.spaceDark = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.42, metalness: 0.82 });
 
   const jitter = (x, y, mag = 0.07) => (hash2(x, y, seed) - 0.5) * 2 * mag;
 
@@ -182,6 +193,53 @@ export function addObstacleVisuals(hw, hh) {
     return g;
   }
 
+  function spaceProp(kind) {
+    const g = new THREE.Group();
+    if (kind === 0) {
+      const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.34, 0), mat.neon);
+      core.position.y = 0.45;
+      g.add(core);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.025, 8, 32), mat.neon);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.45;
+      g.add(ring);
+    } else if (kind === 1) {
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.42, 0.72), mat.spaceDark);
+      crate.position.y = 0.26;
+      g.add(crate);
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.05, 0.08), mat.neon);
+      stripe.position.set(0, 0.47, 0.25);
+      g.add(stripe);
+    } else if (kind === 2) {
+      const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 0.85, 8), mat.spaceDark);
+      pylon.position.y = 0.42;
+      g.add(pylon);
+      const lens = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), mat.neon);
+      lens.position.y = 0.92;
+      g.add(lens);
+    } else if (kind === 3) {
+      const barrier = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.16, 0.16), mat.neon);
+      barrier.position.y = 0.32;
+      g.add(barrier);
+      const postA = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.64, 8), mat.spaceDark);
+      postA.position.set(-0.42, 0.32, 0);
+      g.add(postA);
+      const postB = postA.clone();
+      postB.position.x = 0.42;
+      g.add(postB);
+    } else {
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat.metal);
+      dish.position.y = 0.34;
+      dish.rotation.x = -Math.PI / 2;
+      g.add(dish);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.36, 8), mat.spaceDark);
+      stem.position.y = 0.18;
+      g.add(stem);
+    }
+    g.scale.setScalar(1.12);
+    return g;
+  }
+
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       if (grid[y][x].type !== 'obstacle') continue;
@@ -192,7 +250,7 @@ export function addObstacleVisuals(hw, hh) {
       const wx = x - hw + 0.5;
       const wz = y - hh + 0.5;
 
-      const prop = isHockey ? hockeyProp(kind) : soccerProp(kind);
+      const prop = isHockey ? hockeyProp(kind) : (isSoccer ? soccerProp(kind) : spaceProp(kind));
       prop.position.set(wx + jitter(x, y, 0.06), baseY, wz + jitter(y, x, 0.06));
       prop.rotation.y = (hash2(y, x, seed + 1234) - 0.5) * 0.6;
       prop.traverse(o => {

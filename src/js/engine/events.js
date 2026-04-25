@@ -95,6 +95,7 @@ export const GameEvents = {
   ENEMY_DEATH: 'enemy:death',
   ENEMY_ESCAPE: 'enemy:escape',
   ENEMY_HIT: 'enemy:hit',
+  ENEMY_KILL: 'enemy:kill',
 
   // Tower events
   TOWER_PLACE: 'tower:place',
