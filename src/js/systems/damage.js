@@ -36,9 +36,15 @@ export function handleHit(p) {
       if (dist < tw.splash) {
         const splashDmg = dmg * (1 - dist / tw.splash / 2);
         hurtEnemy(e, splashDmg, isCrit);
+        if (p.impactKind === 'gravity' && dist > 0.05) {
+          const pull = 0.18 * (1 - dist / tw.splash);
+          e.x -= (dx / dist) * pull;
+          e.z -= (dz / dist) * pull;
+          e.slow = Math.max(e.slow || 0, 0.6);
+        }
       }
     });
-    createExplosion(p.x, p.y, p.z, false);
+    createThemedImpact(p);
   }
   // Chain lightning
   else if (tw.chain && p.target && enemies.includes(p.target)) {
@@ -95,8 +101,7 @@ export function handleHit(p) {
       }
     }
 
-    // Create impact particles
-    createImpact(p.x, p.y, p.z, isCrit ? 0xffd700 : 0xffffff);
+    createThemedImpact(p, isCrit);
   }
 
   emit(GameEvents.PROJECTILE_HIT, {
@@ -106,6 +111,31 @@ export function handleHit(p) {
     damage: dmg,
     critical: isCrit
   });
+}
+
+function createThemedImpact(p, isCrit = false) {
+  const color = isCrit ? 0xffd700 : (p.trailColor || 0xffffff);
+  switch (p.impactKind) {
+    case 'frost':
+    case 'freeze':
+      createImpact(p.x, p.y, p.z, 0x9be8ff);
+      createExplosion(p.x, p.y, p.z, false, 0xaaffff);
+      break;
+    case 'burn':
+      createExplosion(p.x, p.y, p.z, true, color);
+      break;
+    case 'ring':
+    case 'gravity':
+    case 'slam':
+      createExplosion(p.x, p.y, p.z, false, color);
+      createImpact(p.x, p.y, p.z, color);
+      break;
+    case 'crit':
+      createExplosion(p.x, p.y, p.z, false, 0xffd700);
+      break;
+    default:
+      createImpact(p.x, p.y, p.z, color);
+  }
 }
 
 /**

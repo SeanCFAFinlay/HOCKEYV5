@@ -12,8 +12,12 @@ const VALID_TOWER_ROLES = [
 // Valid enemy roles
 const VALID_ENEMY_ROLES = [
   'SWARM', 'FIRE', 'FLYING', 'ARMORED',
-  'ELITE', 'FLYING_FIRE', 'BOSS'
+  'ELITE', 'FLYING_FIRE', 'BOSS', 'SPEEDSTER', 'BRUISER'
 ];
+
+const VALID_SPEED_CLASSES = ['slow', 'normal', 'fast', 'very_fast'];
+const VALID_REWARD_CLASSES = ['low', 'medium', 'high', 'boss'];
+const REQUIRED_VISUAL_SECTIONS = ['map', 'lighting', 'ui', 'projectiles', 'enemies', 'towers'];
 
 // Valid map layouts
 const VALID_LAYOUTS = Object.values(MapLayout);
@@ -164,6 +168,28 @@ function validateEnemy(enemy, themeName) {
     errors.push(`${prefix}: 'boss' must be a boolean if present`);
   }
 
+  if (!Array.isArray(enemy.threatTags) || enemy.threatTags.length === 0) {
+    errors.push(`${prefix}: 'threatTags' must be a non-empty array`);
+  } else if (!enemy.threatTags.every(tag => typeof tag === 'string' && tag.length > 0)) {
+    errors.push(`${prefix}: 'threatTags' must contain only non-empty strings`);
+  }
+
+  if (typeof enemy.unlockWave !== 'number' || enemy.unlockWave < 1) {
+    errors.push(`${prefix}: 'unlockWave' must be a positive wave number`);
+  }
+
+  if (typeof enemy.waveWeight !== 'number' || enemy.waveWeight <= 0) {
+    errors.push(`${prefix}: 'waveWeight' must be a positive number`);
+  }
+
+  if (!VALID_SPEED_CLASSES.includes(enemy.speedClass)) {
+    errors.push(`${prefix}: invalid 'speedClass' "${enemy.speedClass}". Valid: ${VALID_SPEED_CLASSES.join(', ')}`);
+  }
+
+  if (!VALID_REWARD_CLASSES.includes(enemy.rewardClass)) {
+    errors.push(`${prefix}: invalid 'rewardClass' "${enemy.rewardClass}". Valid: ${VALID_REWARD_CLASSES.join(', ')}`);
+  }
+
   return errors;
 }
 
@@ -182,6 +208,9 @@ function validateMap(map, themeName, index) {
   // Required string fields
   if (!map.name || typeof map.name !== 'string') {
     errors.push(`${prefix}: missing or invalid 'name'`);
+  }
+  if (!map.id || typeof map.id !== 'string') {
+    errors.push(`${prefix}: missing or invalid 'id'`);
   }
 
   // Required numeric fields with ranges
@@ -212,6 +241,20 @@ function validateMap(map, themeName, index) {
   // Validate spawns
   if (typeof map.spawns !== 'number' || map.spawns < 1 || map.spawns > 6) {
     errors.push(`${prefix}: 'spawns' must be between 1 and 6`);
+  }
+
+  if (!map.metadata || typeof map.metadata !== 'object') {
+    errors.push(`${prefix}: missing metadata object`);
+  } else {
+    if (!Array.isArray(map.metadata.recommendedTowers) || map.metadata.recommendedTowers.length === 0) {
+      errors.push(`${prefix}: metadata.recommendedTowers must be a non-empty array`);
+    }
+    if (!map.metadata.pressureType || typeof map.metadata.pressureType !== 'string') {
+      errors.push(`${prefix}: metadata.pressureType must be a string`);
+    }
+    if (!map.metadata.unlock || typeof map.metadata.unlock !== 'object') {
+      errors.push(`${prefix}: metadata.unlock must be an object`);
+    }
   }
 
   return errors;
@@ -295,6 +338,52 @@ function validateTheme(themeName, theme) {
     theme.maps.forEach((map, index) => {
       errors.push(...validateMap(map, themeName, index));
     });
+  }
+
+  if (!theme.meta || typeof theme.meta !== 'object') {
+    errors.push(`${prefix}: missing 'meta' content-pack metadata`);
+  }
+
+  if (!theme.skins || typeof theme.skins !== 'object') {
+    errors.push(`${prefix}: missing 'skins' content-pack configuration`);
+  }
+
+  if (!theme.balance || typeof theme.balance !== 'object') {
+    errors.push(`${prefix}: missing 'balance' content-pack configuration`);
+  }
+
+  if (!theme.visuals || typeof theme.visuals !== 'object') {
+    errors.push(`${prefix}: missing 'visuals' profile`);
+  } else {
+    for (const section of REQUIRED_VISUAL_SECTIONS) {
+      if (!theme.visuals[section] || typeof theme.visuals[section] !== 'object') {
+        errors.push(`${prefix}: visuals.${section} is required`);
+      }
+    }
+
+    const projectileProfiles = theme.visuals.projectiles || {};
+    const projectileIds = new Set((theme.towers || []).map(tower => tower.projectile).filter(Boolean));
+    for (const projectileId of projectileIds) {
+      const profile = projectileProfiles[projectileId];
+      if (!profile) {
+        errors.push(`${prefix}: missing projectile visual profile "${projectileId}"`);
+      } else {
+        ['mesh', 'trail', 'impact', 'color'].forEach(field => {
+          if (profile[field] === undefined) {
+            errors.push(`${prefix}: projectile "${projectileId}" missing visual field "${field}"`);
+          }
+        });
+      }
+    }
+
+    const enemyProfiles = theme.visuals.enemies || {};
+    for (const enemy of theme.enemies || []) {
+      const key = enemy.slot || enemy.role?.toLowerCase();
+      const profile = enemyProfiles[key] || enemyProfiles[enemy.role?.toLowerCase()] || enemyProfiles.swarm;
+      if (!profile) {
+        errors.push(`${prefix}: enemy "${enemy.id}" has no visual profile fallback for "${key}"`);
+      }
+    }
   }
 
   return errors;

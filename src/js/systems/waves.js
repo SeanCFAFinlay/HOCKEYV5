@@ -1,11 +1,12 @@
 // Wave management with game-time based spawning
 // No setTimeout - all spawns tied to fixed timestep
 
-import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpawnsPending, setAutoWave } from '../engine/state.js';
+import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpawnsPending, setAutoWave, setWaves, updateRunStats } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { spawnEnemy } from './enemies.js';
 import { updateHUD } from '../ui/hud.js';
 import { createSpawnPulse, createWaveComplete } from './particles.js';
+import { generateWaves } from '../config/waves.js';
 
 // Spawn queue state
 let spawnQueue = [];
@@ -19,13 +20,21 @@ export function startWave() {
   const state = getState();
   const { wave, mapData, WAVES, themeData, waveActive } = state;
 
-  if (waveActive || wave >= mapData.waves) return;
+  if (waveActive) return;
+
+  if (wave >= mapData.waves) {
+    if (state.gameMode !== 'endless') return;
+    const extraWaves = generateWaves(wave + 20, themeData, { mode: 'endless' });
+    setWaves(extraWaves);
+    mapData.waves = extraWaves.length;
+  }
 
   setWaveActive(true);
   incrementWave();
 
   const currentWave = state.wave;
   emit(GameEvents.WAVE_START, { wave: currentWave });
+  updateRunStats({ wavesStarted: currentWave });
   updateHUD();
 
   // Visual effect - spawn portal pulse

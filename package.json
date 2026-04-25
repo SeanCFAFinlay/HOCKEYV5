@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "cd src && npm run dev",
-    "build": "cd src && npm install && npm run build",
-    "preview": "cd src && npm run preview"
+    "dev": "npm --prefix src run dev",
+    "build": "npm --prefix src run build",
+    "preview": "npm --prefix src run preview",
+    "validate": "npm --prefix src run validate",
+    "smoke": "npm --prefix src run smoke",
+    "qa": "npm --prefix src run qa"
   }
 }
