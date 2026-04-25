@@ -69,7 +69,7 @@ class ObjectPool {
   }
 }
 
-// Particle pool
+// Particle pool (increased size for large waves and 3x speed)
 const particlePool = new ObjectPool(
   // Factory
   () => ({
@@ -94,10 +94,10 @@ const particlePool = new ObjectPool(
     p.color = color || 0xffffff;
     p.scale = 1;
   },
-  50 // Initial size
+  150 // Initial size (increased from 50 for large waves)
 );
 
-// Projectile pool
+// Projectile pool (increased for many towers firing simultaneously)
 const projectilePool = new ObjectPool(
   // Factory
   () => ({
@@ -128,12 +128,12 @@ const projectilePool = new ObjectPool(
     p.speed = speed || 8.5;
     p.active = true;
   },
-  30 // Initial size
+  100 // Initial size (increased from 30 for many simultaneous projectiles)
 );
 
 // Vector3 pool for temporary calculations
 const vec3Pool = [];
-const MAX_VEC3_POOL = 50;
+const MAX_VEC3_POOL = 100; // Increased from 50
 
 /**
  * Acquire a particle from pool

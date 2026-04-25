@@ -16,7 +16,11 @@ export const ActionTypes = {
   INCREMENT_WAVE: 'INCREMENT_WAVE',
   SET_SCORE: 'SET_SCORE',
   ADD_SCORE: 'ADD_SCORE',
+  SET_KILLS: 'SET_KILLS',
+  INCREMENT_KILLS: 'INCREMENT_KILLS',
   SET_GAME_SPEED: 'SET_GAME_SPEED',
+  SET_GAME_MODE: 'SET_GAME_MODE',
+  SET_RUN_STATS: 'SET_RUN_STATS',
 
   // Wave state
   SET_WAVE_ACTIVE: 'SET_WAVE_ACTIVE',
@@ -92,7 +96,16 @@ const initialState = {
   lives: 0,
   wave: 0,
   score: 0,
+  kills: 0,
   gameSpeed: 1,
+  gameMode: 'campaign',
+  runStats: {
+    wavesStarted: 0,
+    wavesCompleted: 0,
+    enemiesEscaped: 0,
+    towersLost: 0,
+    result: null
+  },
   autoWave: false,
   autoWaveTimer: null,
   spawnsPending: 0,
@@ -126,13 +139,10 @@ const initialState = {
   mouse: null,
   cells: [],
 
-  // Camera state
+  // Camera state (actual interpolated values; targets managed in camera.js)
   camAngle: Math.PI / 4,
   camHeight: 14,
   camDist: 22,
-  targetCamAngle: Math.PI / 4,
-  targetCamHeight: 14,
-  targetCamDist: 22,
 
   // Input state
   dragging: false,
@@ -266,9 +276,31 @@ export function dispatch(type, payload) {
       emit(GameEvents.SCORE_CHANGE, { score: state.score });
       break;
 
+    // Kills
+    case ActionTypes.SET_KILLS:
+      const oldKills = state.kills;
+      state.kills = payload;
+      notifySubscribers('kills', payload, oldKills);
+      break;
+
+    case ActionTypes.INCREMENT_KILLS:
+      const prevKills = state.kills;
+      state.kills++;
+      notifySubscribers('kills', state.kills, prevKills);
+      emit(GameEvents.ENEMY_KILL, { kills: state.kills });
+      break;
+
     // Game speed
     case ActionTypes.SET_GAME_SPEED:
       state.gameSpeed = payload;
+      break;
+
+    case ActionTypes.SET_GAME_MODE:
+      state.gameMode = payload;
+      break;
+
+    case ActionTypes.SET_RUN_STATS:
+      state.runStats = { ...state.runStats, ...payload };
       break;
 
     // Wave state
@@ -430,6 +462,8 @@ export function dispatch(type, payload) {
       state.autoWave = false;
       state.autoWaveTimer = null;
       state.animTime = 0;
+      state.kills = 0;
+      state.runStats = { ...initialState.runStats };
       break;
 
     default:
@@ -499,8 +533,24 @@ export function addScore(amount) {
   dispatch(ActionTypes.ADD_SCORE, amount);
 }
 
+export function setKills(kills) {
+  dispatch(ActionTypes.SET_KILLS, kills);
+}
+
+export function incrementKills() {
+  dispatch(ActionTypes.INCREMENT_KILLS);
+}
+
 export function setGameSpeed(speed) {
   dispatch(ActionTypes.SET_GAME_SPEED, speed);
+}
+
+export function setGameMode(mode) {
+  dispatch(ActionTypes.SET_GAME_MODE, mode);
+}
+
+export function updateRunStats(stats) {
+  dispatch(ActionTypes.SET_RUN_STATS, stats);
 }
 
 export function setAutoWave(autoWave) {
@@ -617,4 +667,41 @@ export function clearCells() {
 
 export function resetGameState() {
   dispatch(ActionTypes.RESET_GAME_STATE);
+}
+
+/**
+ * Clear auto-wave timer safely
+ */
+export function clearAutoWaveTimerSafe() {
+  const timer = state.autoWaveTimer;
+  if (timer) {
+    clearTimeout(timer);
+    dispatch(ActionTypes.SET_AUTO_WAVE_TIMER, null);
+  }
+}
+
+/**
+ * Get all active entities for cleanup
+ * @returns {Object} Object containing all entity arrays
+ */
+export function getAllEntities() {
+  return {
+    towers: state.towers,
+    enemies: state.enemies,
+    projectiles: state.projectiles,
+    particles: state.particles
+  };
+}
+
+/**
+ * Check if game is in a clean state (no active entities)
+ * @returns {boolean}
+ */
+export function isCleanState() {
+  return (
+    state.towers.length === 0 &&
+    state.enemies.length === 0 &&
+    state.projectiles.length === 0 &&
+    state.particles.length === 0
+  );
 }

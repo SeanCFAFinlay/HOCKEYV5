@@ -1,12 +1,24 @@
 // Tower definitions for each theme
-// Each tower has: id, nm (name), icon, cost, clr (color), dmg[], rng[], rate[], up[] (upgrade costs)
-// Optional properties: splash[], slow, slowDur[], chain[], chainRng, burn[], burnDur, crit, projectile
+// Each tower has a clear tactical identity and role
+
+/**
+ * TOWER ROLES:
+ * - ANTI-SWARM: Fast-firing, moderate damage, good vs many weak enemies
+ * - SNIPER: High damage, slow rate, long range - vs high HP targets
+ * - SPLASH: Area damage - vs groups
+ * - CROWD CONTROL: Slow effect - supports other towers
+ * - CHOKEPOINT: High damage, short range - defends specific spots
+ * - CHAIN: Multi-target - vs spread out groups
+ * - DOT: Damage over time - vs tanky enemies
+ * - BOSS KILLER: Massive single-hit damage, crit chance
+ */
 
 export const HOCKEY_TOWERS = [
   {
     id: 't1',
     nm: 'Slap Shot',
     icon: '🏒',
+    role: 'ANTI-SWARM',  // Fast base tower, good vs basic pucks
     cost: 80,
     clr: '#00d4ff',
     dmg: [25, 40, 60, 90],
@@ -19,6 +31,7 @@ export const HOCKEY_TOWERS = [
     id: 't2',
     nm: 'Sniper',
     icon: '🎯',
+    role: 'SNIPER',  // Long range, high damage - vs armored/boss
     cost: 150,
     clr: '#ef4444',
     dmg: [70, 110, 165, 250],
@@ -31,6 +44,7 @@ export const HOCKEY_TOWERS = [
     id: 't3',
     nm: 'Enforcer',
     icon: '👊',
+    role: 'SPLASH',  // Area damage - clears groups
     cost: 120,
     clr: '#f97316',
     dmg: [45, 70, 105, 160],
@@ -44,6 +58,7 @@ export const HOCKEY_TOWERS = [
     id: 't4',
     nm: 'Ice Spray',
     icon: '❄️',
+    role: 'CROWD_CONTROL',  // Slows enemies for other towers
     cost: 90,
     clr: '#38bdf8',
     dmg: [18, 28, 42, 60],
@@ -58,6 +73,7 @@ export const HOCKEY_TOWERS = [
     id: 't5',
     nm: 'Goalie',
     icon: '🥅',
+    role: 'CHOKEPOINT',  // High damage, short range - last defense
     cost: 200,
     clr: '#ffd700',
     dmg: [100, 155, 230, 350],
@@ -70,6 +86,7 @@ export const HOCKEY_TOWERS = [
     id: 't6',
     nm: 'Power Play',
     icon: '⚡',
+    role: 'CHAIN',  // Hits multiple enemies in sequence
     cost: 160,
     clr: '#a855f7',
     dmg: [35, 55, 82, 125],
@@ -84,6 +101,7 @@ export const HOCKEY_TOWERS = [
     id: 't7',
     nm: 'Hot Stick',
     icon: '🔥',
+    role: 'DOT',  // Burn damage over time - good vs tanks
     cost: 140,
     clr: '#f97316',
     dmg: [15, 24, 36, 52],
@@ -98,6 +116,7 @@ export const HOCKEY_TOWERS = [
     id: 't8',
     nm: 'Captain',
     icon: '👑',
+    role: 'BOSS_KILLER',  // Massive crit damage, very slow
     cost: 280,
     clr: '#fbbf24',
     dmg: [200, 320, 480, 720],
@@ -114,6 +133,7 @@ export const SOCCER_TOWERS = [
     id: 't1',
     nm: 'Striker',
     icon: '⚽',
+    role: 'ANTI-SWARM',  // Fast base tower
     cost: 80,
     clr: '#22c55e',
     dmg: [28, 44, 66, 100],
@@ -126,6 +146,7 @@ export const SOCCER_TOWERS = [
     id: 't2',
     nm: 'Free Kick',
     icon: '🎯',
+    role: 'SNIPER',  // Long range precision
     cost: 150,
     clr: '#fbbf24',
     dmg: [75, 118, 175, 265],
@@ -138,6 +159,7 @@ export const SOCCER_TOWERS = [
     id: 't3',
     nm: 'Header',
     icon: '🤕',
+    role: 'SPLASH',  // Area damage
     cost: 120,
     clr: '#3b82f6',
     dmg: [50, 78, 118, 178],
@@ -151,6 +173,7 @@ export const SOCCER_TOWERS = [
     id: 't4',
     nm: 'Tackle',
     icon: '🦶',
+    role: 'CROWD_CONTROL',  // Slow effect
     cost: 90,
     clr: '#f97316',
     dmg: [20, 32, 48, 70],
@@ -165,6 +188,7 @@ export const SOCCER_TOWERS = [
     id: 't5',
     nm: 'Keeper',
     icon: '🧤',
+    role: 'CHOKEPOINT',  // High damage, short range
     cost: 200,
     clr: '#a855f7',
     dmg: [110, 170, 255, 385],
@@ -177,6 +201,7 @@ export const SOCCER_TOWERS = [
     id: 't6',
     nm: 'Playmaker',
     icon: '🔄',
+    role: 'CHAIN',  // Multi-target
     cost: 160,
     clr: '#06b6d4',
     dmg: [38, 60, 90, 135],
@@ -191,6 +216,7 @@ export const SOCCER_TOWERS = [
     id: 't7',
     nm: 'Flare',
     icon: '🔥',
+    role: 'DOT',  // Burn damage
     cost: 140,
     clr: '#ef4444',
     dmg: [16, 26, 40, 58],
@@ -205,6 +231,7 @@ export const SOCCER_TOWERS = [
     id: 't8',
     nm: 'Legend',
     icon: '👑',
+    role: 'BOSS_KILLER',  // Massive crit damage
     cost: 280,
     clr: '#fbbf24',
     dmg: [220, 350, 525, 790],
