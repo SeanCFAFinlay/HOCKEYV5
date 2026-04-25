@@ -88,6 +88,36 @@ npm run build
 npm run serve
 ```
 
+## Vercel Deployment
+
+The project is configured for automatic Vercel deployment via GitHub Actions.
+
+### First-time setup
+
+1. **Import the repo on Vercel**
+   - Go to [vercel.com/new](https://vercel.com/new) → Import your GitHub repo
+   - Vercel auto-reads the `vercel.json` at the repo root (rootDirectory: `src`)
+   - No extra project settings needed
+
+2. **Get Vercel credentials** (for GitHub Actions CI/CD)
+   ```bash
+   npm i -g vercel
+   vercel login
+   vercel link   # inside the repo root — creates .vercel/project.json
+   ```
+
+3. **Add GitHub repository secrets**
+
+   | Secret name | Where to find it |
+   |---|---|
+   | `VERCEL_TOKEN` | vercel.com → Settings → Tokens |
+   | `VERCEL_ORG_ID` | `.vercel/project.json` → `orgId` |
+   | `VERCEL_PROJECT_ID` | `.vercel/project.json` → `projectId` |
+
+   Go to: **GitHub repo → Settings → Secrets and variables → Actions → New repository secret**
+
+4. **Push to `main`** — the `Vercel Deploy` workflow runs automatically and deploys to production.
+
 ## Adding New Themes
 
 To add a new theme (e.g., "basketball"):
