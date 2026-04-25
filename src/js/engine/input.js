@@ -141,6 +141,14 @@ export function setupInputHandlers() {
       attachHandlers(canvas);
     }
   };
+
+  // Set up window resize handler immediately
+  window.addEventListener('resize', onResize);
+
+  // Set up keyboard shortcuts
+  setupKeyboardShortcuts();
+
+  // Check for canvas periodically
   checkCanvas();
 }
 

@@ -1,12 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "src/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/src/$1" }
-  ]
+  "buildCommand": "npm run build",
+  "outputDirectory": "src/dist",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev"
 }
