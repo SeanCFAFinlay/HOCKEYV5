@@ -2,17 +2,19 @@
 
 import { getState } from '../engine/state.js';
 import { makeTextSprite } from './sprites.js';
+import { getVisualProfile } from '../config/visual-profiles.js';
 
 export function addSpawnAndPenVisuals(hw, hh) {
   const state = getState();
-  const { theme, SPAWNS, BASE, scene } = state;
+  const { theme, SPAWNS, BASE, scene, themeData } = state;
+  const visuals = getVisualProfile(themeData);
 
   if (!Array.isArray(SPAWNS) || !BASE) return;
 
   const isHockey = theme === 'hockey';
 
   const spawnRingMat = new THREE.MeshStandardMaterial({
-    color: 0xdc2626,
+    color: visuals.map.spawn.color,
     roughness: 0.35,
     metalness: 0.35,
     emissive: 0x220000
@@ -25,13 +27,13 @@ export function addSpawnAndPenVisuals(hw, hh) {
   });
 
   const baseMat = new THREE.MeshStandardMaterial({
-    color: 0xfbbf24,
+    color: visuals.map.base.color,
     roughness: 0.35,
     metalness: 0.40,
     emissive: 0x241a00
   });
   const netMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
+      color: theme === 'space' ? 0x67e8f9 : 0xffffff,
     roughness: 0.85,
     metalness: 0.02
   });
@@ -100,7 +102,7 @@ export function addSpawnAndPenVisuals(hw, hh) {
     core.castShadow = true;
     grp.add(core);
 
-    const spr = makeTextSprite('ENEMY', { font: 'bold 46px system-ui', bg: 'rgba(0,0,0,0.40)' });
+    const spr = makeTextSprite(visuals.map.spawn.icon || 'ENEMY', { font: 'bold 46px system-ui', bg: 'rgba(0,0,0,0.45)' });
     spr.position.set(0, 1.05, 0);
     spr.scale.set(1.4, 0.7, 1);
     grp.add(spr);
@@ -126,7 +128,7 @@ export function addSpawnAndPenVisuals(hw, hh) {
     goal.castShadow = true;
     grp.add(goal);
 
-    const spr = makeTextSprite(isHockey ? 'DEFEND 🏒' : 'DEFEND ⚽', { font: 'bold 46px system-ui', bg: 'rgba(0,0,0,0.40)' });
+    const spr = makeTextSprite(visuals.map.base.icon || (isHockey ? 'DEFEND HOCKEY' : 'DEFEND'), { font: 'bold 46px system-ui', bg: 'rgba(0,0,0,0.45)' });
     spr.position.set(0, 1.15, 0);
     spr.scale.set(1.6, 0.75, 1);
     grp.add(spr);

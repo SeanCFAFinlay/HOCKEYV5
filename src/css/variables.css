@@ -1,9 +1,47 @@
 :root {
   --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom);
+
+  /* Core palette */
   --ice: #00d4ff;
+  --ice-dim: #0099cc;
+  --ice-glow: rgba(0, 212, 255, 0.35);
   --grass: #22c55e;
+  --grass-dim: #16a34a;
+  --grass-glow: rgba(34, 197, 94, 0.35);
   --gold: #ffd700;
+  --gold-dim: #d4a800;
+  --gold-glow: rgba(255, 215, 0, 0.35);
   --red: #ef4444;
-  --bg: #0a0c12;
+  --red-glow: rgba(239, 68, 68, 0.35);
+  --purple: #a855f7;
+
+  /* Backgrounds */
+  --bg: #07090f;
+  --bg2: #0d1120;
+  --bg3: #131829;
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-bright: rgba(255, 255, 255, 0.22);
+
+  /* Typography */
+  --font-game: 'Rajdhani', 'Segoe UI', 'Roboto', sans-serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Radius */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  /* Transitions */
+  --t-fast: 0.15s ease;
+  --t-mid: 0.25s ease;
+  --t-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.7);
 }

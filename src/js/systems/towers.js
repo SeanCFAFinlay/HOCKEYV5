@@ -8,6 +8,7 @@ import { createTowerMesh } from '../rendering/tower-meshes.js';
 import { createProjectile } from './projectiles.js';
 import { updateHUD, renderTowers } from '../ui/hud.js';
 import { showUpgrade, hideUpgrade } from '../ui/upgrade-sheet.js';
+import { assertDefined, assertValidGridPos, warnIf } from '../utils/assertions.js';
 
 // Targeting priority modes
 export const TargetPriority = {
@@ -23,8 +24,14 @@ export const TargetPriority = {
  */
 export function handleCellTap(x, y) {
   const state = getState();
-  const { grid, themeData, selectedTower, sellMode, money, scene } = state;
+  const { grid, themeData, selectedTower, sellMode, money, scene, COLS, ROWS } = state;
+
+  // Validate grid position
+  assertValidGridPos(x, y, COLS, ROWS);
+  warnIf(!grid[y] || !grid[y][x], `Invalid grid cell at (${x}, ${y})`);
+
   const cell = grid[y][x];
+  if (!cell) return;
 
   // Sell mode
   if (sellMode && cell.tower) {
@@ -69,6 +76,10 @@ export function handleCellTap(x, y) {
   // Place new tower
   if (selectedTower && cell.type === 'ground') {
     const td = themeData.towers.find(t => t.id === selectedTower);
+
+    // Validate tower definition exists
+    warnIf(!td, `Tower definition not found for ID: ${selectedTower}`);
+    if (!td) return;
 
     if (money >= td.cost) {
       const tower = {
