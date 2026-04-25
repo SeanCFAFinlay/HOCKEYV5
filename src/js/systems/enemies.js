@@ -1,12 +1,14 @@
 // Enemy spawning and movement with state machine
 // Delta-time based, deterministic movement
 
-import { getState, addEnemy, decrementLives, decrementSpawnsPending, addMoney, addScore } from '../engine/state.js';
+import { getState, addEnemy, decrementLives, decrementSpawnsPending, addMoney, addScore, incrementKills } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { findPathGrid, onNavChanged } from './pathfinding.js';
 import { createEnemyMesh, returnEnemyMesh } from '../rendering/enemy-meshes.js';
 import { attachEnemyPowerLabel } from '../rendering/sprites.js';
 import { updateHUD } from '../ui/hud.js';
+import { hideUpgrade } from '../ui/upgrade-sheet.js';
+import { assertDefined, assertPositiveNumber, warnIf } from '../utils/assertions.js';
 
 // Enemy state machine states
 export const EnemyState = {
@@ -22,18 +24,51 @@ export const EnemyState = {
  * @param {Object} ed - Enemy definition
  */
 export function spawnEnemy(ed) {
+  // Validate enemy definition
+  assertDefined(ed, 'enemy definition');
+  assertDefined(ed.id, 'enemy.id');
+  assertPositiveNumber(ed.hp, 'enemy.hp');
+  assertPositiveNumber(ed.spd, 'enemy.spd');
+  assertPositiveNumber(ed.rwd, 'enemy.rwd');
+
   const state = getState();
   const { COLS, ROWS, SPAWNS, wave, scene } = state;
   const hw = COLS / 2;
   const hh = ROWS / 2;
 
+  // Validate game state
+  warnIf(SPAWNS.length === 0, 'No spawn points defined');
+
   // Deterministic spawn point selection
   const spawnIndex = state.enemies.length % SPAWNS.length;
   const s = SPAWNS[spawnIndex] || { x: 0, y: Math.floor(ROWS / 2) };
 
+  // Calculate phased difficulty scaling
+  // Early game (1-10): Gradual scaling
+  // Mid game (11-20): Moderate scaling
+  // Late game (21+): Steep scaling
+  const hpScale = wave <= 10 
+    ? (1 + wave * 0.10)                    // Early: 1.1x to 2.0x
+    : wave <= 20 
+      ? (2.0 + (wave - 10) * 0.15)         // Mid: 2.0x to 3.5x
+      : (3.5 + (wave - 20) * 0.20);        // Late: 3.5x to 7.5x at wave 40
+
+  const rewardScale = wave <= 10
+    ? (1 + wave * 0.06)                    // Early: 1.06x to 1.6x
+    : wave <= 20
+      ? (1.6 + (wave - 10) * 0.10)         // Mid: 1.6x to 2.6x
+      : (2.6 + (wave - 20) * 0.12);        // Late: 2.6x to 5.0x at wave 40
+
   const e = {
     // Identity
     type: ed.id,
+    configId: ed.id,
+    nm: ed.nm,
+    role: ed.role,
+    slot: ed.slot || ed.role?.toLowerCase(),
+    threatTags: ed.threatTags || [],
+    speedClass: ed.speedClass,
+    rewardClass: ed.rewardClass,
     id: `enemy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 
     // State machine
@@ -58,7 +93,7 @@ export function spawnEnemy(ed) {
     maxHp: ed.hp * (1 + wave * 0.07 + Math.pow(wave / 25, 1.6) * 0.6),
     baseSpd: ed.spd,
     spd: ed.spd,
-    rwd: ed.rwd,
+    rwd: Math.floor(ed.rwd * rewardScale),
     sz: ed.sz || 1,
     armor: ed.armor || 0,
 
@@ -102,7 +137,6 @@ export function spawnEnemy(ed) {
 
   addEnemy(e);
   decrementSpawnsPending();
-  emit(GameEvents.ENEMY_SPAWN, { enemy: e });
 }
 
 /**
@@ -354,6 +388,7 @@ function updateAttackingEnemy(e, dt, speed, hw, hh, index) {
       if (cell) cell.tower = null;
 
       emit(GameEvents.TOWER_DESTROYED, { tower });
+      hideUpgrade(); // Auto-close upgrade sheet if this tower was selected
       onNavChanged();
 
       e.state = EnemyState.MOVING;
@@ -381,6 +416,7 @@ function handleEnemyDeath(e, index) {
   // Award rewards
   addMoney(e.rwd);
   addScore(Math.floor(e.rwd * 1.5));
+  incrementKills();
 
   // Remove from array
   state.enemies.splice(index, 1);

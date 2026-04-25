@@ -3,7 +3,7 @@
 import { getState } from '../engine/state.js';
 import { on, GameEvents } from '../engine/events.js';
 import { selectTheme, startGame } from './screens.js';
-import { recordRun, getBestScore } from '../utils/persistence.js';
+import { saveMapCompletion, getMapProgress } from '../systems/storage.js';
 
 /**
  * Initialize modal event listeners.
@@ -20,8 +20,8 @@ export function initModals() {
 }
 
 export function closeModal(type) {
-  document.getElementById(type + 'Modal').classList.remove('show');
   const state = getState();
+  document.getElementById(type + 'Modal').classList.remove('show');
   selectTheme(state.theme);
 }
 
@@ -41,8 +41,10 @@ function _showWinModal(score, waveReached) {
   const state = getState();
   const { theme, mapIndex } = state;
 
-  recordRun(theme, mapIndex, score, waveReached);
-  const best = getBestScore(theme, mapIndex);
+  // Save completion via unified storage system
+  saveMapCompletion(theme, mapIndex, score, 0, true);
+  const progress = getMapProgress(theme, mapIndex);
+  const best = progress?.bestScore ?? 0;
 
   const el = (id) => document.getElementById(id);
   if (el('winScore'))  el('winScore').textContent  = score;
@@ -55,8 +57,10 @@ function _showLoseModal(wave, score) {
   const state = getState();
   const { theme, mapIndex } = state;
 
-  recordRun(theme, mapIndex, score, wave);
-  const best = getBestScore(theme, mapIndex);
+  // Save run via unified storage system (not completed, 0 stars)
+  saveMapCompletion(theme, mapIndex, score, 0, false);
+  const progress = getMapProgress(theme, mapIndex);
+  const best = progress?.bestScore ?? 0;
 
   const el = (id) => document.getElementById(id);
   if (el('loseWave'))  el('loseWave').textContent  = wave;

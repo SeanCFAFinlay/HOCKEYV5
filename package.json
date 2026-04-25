@@ -1,0 +1,13 @@
+{
+  "name": "hockey-vs-soccer-td-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix src run dev",
+    "build": "npm --prefix src run build",
+    "preview": "npm --prefix src run preview",
+    "validate": "npm --prefix src run validate",
+    "smoke": "npm --prefix src run smoke",
+    "qa": "npm --prefix src run qa"
+  }
+}
