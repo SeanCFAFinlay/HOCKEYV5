@@ -4,6 +4,10 @@
 // Import event system first
 import { on, GameEvents } from './engine/events.js';
 
+// Import audio system
+import { initAudio, playSound } from './engine/audio.js';
+import { registerAllSounds } from './config/sounds.js';
+
 // Import config validation
 import { runValidation } from './config/validation.js';
 import { THEMES } from './config/themes.js';
@@ -13,18 +17,19 @@ import { initStorage } from './systems/storage.js';
 import { initProgression } from './systems/progression.js';
 import { initAchievements, getAllAchievements, getAchievementProgress } from './systems/achievements.js';
 import * as Settings from './systems/settings.js';
+import { initSettings, openSettings } from './ui/settings.js';
 
-// Import UI modules (these set up window handlers)
-import './ui/screens.js';
-import { initModals } from './ui/modals.js';
-import './ui/upgrade-sheet.js';
+// Import UI modules
+import { showScreen, showScreenWithAnimation, selectTheme, exitGame, replayGame as replayGameScreens } from './ui/screens.js';
+import { initModals, closeModal } from './ui/modals.js';
+import { doUpgrade, hideUpgrade, sellTower, setTowerPriorityFromUI } from './ui/upgrade-sheet.js';
 import './ui/controls.js';
 
 // Import input handlers
 import { setupInputHandlers } from './engine/input.js';
 
 // Import camera controls
-import { zoomIn, zoomOut, resetCam, shakeCamera } from './engine/camera.js';
+import { zoomIn, zoomOut, resetCam, shakeCamera, cameraVictoryOrbit, cameraDefeatDrop } from './engine/camera.js';
 
 // Import control initializers
 import { initSpeedButtons } from './ui/controls.js';
@@ -38,17 +43,69 @@ import { toggleSell } from './systems/towers.js';
 // Import wave system
 import { startWave, toggleAutoWave } from './systems/waves.js';
 
+// Import music system
+import { initMusic, setMusicState } from './engine/music.js';
+
+// Import ambient soundscape
+import { initAmbient, setAmbientTheme, setAmbientIntensity, startAmbient, stopAmbient } from './engine/ambient.js';
+
 // Import HUD
 import { initHUD } from './ui/hud.js';
 import { initPerfOverlay, showPerfOverlay } from './ui/perf-overlay.js';
+import { initMinimap } from './ui/minimap.js';
 
 // Debug mode
 const DEBUG = false;
+
+function updateBottomUIClearance() {
+  const bottomUI = document.querySelector('.bottom-ui');
+  const rect = bottomUI?.getBoundingClientRect();
+  const compactBottomUI = window.matchMedia('(max-height: 500px) and (orientation: landscape)').matches;
+  const fallbackHeight = compactBottomUI ? 112 : 176;
+  const measuredHeight = rect && rect.height > 20 ? rect.height : fallbackHeight;
+  const clearance = Math.ceil(measuredHeight + 8);
+  document.documentElement.style.setProperty('--bottom-ui-clearance', `${clearance}px`);
+}
+
+function scheduleBottomUIClearanceUpdate() {
+  requestAnimationFrame(updateBottomUIClearance);
+}
+
+function initBottomUIClearanceObserver() {
+  const bottomUI = document.querySelector('.bottom-ui');
+  if (!bottomUI) return;
+
+  scheduleBottomUIClearanceUpdate();
+
+  if ('ResizeObserver' in window) {
+    const resizeObserver = new ResizeObserver(scheduleBottomUIClearanceUpdate);
+    resizeObserver.observe(bottomUI);
+  }
+
+  const bottomObserver = new MutationObserver(scheduleBottomUIClearanceUpdate);
+  bottomObserver.observe(bottomUI, {
+    attributes: true,
+    attributeFilter: ['class', 'style']
+  });
+
+  const gameScreen = document.getElementById('gameScreen');
+  if (gameScreen) {
+    const screenObserver = new MutationObserver(scheduleBottomUIClearanceUpdate);
+    screenObserver.observe(gameScreen, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+
+  window.addEventListener('resize', scheduleBottomUIClearanceUpdate, { passive: true });
+  window.addEventListener('orientationchange', scheduleBottomUIClearanceUpdate, { passive: true });
+}
 
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Hockey vs Soccer TD - Initializing...');
 
+  try {
   // Validate all config data on startup
   const configValid = runValidation(THEMES, false);
   if (!configValid) {
@@ -61,15 +118,29 @@ document.addEventListener('DOMContentLoaded', () => {
   initAchievements();
   console.log('Save/progression systems initialized');
 
+  // SC-5.2: Initialize audio and register all SFX
+  try { initAudio(); registerAllSounds(); } catch(e) { console.warn('Audio init failed:', e); }
+
+  // Initialize music system and start menu music
+  try { initMusic(); setMusicState('menu'); } catch(e) { console.warn('Music init failed:', e); }
+
+  // Initialize ambient soundscape
+  try { initAmbient(); } catch(e) { console.warn('Ambient init failed:', e); }
+
   // Set up input handlers
   setupInputHandlers();
 
   // Initialize speed buttons
   initSpeedButtons();
   initPerfOverlay();
+  try { initMinimap(); } catch(e) { console.warn('Minimap init failed:', e); }
 
   // Initialize modal event listeners (win/lose handlers via game events)
   initModals();
+
+  // Initialize settings panel (loads settings, applies, injects buttons)
+  try { initSettings(); } catch(e) { console.warn('Settings init failed:', e); }
+  initBottomUIClearanceObserver();
 
   // Set up achievement notification listener
   on(GameEvents.ACHIEVEMENT_UNLOCKED, ({ achievement }) => {
@@ -92,15 +163,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (wave % 5 === 0 && wave > 0) {
       shakeCamera(0.5, 0.4);
     }
+    // Ambient intensity: boss wave = 0.8, normal wave = 0.6
+    const isBossWave = wave % 5 === 0 && wave > 0;
+    setAmbientIntensity(isBossWave ? 0.8 : 0.6);
   });
 
+  on(GameEvents.WAVE_COMPLETE, () => {
+    setAmbientIntensity(0.3);
+  });
+
+  on(GameEvents.GAME_START, ({ theme }) => {
+    if (theme) setAmbientTheme(theme);
+    startAmbient();
+  });
+
+  // SC-5.2: Game outcome sounds
   on(GameEvents.GAME_LOSE, () => {
     shakeCamera(0.8, 0.6);
+    cameraDefeatDrop();
+    stopAmbient();
+    playSound('gameLose');
+  });
+
+  on(GameEvents.GAME_WIN, () => {
+    cameraVictoryOrbit();
+    stopAmbient();
+    playSound('gameWin');
   });
 
   // Set up global event handlers for debugging
   if (DEBUG) {
     setupDebugListeners();
+  }
+
+  } catch (e) {
+    console.error('Initialization error:', e);
   }
 
   // Hide loader once initialized
@@ -179,18 +276,31 @@ function setupDebugListeners() {
   });
 }
 
-// Expose functions to window for HTML onclick handlers
-window.zoomIn = zoomIn;
-window.zoomOut = zoomOut;
-window.resetCam = resetCam;
-window.selectTowerType = selectTowerType;
-window.toggleSell = toggleSell;
-window.startWave = startWave;
-window.toggleAutoWave = toggleAutoWave;
+// Expose functions to window for HTML onclick handlers (single authoritative location)
+const appGlobal = globalThis.window || globalThis;
+Object.assign(appGlobal, {
+  zoomIn,
+  zoomOut,
+  resetCam,
+  selectTowerType,
+  toggleSell,
+  startWave,
+  toggleAutoWave,
+  showScreen,
+  showScreenWithAnimation,
+  selectTheme,
+  exitGame,
+  replayGame: replayGameScreens,
+  closeModal,
+  doUpgrade,
+  hideUpgrade,
+  sellTower,
+  setTowerPriorityFromUI
+});
 
 // Expose debug tools
 if (DEBUG) {
-  window.__debug = {
+  appGlobal.__debug = {
     getState: () => import('./engine/state.js').then(m => m.getState()),
     getPoolStats: () => import('./engine/pools.js').then(m => m.getPoolStats()),
     getPathCacheStats: () => import('./systems/pathfinding.js').then(m => m.getPathCacheStats()),
@@ -198,4 +308,5 @@ if (DEBUG) {
   };
 }
 
-window.__perf = { show: showPerfOverlay };
+appGlobal.__perf = { show: showPerfOverlay };
+appGlobal.openSettings = openSettings;

@@ -10,7 +10,7 @@ const SETTING_DEFAULTS = {
   sfxVolume: 1.0,
   showDamageNumbers: true,
   showRangeIndicators: true,
-  autoWaveDefault: false,
+  autoWaveDefault: true,
   defaultGameSpeed: 1
 };
 

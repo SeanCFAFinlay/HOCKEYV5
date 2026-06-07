@@ -1,12 +1,16 @@
 // Wave management with game-time based spawning
 // No setTimeout - all spawns tied to fixed timestep
 
-import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpawnsPending, setAutoWave, setWaves, updateRunStats } from '../engine/state.js';
+import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpawnsPending, setAutoWave, setWaves, setWaveStartLives, updateRunStats } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
+import { playSound } from '../engine/audio.js';
 import { spawnEnemy } from './enemies.js';
 import { updateHUD } from '../ui/hud.js';
+import { hideUpgrade } from '../ui/upgrade-sheet.js';
 import { createSpawnPulse, createWaveComplete } from './particles.js';
 import { generateWaves } from '../config/waves.js';
+import { setPathPreviewVisible } from '../rendering/path-preview.js';
+import { cameraWaveStartPullback } from '../engine/camera.js';
 
 // Spawn queue state
 let spawnQueue = [];
@@ -30,15 +34,22 @@ export function startWave() {
   }
 
   setWaveActive(true);
+  setWaveStartLives(state.lives);
+  hideUpgrade();
   incrementWave();
 
   const currentWave = state.wave;
   emit(GameEvents.WAVE_START, { wave: currentWave });
+  playSound('waveStart');
+  setPathPreviewVisible(false, true); // Fade lines during wave
   updateRunStats({ wavesStarted: currentWave });
   updateHUD();
 
   // Visual effect - spawn portal pulse
   createSpawnPulse();
+
+  // Dynamic camera: pull back to show full arena on wave start
+  cameraWaveStartPullback();
 
   const waveData = WAVES[currentWave - 1] || {};
 
@@ -94,6 +105,8 @@ export function checkWaveCompletion() {
       state.enemies.length === 0) {
     setWaveActive(false);
     emit(GameEvents.WAVE_END, { wave: state.wave });
+    playSound('waveComplete');
+    setPathPreviewVisible(true, false); // Restore full opacity after wave
     updateHUD();
 
     // Visual effect - wave complete celebration
@@ -163,6 +176,4 @@ function shuffleArray(array, seed) {
   return array;
 }
 
-// Expose to window for HTML onclick
-window.startWave = startWave;
-window.toggleAutoWave = toggleAutoWave;
+// window.startWave and window.toggleAutoWave exposed in main.js

@@ -4,6 +4,8 @@
 import { getState } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { createExplosion, createLightning, createImpact } from './particles.js';
+import { triggerHitStop } from '../engine/loop.js';
+import { cameraZoomPulse, triggerCameraShake } from '../engine/camera.js';
 
 // Hit flash duration
 const FLASH_DURATION = 0.1;
@@ -45,6 +47,7 @@ export function handleHit(p) {
       }
     });
     createThemedImpact(p);
+    triggerCameraShake(0.08, 200); // Heavy shake for splash impacts
   }
   // Chain lightning
   else if (tw.chain && p.target && enemies.includes(p.target)) {
@@ -150,14 +153,24 @@ export function hurtEnemy(e, dmg, isCrit = false) {
 
   // Visual feedback - flash and scale
   if (e.mesh) {
-    // Flash effect
     flashMesh(e.mesh, isCrit ? 0xffd700 : 0xff4444, FLASH_DURATION);
-
-    // Scale punch effect
     punchScale(e.mesh, isCrit ? 1.3 : 1.15);
-
-    // Floating damage number
     showDamageNumber(e.x, e.y || 0.5, e.z, actualDmg, isCrit);
+  }
+
+  // Hit-stop feedback
+  if (e.hp <= 0) {
+    if (e.boss) {
+      triggerHitStop(100);
+      cameraZoomPulse(0.1, 300);
+      triggerCameraShake(0.15, 250); // Heavy shake for boss kill
+    } else {
+      triggerHitStop(40);
+      triggerCameraShake(0.05, 150); // Light shake for normal kill
+    }
+  } else if (isCrit) {
+    triggerHitStop(16);
+    triggerCameraShake(0.10, 200); // Medium shake for crit
   }
 
   emit(GameEvents.ENEMY_HIT, {
@@ -169,13 +182,13 @@ export function hurtEnemy(e, dmg, isCrit = false) {
 }
 
 /**
- * Flash a mesh with a color
+ * Flash a mesh with a color.
+ * Stores state in mesh.userData so the game loop can tick it down with dt.
  * @param {THREE.Object3D} mesh - Mesh to flash
- * @param {number} color - Flash color
- * @param {number} duration - Flash duration
+ * @param {number} color - Flash color (hex)
+ * @param {number} duration - Flash duration in seconds
  */
 function flashMesh(mesh, color, duration) {
-  // Store original colors
   const originals = new Map();
 
   mesh.traverse((child) => {
@@ -189,38 +202,59 @@ function flashMesh(mesh, color, duration) {
     }
   });
 
-  // Restore after duration
-  setTimeout(() => {
-    originals.forEach((originalColor, mat) => {
-      mat.emissive.setHex(originalColor);
-      mat.emissiveIntensity = 0;
-    });
-  }, duration * 1000);
+  mesh.userData.flashActive = true;
+  mesh.userData.flashRemaining = duration;
+  mesh.userData.flashOriginals = originals;
 }
 
 /**
- * Punch scale effect (pop and return)
+ * Punch scale effect stored in mesh.userData for game-loop integration.
  * @param {THREE.Object3D} mesh - Mesh to scale
- * @param {number} scale - Target scale
+ * @param {number} scale - Peak scale multiplier
  */
 function punchScale(mesh, scale) {
   const originalScale = mesh.scale.clone();
   mesh.scale.multiplyScalar(scale);
 
-  // Animate back using simple timeout steps
-  const steps = 5;
-  const stepTime = 30;
+  mesh.userData.punchActive = true;
+  mesh.userData.punchTime = 0;
+  mesh.userData.punchDuration = 0.15;
+  mesh.userData.punchStartScale = mesh.scale.clone();
+  mesh.userData.punchTargetScale = originalScale;
+}
 
-  for (let i = 1; i <= steps; i++) {
-    setTimeout(() => {
-      const t = i / steps;
-      const eased = 1 - Math.pow(1 - t, 3); // Ease out cubic
-      mesh.scale.lerpVectors(
-        originalScale.clone().multiplyScalar(scale),
-        originalScale,
-        eased
-      );
-    }, stepTime * i);
+/**
+ * Tick damage animations (flash + punch) forward by dt.
+ * Call this from the game loop each frame.
+ * @param {THREE.Object3D} mesh
+ * @param {number} dt - Delta time in seconds
+ */
+export function tickDamageAnimations(mesh, dt) {
+  if (!mesh || !mesh.userData) return;
+
+  if (mesh.userData.flashActive) {
+    mesh.userData.flashRemaining -= dt;
+    if (mesh.userData.flashRemaining <= 0) {
+      mesh.userData.flashActive = false;
+      const originals = mesh.userData.flashOriginals;
+      if (originals) {
+        originals.forEach((originalColor, mat) => {
+          mat.emissive.setHex(originalColor);
+          mat.emissiveIntensity = 0;
+        });
+      }
+      mesh.userData.flashOriginals = null;
+    }
+  }
+
+  if (mesh.userData.punchActive) {
+    mesh.userData.punchTime += dt;
+    const t = Math.min(1, mesh.userData.punchTime / mesh.userData.punchDuration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    mesh.scale.lerpVectors(mesh.userData.punchStartScale, mesh.userData.punchTargetScale, eased);
+    if (t >= 1) {
+      mesh.userData.punchActive = false;
+    }
   }
 }
 

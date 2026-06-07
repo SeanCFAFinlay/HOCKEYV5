@@ -3,6 +3,101 @@
 import { getState } from '../engine/state.js';
 import { makeCapsule } from '../utils/math.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
+// ── SC-2.5: Environment map + emissive flash ───────────────────────────────
+
+// Shared environment map for metallic reflections
+let _sceneEnvMap = null;
+
+/**
+ * Store a PMREMGenerator-processed envMap for metallic materials.
+ * @param {THREE.Texture} envMap
+ */
+export function setSceneEnvMap(envMap) {
+  _sceneEnvMap = envMap;
+  if (towerMaterials) {
+    _applyEnvMapToSharedMaterials(towerMaterials);
+  }
+}
+
+function _applyEnvMapToSharedMaterials(mats) {
+  if (!_sceneEnvMap) return;
+  ['metal', 'gold'].forEach(key => {
+    if (mats[key]?.metalness >= 0.5) {
+      mats[key].envMap = _sceneEnvMap;
+      mats[key].envMapIntensity = 0.6;
+      mats[key].needsUpdate = true;
+    }
+  });
+}
+
+/**
+ * Flash a tower mesh emissive on fire. Stores state in mesh.userData.
+ * @param {THREE.Object3D|null} mesh
+ * @param {number} color  - emissive color hint
+ * @param {number} duration - decay hint in ms (default 100)
+ */
+export function flashTowerEmissive(mesh, color, duration = 120) {
+  if (!mesh) return;
+  if (!mesh.userData) return;
+  mesh.userData.emissiveFlash = 0.8;
+  mesh.userData.emissiveFlashDuration = duration;
+  if (mesh.material?.emissiveIntensity !== undefined) {
+    mesh.material.emissiveIntensity = 0.8;
+  }
+}
+
+/**
+ * Decay emissive flash each animation frame. Call from updateAnimations.
+ * @param {Array} towers - array of tower objects with .mesh
+ * @param {number} dt    - frame delta in seconds
+ */
+export function updateEmissiveFlashes(towers, dt) {
+  for (const tw of towers) {
+    const mesh = tw?.mesh;
+    if (!mesh?.userData) continue;
+    if (!mesh.userData.emissiveFlash) continue;
+
+    const decayMs = mesh.userData.emissiveFlashDuration || 100;
+    mesh.userData.emissiveFlash -= (1000 / decayMs) * dt;
+
+    if (mesh.userData.emissiveFlash <= 0) {
+      mesh.userData.emissiveFlash = 0;
+    }
+
+    if (mesh.material?.emissiveIntensity !== undefined) {
+      mesh.material.emissiveIntensity = 0.12 + mesh.userData.emissiveFlash * 0.65;
+    }
+  }
+}
+
+// Shared detail geometries — created once, reused for all towers
+let _detailSphereGeo = null;
+let _detailBoxGeo = null;
+
+function getDetailSphereGeo() {
+  if (!_detailSphereGeo) _detailSphereGeo = new THREE.SphereGeometry(0.02, 8, 8);
+  return _detailSphereGeo;
+}
+
+function getDetailBoxGeo() {
+  if (!_detailBoxGeo) _detailBoxGeo = new THREE.BoxGeometry(0.04, 0.008, 0.02);
+  return _detailBoxGeo;
+}
+
+function addBaseRivets(group, scale, mat) {
+  const geo = getDetailSphereGeo();
+  const count = 6;
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const rivet = new THREE.Mesh(geo, mat);
+    rivet.position.set(
+      Math.cos(angle) * 0.38 * scale,
+      0.13,
+      Math.sin(angle) * 0.38 * scale
+    );
+    group.add(rivet);
+  }
+}
 
 // Shared enhanced materials
 let towerMaterials = null;
@@ -33,9 +128,9 @@ function getTowerMaterials() {
     }),
     // White parts (player bodies, pads) - slightly toned down
     white: new THREE.MeshStandardMaterial({
-      color: 0xeeeeee,
+      color: 0xcbd5e1,
       metalness: 0.08,
-      roughness: 0.70
+      roughness: 0.82
     }),
     // Gold/trophy parts - warmer, richer
     gold: new THREE.MeshStandardMaterial({
@@ -48,6 +143,58 @@ function getTowerMaterials() {
   };
 
   return towerMaterials;
+}
+
+function createRangeRing(innerRadius, outerRadius, color, opacity) {
+  const safeInner = Math.max(0.05, innerRadius);
+  const safeOuter = Math.max(safeInner + 0.03, outerRadius);
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(safeInner, safeOuter, 64),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      side: THREE.DoubleSide
+    })
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.02;
+  mesh.visible = false;
+  return mesh;
+}
+
+export function updateTowerRangeGeometry(tower) {
+  if (!tower?.rangeMeshes?.length) return;
+
+  const range = tower.rng || 1;
+  const radii = [
+    [range - 0.1, range],
+    [range - 0.22, range - 0.1],
+    [range, range + 0.07]
+  ];
+
+  tower.rangeMeshes.forEach((mesh, index) => {
+    if (!mesh) return;
+    if (mesh.geometry) mesh.geometry.dispose();
+
+    const [inner, outer] = radii[index] || radii[0];
+    mesh.geometry = new THREE.RingGeometry(
+      Math.max(0.05, inner),
+      Math.max(Math.max(0.05, inner) + 0.03, outer),
+      64
+    );
+  });
+}
+
+export function setTowerRangeVisible(tower, visible) {
+  const rangeMeshes = tower?.rangeMeshes || (tower?.rangeMesh ? [tower.rangeMesh] : []);
+  rangeMeshes.forEach(mesh => {
+    if (mesh) mesh.visible = Boolean(visible);
+  });
+}
+
+export function hideAllTowerRanges(towers = getState().towers || []) {
+  towers.forEach(tower => setTowerRangeVisible(tower, false));
 }
 
 export function createTowerMesh(tower) {
@@ -68,16 +215,16 @@ export function createTowerMesh(tower) {
   const baseMat = new THREE.MeshStandardMaterial({
     color: visuals.towers.base,
     metalness: 0.45,
-    roughness: 0.5,
+    roughness: 0.6,
     emissive: visuals.towers.base,
     emissiveIntensity: 0.08 + lv * 0.03
   });
   const bodyMat = new THREE.MeshStandardMaterial({
     color,
-    metalness: 0.45,
-    roughness: 0.45,
+    metalness: theme === 'hockey' ? 0.22 : 0.45,
+    roughness: theme === 'hockey' ? 0.56 : 0.45,
     emissive: color,
-    emissiveIntensity: 0.12
+    emissiveIntensity: theme === 'hockey' ? 0.10 : 0.12
   });
   const glowMat = new THREE.MeshBasicMaterial({
     color,
@@ -86,8 +233,8 @@ export function createTowerMesh(tower) {
   });
   const metalMat = new THREE.MeshStandardMaterial({
     color: visuals.towers.metal,
-    metalness: theme === 'space' ? 0.92 : 0.85,
-    roughness: theme === 'space' ? 0.12 : 0.18
+    metalness: theme === 'space' ? 0.92 : (theme === 'hockey' ? 0.46 : 0.85),
+    roughness: theme === 'space' ? 0.12 : (theme === 'hockey' ? 0.42 : 0.18)
   });
   const darkMat = mats.dark;
   const whiteMat = mats.white;
@@ -101,6 +248,22 @@ export function createTowerMesh(tower) {
   base.receiveShadow = true;
   group.add(base);
 
+  // Inner raised hex — layered base for depth
+  const innerHexMat = new THREE.MeshStandardMaterial({
+    color: visuals.towers.base,
+    metalness: 0.55,
+    roughness: 0.4,
+    emissive: visuals.towers.base,
+    emissiveIntensity: 0.15 + lv * 0.04
+  });
+  const innerHex = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28 * scale, 0.32 * scale, 0.06, 6),
+    innerHexMat
+  );
+  innerHex.position.y = 0.15;
+  innerHex.castShadow = true;
+  group.add(innerHex);
+
   // Base glow underneath
   const baseGlow = new THREE.Mesh(
     new THREE.CylinderGeometry(0.42 * scale, 0.47 * scale, 0.02, 6),
@@ -110,24 +273,32 @@ export function createTowerMesh(tower) {
   group.add(baseGlow);
   tower.baseGlow = baseGlow;
 
-  // Base rim glow - enhanced with pulsing
+  // Base rim glow - enhanced with pulsing (between outer and inner hex layers)
   const baseRim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.42 * scale, 0.03, 12, 6),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8 })
+    new THREE.TorusGeometry(0.34 * scale, 0.018, 16, 6),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 })
   );
   baseRim.rotation.x = Math.PI / 2;
-  baseRim.position.y = 0.12;
+  baseRim.position.y = 0.145;
   group.add(baseRim);
   tower.baseRim = baseRim;
 
   // Inner rim detail
   const innerRim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.35 * scale, 0.015, 8, 6),
+    new THREE.TorusGeometry(0.26 * scale, 0.012, 8, 6),
     new THREE.MeshStandardMaterial({ color: 0x333344, metalness: 0.7, roughness: 0.3 })
   );
   innerRim.rotation.x = Math.PI / 2;
-  innerRim.position.y = 0.12;
+  innerRim.position.y = 0.18;
   group.add(innerRim);
+
+  // Rivets around base perimeter
+  const rivetMat = new THREE.MeshStandardMaterial({
+    color: visuals.towers.metal,
+    metalness: 0.9,
+    roughness: 0.1
+  });
+  addBaseRivets(group, scale, rivetMat);
 
   // Level indicator stars with glow
   for (let i = 0; i <= lv; i++) {
@@ -140,7 +311,7 @@ export function createTowerMesh(tower) {
 
     // Star glow
     const starGlow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06, 8, 8),
+      new THREE.SphereGeometry(0.06, 24, 24),
       new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.3 })
     );
     starGlow.position.copy(star.position);
@@ -160,33 +331,42 @@ export function createTowerMesh(tower) {
 
   addUpgradeCollars(group, lv, scale, visuals.towers.levelGlow);
 
-  // Range indicator - enhanced with gradient effect
-  const rangeOuter = new THREE.Mesh(
-    new THREE.RingGeometry(tower.rng - 0.08, tower.rng, 64),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide })
-  );
-  rangeOuter.rotation.x = -Math.PI / 2;
-  rangeOuter.position.y = 0.02;
+  // Range indicator - hidden by default and revealed for selected towers.
+  const rangeOuter = createRangeRing(tower.rng - 0.1, tower.rng, color, 0.38);
+  const rangeInner = createRangeRing(tower.rng - 0.22, tower.rng - 0.1, color, 0.16);
+  const rangeGlow = createRangeRing(tower.rng, tower.rng + 0.07, color, 0.18);
   group.add(rangeOuter);
-
-  const rangeInner = new THREE.Mesh(
-    new THREE.RingGeometry(tower.rng - 0.15, tower.rng - 0.08, 64),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.1, side: THREE.DoubleSide })
-  );
-  rangeInner.rotation.x = -Math.PI / 2;
-  rangeInner.position.y = 0.02;
   group.add(rangeInner);
-
-  // Range edge glow
-  const rangeGlow = new THREE.Mesh(
-    new THREE.RingGeometry(tower.rng, tower.rng + 0.05, 64),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.08, side: THREE.DoubleSide })
-  );
-  rangeGlow.rotation.x = -Math.PI / 2;
-  rangeGlow.position.y = 0.02;
   group.add(rangeGlow);
-
+  tower.rangeMeshes = [rangeOuter, rangeInner, rangeGlow];
   tower.rangeMesh = rangeOuter;
+  group.userData.rangeMeshes = tower.rangeMeshes;
+
+  // Contact shadow — a fake dark circle beneath the tower (all quality tiers)
+  const shadowPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.8, 0.8),
+    new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.25, transparent: true })
+  );
+  shadowPlane.rotation.x = -Math.PI / 2;
+  shadowPlane.position.y = 0.01;
+  group.add(shadowPlane);
+
+  // Idle bob animation — applied to all towers on the group level
+  // Note: do NOT reset animParts — tower build functions already added entries
+  if (!group.userData.animParts) group.userData.animParts = [];
+  const bodyChildren = group.children.filter(c =>
+    c.geometry instanceof THREE.CylinderGeometry &&
+    c.geometry.radialSegments !== 6
+  );
+  const bobTarget = bodyChildren.length > 0 ? bodyChildren[0] : group.children[2];
+  if (bobTarget) {
+    group.userData.animParts.push({ mesh: bobTarget, type: 'bob' });
+  }
+
+  // Particle emission flags for the animation system
+  group.userData.emitParticle = true;
+  group.userData.emitInterval = 2000;
+  group.userData.emitColor = td.clr;
 
   group.position.set(tower.x - hw + 0.5, 0.08, tower.y - hh + 0.5);
   scene.add(group);
@@ -200,16 +380,16 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
 
   switch (idx) {
     case 0: // Slap Shot
-      const jersey = new THREE.Mesh(new THREE.CylinderGeometry(0.15 * scale, 0.18 * scale, 0.35 * scale, 8), bodyMat);
+      const jersey = new THREE.Mesh(new THREE.CylinderGeometry(0.15 * scale, 0.18 * scale, 0.35 * scale, 16), bodyMat);
       jersey.position.y = 0.3 * scale;
       jersey.castShadow = true;
       group.add(jersey);
 
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 12, 12), whiteMat);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 24, 24), whiteMat);
       head.position.y = 0.55 * scale;
       group.add(head);
 
-      const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.11 * scale, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), bodyMat);
+      const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.11 * scale, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.6), bodyMat);
       helmet.position.y = 0.57 * scale;
       group.add(helmet);
 
@@ -244,12 +424,12 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       rifleBody.castShadow = true;
       group.add(rifleBody);
 
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025 * scale, 0.03 * scale, 0.5 * scale, 8), metalMat);
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025 * scale, 0.03 * scale, 0.5 * scale, 16), metalMat);
       barrel.position.set(0, 0.4 * scale, 0.4 * scale);
       barrel.rotation.x = Math.PI / 2;
       group.add(barrel);
 
-      const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.035 * scale, 0.035 * scale, 0.15 * scale, 8), darkMat);
+      const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.035 * scale, 0.035 * scale, 0.15 * scale, 16), darkMat);
       scope.position.set(0, 0.52 * scale, 0.1 * scale);
       scope.rotation.x = Math.PI / 2;
       group.add(scope);
@@ -258,7 +438,7 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       lens.position.set(0, 0.52 * scale, 0.18 * scale);
       group.add(lens);
 
-      const laser = new THREE.Mesh(new THREE.CylinderGeometry(0.005 * scale, 0.005 * scale, 0.8 * scale, 4), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.6 }));
+      const laser = new THREE.Mesh(new THREE.CylinderGeometry(0.005 * scale, 0.005 * scale, 0.8 * scale, 16), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.6 }));
       laser.position.set(0, 0.52 * scale, 0.55 * scale);
       laser.rotation.x = Math.PI / 2;
       group.add(laser);
@@ -266,7 +446,7 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       break;
 
     case 2: // Enforcer
-      const enfBody = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.4 * scale, 8), bodyMat);
+      const enfBody = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.4 * scale, 16), bodyMat);
       enfBody.position.y = 0.32 * scale;
       enfBody.castShadow = true;
       group.add(enfBody);
@@ -275,17 +455,17 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       shoulders.position.y = 0.52 * scale;
       group.add(shoulders);
 
-      const enfHead = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 10, 10), whiteMat);
+      const enfHead = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 24, 24), whiteMat);
       enfHead.position.y = 0.68 * scale;
       group.add(enfHead);
 
-      const gloveL = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 10, 10), new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.2, roughness: 0.8 }));
+      const gloveL = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 24, 24), new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.2, roughness: 0.8 }));
       gloveL.position.set(-0.35 * scale, 0.5 * scale, 0.1 * scale);
       gloveL.castShadow = true;
       group.add(gloveL);
       group.userData.animParts.push({ mesh: gloveL, type: 'punch', side: -1 });
 
-      const gloveR = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 10, 10), new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.2, roughness: 0.8 }));
+      const gloveR = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 24, 24), new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.2, roughness: 0.8 }));
       gloveR.position.set(0.35 * scale, 0.5 * scale, 0.1 * scale);
       gloveR.castShadow = true;
       group.add(gloveR);
@@ -314,7 +494,7 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       window1.rotation.y = Math.PI / 2;
       group.add(window1);
 
-      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.1 * scale, 0.35 * scale, 12), glowMat);
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.1 * scale, 0.35 * scale, 16), glowMat);
       tank.position.set(0, 0.3 * scale, 0.15 * scale);
       tank.rotation.x = Math.PI / 2;
       group.add(tank);
@@ -354,17 +534,17 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       blocker.position.set(-0.28 * scale, 0.5 * scale, 0.12 * scale);
       group.add(blocker);
 
-      const glove = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 10, 10), bodyMat);
+      const glove = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 24, 24), bodyMat);
       glove.position.set(0.28 * scale, 0.55 * scale, 0.12 * scale);
       glove.scale.set(1, 1, 0.6);
       group.add(glove);
 
-      const mask = new THREE.Mesh(new THREE.SphereGeometry(0.11 * scale, 12, 12), whiteMat);
+      const mask = new THREE.Mesh(new THREE.SphereGeometry(0.11 * scale, 24, 24), whiteMat);
       mask.position.y = 0.78 * scale;
       group.add(mask);
 
       for (let i = 0; i < 5; i++) {
-        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.008 * scale, 0.008 * scale, 0.13 * scale, 4), metalMat);
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.008 * scale, 0.008 * scale, 0.13 * scale, 16), metalMat);
         bar.position.set((i - 2) * 0.025 * scale, 0.76 * scale, 0.1 * scale);
         bar.rotation.x = Math.PI / 2;
         group.add(bar);
@@ -372,12 +552,12 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       break;
 
     case 5: // Power Play
-      const coilBase = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.2 * scale, 12), metalMat);
+      const coilBase = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.2 * scale, 16), metalMat);
       coilBase.position.y = 0.2 * scale;
       coilBase.castShadow = true;
       group.add(coilBase);
 
-      const coilTower = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.15 * scale, 0.5 * scale, 12), bodyMat);
+      const coilTower = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.15 * scale, 0.5 * scale, 16), bodyMat);
       coilTower.position.y = 0.5 * scale;
       group.add(coilTower);
 
@@ -389,25 +569,25 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
         group.userData.animParts.push({ mesh: ring, type: 'spin', speed: 1 + i * 0.5 });
       }
 
-      const electrode = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 16, 16), glowMat);
+      const electrode = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 24, 24), glowMat);
       electrode.position.y = 0.85 * scale;
       group.add(electrode);
       group.userData.animParts.push({ mesh: electrode, type: 'pulse' });
 
       for (let i = 0; i < 4; i++) {
-        const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.015 * scale, 0.015 * scale, 0.2 * scale, 4), metalMat);
+        const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.015 * scale, 0.015 * scale, 0.2 * scale, 16), metalMat);
         const angle = (i / 4) * Math.PI * 2;
         rod.position.set(Math.cos(angle) * 0.18 * scale, 0.35 * scale, Math.sin(angle) * 0.18 * scale);
         group.add(rod);
 
-        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.025 * scale, 8, 8), glowMat);
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.025 * scale, 24, 24), glowMat);
         tip.position.set(Math.cos(angle) * 0.18 * scale, 0.46 * scale, Math.sin(angle) * 0.18 * scale);
         group.add(tip);
       }
       break;
 
     case 6: // Hot Stick
-      const furnace = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.22 * scale, 0.3 * scale, 10), darkMat);
+      const furnace = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.22 * scale, 0.3 * scale, 16), darkMat);
       furnace.position.y = 0.25 * scale;
       furnace.castShadow = true;
       group.add(furnace);
@@ -418,7 +598,7 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
         group.add(vent);
       }
 
-      const nozzle2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06 * scale, 0.1 * scale, 0.15 * scale, 8), metalMat);
+      const nozzle2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06 * scale, 0.1 * scale, 0.15 * scale, 16), metalMat);
       nozzle2.position.y = 0.48 * scale;
       group.add(nozzle2);
 
@@ -445,11 +625,11 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       pedestal.castShadow = true;
       group.add(pedestal);
 
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06 * scale, 0.1 * scale, 0.25 * scale, 8), goldMat);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06 * scale, 0.1 * scale, 0.25 * scale, 16), goldMat);
       stem.position.y = 0.4 * scale;
       group.add(stem);
 
-      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.1 * scale, 0.25 * scale, 12), goldMat);
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.1 * scale, 0.25 * scale, 16), goldMat);
       cup.position.y = 0.65 * scale;
       cup.castShadow = true;
       group.add(cup);
@@ -461,7 +641,7 @@ function buildHockeyTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
         group.add(handle);
       }
 
-      const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.1 * scale, 0.06 * scale, 8), goldMat);
+      const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.1 * scale, 0.06 * scale, 16), goldMat);
       crownBase.position.y = 0.82 * scale;
       group.add(crownBase);
 
@@ -493,21 +673,21 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
 
   switch (idx) {
     case 0: // Striker
-      const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * scale, 0.05 * scale, 0.3 * scale, 8), whiteMat);
+      const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * scale, 0.05 * scale, 0.3 * scale, 16), whiteMat);
       legL.position.set(-0.08 * scale, 0.25 * scale, 0);
       group.add(legL);
 
-      const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * scale, 0.05 * scale, 0.3 * scale, 8), whiteMat);
+      const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * scale, 0.05 * scale, 0.3 * scale, 16), whiteMat);
       legR.position.set(0.08 * scale, 0.25 * scale, 0.1 * scale);
       legR.rotation.x = -0.5;
       group.add(legR);
 
-      const strikerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.14 * scale, 0.3 * scale, 8), bodyMat);
+      const strikerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.14 * scale, 0.3 * scale, 16), bodyMat);
       strikerBody.position.y = 0.5 * scale;
       strikerBody.castShadow = true;
       group.add(strikerBody);
 
-      const strikerHead = new THREE.Mesh(new THREE.SphereGeometry(0.08 * scale, 12, 12), whiteMat);
+      const strikerHead = new THREE.Mesh(new THREE.SphereGeometry(0.08 * scale, 24, 24), whiteMat);
       strikerHead.position.y = 0.72 * scale;
       group.add(strikerHead);
 
@@ -515,7 +695,7 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       boot.position.set(0.08 * scale, 0.12 * scale, 0.2 * scale);
       group.add(boot);
 
-      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.07 * scale, 16, 16), whiteMat);
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.07 * scale, 24, 24), whiteMat);
       ball.position.set(0.1 * scale, 0.15 * scale, 0.35 * scale);
       group.add(ball);
       group.userData.animParts.push({ mesh: ball, type: 'pulse' });
@@ -534,12 +714,12 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       break;
 
     case 1: // Free Kick
-      const teeBase = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.12 * scale, 12), darkMat);
+      const teeBase = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.12 * scale, 16), darkMat);
       teeBase.position.y = 0.16 * scale;
       teeBase.castShadow = true;
       group.add(teeBase);
 
-      const fkBall = new THREE.Mesh(new THREE.SphereGeometry(0.12 * scale, 20, 20), whiteMat);
+      const fkBall = new THREE.Mesh(new THREE.SphereGeometry(0.12 * scale, 24, 24), whiteMat);
       fkBall.position.y = 0.35 * scale;
       fkBall.castShadow = true;
       group.add(fkBall);
@@ -558,7 +738,7 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       targetArm.position.set(0, 0.55 * scale, 0.2 * scale);
       group.add(targetArm);
 
-      const laserSight = new THREE.Mesh(new THREE.CylinderGeometry(0.008 * scale, 0.008 * scale, 0.6 * scale, 4), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.5 }));
+      const laserSight = new THREE.Mesh(new THREE.CylinderGeometry(0.008 * scale, 0.008 * scale, 0.6 * scale, 16), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.5 }));
       laserSight.position.set(0, 0.55 * scale, 0.7 * scale);
       laserSight.rotation.x = Math.PI / 2;
       group.add(laserSight);
@@ -572,13 +752,13 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       break;
 
     case 2: // Header
-      const headerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.14 * scale, 0.35 * scale, 8), bodyMat);
+      const headerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.14 * scale, 0.35 * scale, 16), bodyMat);
       headerBody.position.set(0, 0.45 * scale, 0.1 * scale);
       headerBody.rotation.x = 0.8;
       headerBody.castShadow = true;
       group.add(headerBody);
 
-      const headerHead = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 12, 12), whiteMat);
+      const headerHead = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 24, 24), whiteMat);
       headerHead.position.set(0, 0.55 * scale, 0.35 * scale);
       headerHead.castShadow = true;
       group.add(headerHead);
@@ -603,18 +783,18 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
 
     case 3: // Tackle
       for (let i = 0; i < 5; i++) {
-        const dust = new THREE.Mesh(new THREE.SphereGeometry((0.06 - i * 0.01) * scale, 8, 8), new THREE.MeshBasicMaterial({ color: 0x8b7355, transparent: true, opacity: 0.4 - i * 0.07 }));
+        const dust = new THREE.Mesh(new THREE.SphereGeometry((0.06 - i * 0.01) * scale, 24, 24), new THREE.MeshBasicMaterial({ color: 0x8b7355, transparent: true, opacity: 0.4 - i * 0.07 }));
         dust.position.set(-0.15 * scale + i * 0.08 * scale, 0.12 * scale, (Math.random() - 0.5) * 0.1 * scale);
         group.add(dust);
       }
 
-      const slideBody = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.12 * scale, 0.3 * scale, 8), bodyMat);
+      const slideBody = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.12 * scale, 0.3 * scale, 16), bodyMat);
       slideBody.position.set(-0.05 * scale, 0.22 * scale, 0);
       slideBody.rotation.z = Math.PI / 2;
       slideBody.castShadow = true;
       group.add(slideBody);
 
-      const extLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * scale, 0.05 * scale, 0.35 * scale, 8), whiteMat);
+      const extLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * scale, 0.05 * scale, 0.35 * scale, 16), whiteMat);
       extLeg.position.set(0.2 * scale, 0.18 * scale, 0);
       extLeg.rotation.z = Math.PI / 2;
       group.add(extLeg);
@@ -631,20 +811,20 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       break;
 
     case 4: // Keeper
-      const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.03 * scale, 0.6 * scale, 8), whiteMat);
+      const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.03 * scale, 0.6 * scale, 16), whiteMat);
       postL.position.set(-0.25 * scale, 0.4 * scale, 0);
       group.add(postL);
 
-      const postR = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.03 * scale, 0.6 * scale, 8), whiteMat);
+      const postR = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.03 * scale, 0.6 * scale, 16), whiteMat);
       postR.position.set(0.25 * scale, 0.4 * scale, 0);
       group.add(postR);
 
-      const crossbar = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.03 * scale, 0.5 * scale, 8), whiteMat);
+      const crossbar = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.03 * scale, 0.5 * scale, 16), whiteMat);
       crossbar.position.y = 0.7 * scale;
       crossbar.rotation.z = Math.PI / 2;
       group.add(crossbar);
 
-      const keeperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.12 * scale, 0.3 * scale, 8), bodyMat);
+      const keeperBody = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.12 * scale, 0.3 * scale, 16), bodyMat);
       keeperBody.position.set(0.1 * scale, 0.45 * scale, 0.1 * scale);
       keeperBody.rotation.z = -0.6;
       keeperBody.castShadow = true;
@@ -661,12 +841,12 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       break;
 
     case 5: // Playmaker
-      const platform = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.15 * scale, 12), darkMat);
+      const platform = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.25 * scale, 0.15 * scale, 16), darkMat);
       platform.position.y = 0.18 * scale;
       platform.castShadow = true;
       group.add(platform);
 
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.1 * scale, 0.1 * scale, 12), metalMat);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * scale, 0.1 * scale, 0.1 * scale, 16), metalMat);
       hub.position.y = 0.32 * scale;
       group.add(hub);
       group.userData.animParts.push({ mesh: hub, type: 'spin', speed: 1 });
@@ -679,7 +859,7 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       }
 
       for (let i = 0; i < 3; i++) {
-        const orbitBall = new THREE.Mesh(new THREE.SphereGeometry(0.06 * scale, 12, 12), whiteMat);
+        const orbitBall = new THREE.Mesh(new THREE.SphereGeometry(0.06 * scale, 24, 24), whiteMat);
         const angle = (i / 3) * Math.PI * 2;
         orbitBall.position.set(Math.cos(angle) * 0.25 * scale, 0.45 * scale, Math.sin(angle) * 0.25 * scale);
         group.add(orbitBall);
@@ -705,13 +885,13 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       break;
 
     case 6: // Flare
-      const launcherBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.22 * scale, 0.2 * scale, 10), darkMat);
+      const launcherBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.22 * scale, 0.2 * scale, 16), darkMat);
       launcherBase.position.y = 0.2 * scale;
       launcherBase.castShadow = true;
       group.add(launcherBase);
 
       for (let i = 0; i < 3; i++) {
-        const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * scale, 0.06 * scale, 0.25 * scale, 8), metalMat);
+        const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * scale, 0.06 * scale, 0.25 * scale, 16), metalMat);
         tube.position.set((i - 1) * 0.1 * scale, 0.42 * scale, 0);
         tube.rotation.x = -0.2;
         group.add(tube);
@@ -730,7 +910,7 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       }
 
       for (let i = 0; i < 4; i++) {
-        const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.04 * scale, 6, 6), new THREE.MeshBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.3 }));
+        const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.04 * scale, 24, 24), new THREE.MeshBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.3 }));
         smoke.position.set((Math.random() - 0.5) * 0.2 * scale, 0.9 * scale + i * 0.08 * scale, (Math.random() - 0.5) * 0.1 * scale);
         group.add(smoke);
         group.userData.animParts.push({ mesh: smoke, type: 'float', offset: i });
@@ -747,16 +927,16 @@ function buildSoccerTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dar
       plaque.position.set(0, 0.18 * scale, 0.2 * scale);
       group.add(plaque);
 
-      const figBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.15 * scale, 0.08 * scale, 12), goldMat);
+      const figBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.15 * scale, 0.08 * scale, 16), goldMat);
       figBase.position.y = 0.27 * scale;
       group.add(figBase);
 
-      const figBody = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.1 * scale, 0.3 * scale, 8), goldMat);
+      const figBody = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.1 * scale, 0.3 * scale, 16), goldMat);
       figBody.position.y = 0.48 * scale;
       figBody.castShadow = true;
       group.add(figBody);
 
-      const figHead = new THREE.Mesh(new THREE.SphereGeometry(0.07 * scale, 12, 12), goldMat);
+      const figHead = new THREE.Mesh(new THREE.SphereGeometry(0.07 * scale, 24, 24), goldMat);
       figHead.position.y = 0.7 * scale;
       group.add(figHead);
 
@@ -832,7 +1012,7 @@ function buildSpaceTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dark
   });
 
   const makeEmitter = (height = 0.62) => {
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.13 * scale, height * scale, 10), metalMat);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.13 * scale, height * scale, 16), metalMat);
     mast.position.y = (0.22 + height / 2) * scale;
     mast.castShadow = true;
     group.add(mast);
@@ -855,10 +1035,10 @@ function buildSpaceTowerMesh(group, idx, scale, bodyMat, glowMat, metalMat, dark
     group.userData.animParts.push({ mesh: lens, type: 'blink' });
   } else if (projectileType === 'curveBall' || projectileType === 'flare') {
     // Plasma cannon
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * scale, 0.28 * scale, 0.28 * scale, 12), bodyMat);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * scale, 0.28 * scale, 0.28 * scale, 16), bodyMat);
     base.position.y = 0.28 * scale;
     group.add(base);
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.09 * scale, 0.13 * scale, 0.55 * scale, 14), metalMat);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.09 * scale, 0.13 * scale, 0.55 * scale, 16), metalMat);
     barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0, 0.47 * scale, 0.28 * scale);
     group.add(barrel);

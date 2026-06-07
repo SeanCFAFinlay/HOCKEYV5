@@ -1,6 +1,7 @@
 :root {
   --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom);
+  --bottom-ui-clearance: 176px;
 
   /* Core palette */
   --ice: #00d4ff;
@@ -44,4 +45,12 @@
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
   --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.7);
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
 }

@@ -1,96 +1,134 @@
 .upgrade-sheet {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(160deg, rgba(14,16,28,0.99), rgba(8,10,18,0.99));
-  border-top: 2px solid rgba(255,215,0,0.4);
-  padding: 20px;
-  padding-bottom: calc(20px + var(--safe-bottom));
+  bottom: calc(var(--bottom-ui-clearance, 176px) + 12px);
+  left: max(12px, env(safe-area-inset-left));
+  width: min(320px, calc(100vw - 24px));
+  background: linear-gradient(160deg, rgba(14, 16, 28, 0.94), rgba(8, 10, 18, 0.96));
+  border: 1px solid rgba(255, 215, 0, 0.22);
+  border-left: 2px solid rgba(255, 215, 0, 0.5);
+  padding: 12px;
   z-index: 200;
-  transform: translateY(100%);
-  transition: transform var(--t-slow);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-radius: 26px 26px 0 0;
-  max-height: 85vh;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-10px, 12px, 0) scale(0.98);
+  transition: opacity var(--t-mid), transform var(--t-mid);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border-radius: var(--r-md);
+  max-height: min(34vh, 310px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.6), 0 -1px 0 rgba(255,215,0,0.08);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  will-change: opacity, transform;
 }
 
 .upgrade-sheet.show {
-  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
 }
 
 .upgrade-handle {
-  width: 44px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-  margin: 0 auto 18px;
-  cursor: grab;
+  display: none;
 }
 
 .upgrade-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 32px;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 10px;
   background: rgba(255, 255, 255, 0.04);
-  padding: 14px;
-  border-radius: var(--r-md);
-  border: 1.5px solid rgba(255,255,255,0.08);
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .upgrade-icon {
-  font-size: 2.4rem;
+  font-size: 1.65rem;
   filter: drop-shadow(0 2px 12px rgba(0, 212, 255, 0.4));
 }
 
+.upgrade-info {
+  min-width: 0;
+}
+
 .upgrade-info h3 {
-  font-size: 1.3rem;
+  font-size: 1rem;
   font-weight: 700;
   font-family: var(--font-game);
-  letter-spacing: 0.5px;
-  margin: 0 0 4px 0;
+  letter-spacing: 0;
+  margin: 0 0 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .upgrade-info p {
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   color: rgba(255, 255, 255, 0.45);
-  margin: 0 0 4px 0;
+  margin: 0 0 3px 0;
 }
 
 .upgrade-role {
   display: inline-block;
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   color: var(--gold);
   background: rgba(255, 215, 0, 0.12);
   border: 1px solid rgba(255,215,0,0.2);
-  padding: 2px 9px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.4px;
   font-weight: 700;
   font-family: var(--font-game);
 }
 
+.upgrade-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), transform var(--t-fast);
+}
+
+.upgrade-close:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fff;
+}
+
+.upgrade-close:active {
+  transform: scale(0.94);
+}
+
 .upgrade-stats {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 9px;
 }
 
 .upgrade-stat {
-  flex: 1;
   background: rgba(255, 255, 255, 0.06);
-  padding: 14px 10px;
-  border-radius: var(--r-md);
+  padding: 8px 6px;
+  border-radius: var(--r-sm);
   text-align: center;
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+
+/* Highlight stat cards that will improve with next upgrade */
+.upgrade-stat.improving {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.06);
 }
 
 .upgrade-stat::before {
@@ -105,46 +143,194 @@
 }
 
 .upgrade-stat-label {
-  font-size: 0.65rem;
+  font-size: 0.56rem;
   color: rgba(255, 255, 255, 0.45);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   font-weight: 700;
   font-family: var(--font-game);
-  letter-spacing: 1px;
+  letter-spacing: 0.7px;
   text-transform: uppercase;
 }
 
 .upgrade-stat-value {
-  font-size: 1.2rem;
+  font-size: 0.95rem;
   font-weight: 700;
   font-family: var(--font-game);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .upgrade-stat-next {
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   color: var(--grass);
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-game);
-  text-shadow: 0 0 8px var(--grass-glow);
+  text-shadow: 0 0 10px var(--grass-glow);
+  letter-spacing: 0.3px;
+}
+
+/* ── Upgrade Path ─────────────────────────────────────────────────────────── */
+
+.upgrade-path {
+  display: none;
+  align-items: center;
+  gap: 0;
+  padding: 8px 2px 14px;
+}
+
+.upgrade-node {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-direction: column;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.upgrade-node.current {
+  border-color: var(--c, #00d4ff);
+  background: var(--c, #00d4ff);
+  color: #000;
+  box-shadow: 0 0 10px var(--c, #00d4ff);
+}
+
+.upgrade-node.completed {
+  border-color: var(--c, #00d4ff);
+  background: rgba(0, 212, 255, 0.25);
+  opacity: 0.75;
+}
+
+.upgrade-node-label {
+  font-size: 7px;
+  font-weight: 700;
+  font-family: var(--font-game);
+  line-height: 1;
+  position: absolute;
+  bottom: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.upgrade-node.current .upgrade-node-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.upgrade-node-max {
+  font-size: 6px;
+  font-weight: 700;
+  font-family: var(--font-game);
+  letter-spacing: 0.5px;
+  color: var(--gold, #ffd700);
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.upgrade-connector {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  min-width: 8px;
+}
+
+.upgrade-connector.filled {
+  background: var(--c, #00d4ff);
+  box-shadow: 0 0 4px var(--c, #00d4ff);
+}
+
+/* ── Target Priority ─────────────────────────────────────────────────────── */
+
+.target-priority {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+
+.target-priority-label {
+  font-family: var(--font-game);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.52);
+  white-space: nowrap;
+}
+
+.target-priority-label span {
+  color: var(--gold);
+  text-shadow: 0 0 8px var(--gold-glow);
+}
+
+.priority-controls {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.priority-btn {
+  min-height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-game);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), transform var(--t-fast);
+}
+
+.priority-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.priority-btn:active {
+  transform: scale(0.96);
+}
+
+.priority-btn.active {
+  background: rgba(255, 215, 0, 0.16);
+  border-color: rgba(255, 215, 0, 0.48);
+  color: var(--gold);
+  box-shadow: inset 0 0 14px rgba(255, 215, 0, 0.08);
+}
+
+/* ── MAX Level State ─────────────────────────────────────────────────────── */
+
+.upgrade-sheet.max-level {
+  border-color: rgba(255, 215, 0, 0.38);
+  border-left-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), 0 0 24px rgba(255, 215, 0, 0.14);
 }
 
 .upgrade-btns {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .upgrade-btn {
   flex: 1;
-  padding: 18px 16px;
+  padding: 10px 8px;
   border: none;
-  border-radius: var(--r-md);
-  font-size: 1.1rem;
+  border-radius: var(--r-sm);
+  font-size: 0.86rem;
   font-weight: 700;
   font-family: var(--font-game);
   letter-spacing: 0.5px;
   cursor: pointer;
-  min-height: 60px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,25 +347,57 @@
 }
 
 .upgrade-btn.sell {
-  background: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.2);
   color: var(--red);
-  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  font-size: 0.82rem;
+}
+
+.upgrade-btn.sell:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.32);
+  border-color: rgba(239, 68, 68, 0.7);
+  box-shadow: 0 0 14px var(--red-glow);
 }
 
 .upgrade-btn.sell:active:not(:disabled) {
-  background: rgba(239, 68, 68, 0.35);
-  box-shadow: 0 0 16px var(--red-glow);
+  background: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 20px var(--red-glow);
 }
 
 .upgrade-btn.do-upgrade {
   background: linear-gradient(135deg, var(--gold), var(--gold-dim));
   color: #000;
-  border: 1.5px solid rgba(255, 215, 0, 0.5);
+  border: 1px solid rgba(255, 215, 0, 0.5);
   box-shadow: 0 4px 16px var(--gold-glow);
+  overflow: hidden;
+}
+
+/* Shine sweep animation for affordable upgrade button */
+.upgrade-btn.do-upgrade.available::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+  animation: upgradeShineSweep 2.4s ease-in-out 0.6s infinite;
+  pointer-events: none;
+}
+
+@keyframes upgradeShineSweep {
+  0%   { left: -60%; }
+  50%  { left: 120%; }
+  100% { left: 120%; }
 }
 
 .upgrade-btn.do-upgrade.available {
-  box-shadow: 0 0 22px var(--gold-glow), inset 0 0 0 1px rgba(255,255,255,0.18);
+  box-shadow: 0 0 28px var(--gold-glow), inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+
+.upgrade-btn.do-upgrade:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 24px rgba(255, 215, 0, 0.55);
 }
 
 .upgrade-btn.do-upgrade:active:not(:disabled) {
@@ -191,7 +409,7 @@
   background: rgba(80, 80, 80, 0.2);
   color: rgba(255, 255, 255, 0.25);
   cursor: not-allowed;
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transform: none;
   box-shadow: none;
 }
@@ -201,17 +419,57 @@
 }
 
 /* Mobile optimization */
-@media (max-width: 480px) {
+@media (max-width: 640px) {
+  .upgrade-sheet {
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--bottom-ui-clearance, 176px) + 8px);
+    width: auto;
+    max-height: min(32vh, 280px);
+    padding: 10px;
+  }
+
+  .target-priority {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+
+  .priority-controls {
+    grid-template-columns: repeat(5, minmax(46px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .priority-controls::-webkit-scrollbar {
+    display: none;
+  }
+
   .upgrade-btn {
-    min-height: 64px;
-    font-size: 1.15rem;
+    min-height: 42px;
+    font-size: 0.86rem;
   }
 
   .upgrade-icon {
-    font-size: 2.6rem;
+    font-size: 1.55rem;
   }
 
   .upgrade-stat {
-    padding: 16px 12px;
+    padding: 7px 5px;
+  }
+}
+
+@media (max-height: 560px) {
+  .upgrade-sheet {
+    width: min(320px, calc(100vw - 24px));
+    max-height: calc(100vh - var(--bottom-ui-clearance, 112px) - var(--safe-top) - 16px);
+  }
+
+  .upgrade-header {
+    margin-bottom: 7px;
+    padding: 8px;
+  }
+
+  .upgrade-path {
+    display: none;
   }
 }

@@ -314,18 +314,20 @@ button, .tower-btn, .menu-card, .map-card {
   }
 
   .upgrade-sheet {
-    max-width: 500px;
-    left: 50%;
-    transform: translateX(-50%) translateY(100%);
+    width: min(320px, calc(100vw - 24px));
   }
 
   .upgrade-sheet.show {
-    transform: translateX(-50%) translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 /* Landscape on phones */
 @media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --bottom-ui-clearance: 112px;
+  }
+
   .hud {
     padding: 6px 12px;
   }
@@ -397,7 +399,8 @@ button, .tower-btn, .menu-card, .map-card {
   
   /* Reduce upgrade sheet height in landscape */
   .upgrade-sheet {
-    max-height: 50vh;
+    width: min(320px, calc(100vw - 24px));
+    max-height: calc(100vh - var(--bottom-ui-clearance, 112px) - var(--safe-top) - 16px);
     overflow-y: auto;
   }
 }
@@ -431,13 +434,13 @@ button, .tower-btn, .menu-card, .map-card {
   animation: pulse-glow 1.5s ease-in-out infinite;
 }
 
-@keyframes slide-up {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+@keyframes sheet-fade-in {
+  from { opacity: 0.92; }
+  to { opacity: 1; }
 }
 
 .upgrade-sheet.show {
-  animation: slide-up 0.25s ease-out forwards;
+  animation: sheet-fade-in 0.2s ease-out;
 }
 
 @keyframes fade-in {

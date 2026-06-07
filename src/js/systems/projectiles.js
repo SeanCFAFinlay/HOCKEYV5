@@ -3,6 +3,7 @@
 import { getState, removeProjectile } from '../engine/state.js';
 import { handleHit } from './damage.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
+import { attachTrail, removeTrail } from '../rendering/trails.js';
 
 // Trail particle pool for reuse
 const trailPool = [];
@@ -268,17 +269,17 @@ export function createProjectile(tw, target, sx, sz) {
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
-  mesh.scale.multiplyScalar(1.4);
+  mesh.scale.multiplyScalar(1.7);
 
   // Enhanced glow effect with multiple layers
   const glowCol = trailColor || (mat && mat.color) || new THREE.Color(c);
 
   // Inner glow
-  const innerGlowGeo = new THREE.SphereGeometry(0.1, 12, 12);
+  const innerGlowGeo = new THREE.SphereGeometry(0.12, 12, 12);
   const innerGlowMat = new THREE.MeshBasicMaterial({
     color: glowCol,
     transparent: true,
-    opacity: 0.5,
+    opacity: 0.65,
     blending: THREE.AdditiveBlending,
     depthWrite: false
   });
@@ -287,11 +288,11 @@ export function createProjectile(tw, target, sx, sz) {
   mesh.add(innerGlow);
 
   // Outer glow
-  const outerGlowGeo = new THREE.SphereGeometry(0.18, 10, 10);
+  const outerGlowGeo = new THREE.SphereGeometry(0.24, 10, 10);
   const outerGlowMat = new THREE.MeshBasicMaterial({
     color: glowCol,
     transparent: true,
-    opacity: 0.25,
+    opacity: 0.32,
     blending: THREE.AdditiveBlending,
     depthWrite: false
   });
@@ -307,7 +308,7 @@ export function createProjectile(tw, target, sx, sz) {
     tw.firingFlash = 1.0;
   }
 
-  return {
+  const projectile = {
     mesh,
     tower: tw,
     target,
@@ -330,6 +331,13 @@ export function createProjectile(tw, target, sx, sz) {
     trail: [],
     trailTimer: 0
   };
+
+  // SC-3.3: Attach ribbon trail
+  if (trailColor != null) {
+    attachTrail(projectile, trailColor);
+  }
+
+  return projectile;
 }
 
 function createProfileProjectile(profile, fallbackColor) {
@@ -398,6 +406,8 @@ export function updateProjectiles(dt) {
       if (p.trail) {
         p.trail.forEach(t => returnTrailParticle(t, scene));
       }
+      // SC-3.3: Begin ribbon trail fade
+      removeTrail(p);
       projectiles.splice(i, 1);
     } else {
       // Spawn trail particles

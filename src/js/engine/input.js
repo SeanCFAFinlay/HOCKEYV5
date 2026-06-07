@@ -3,7 +3,7 @@
 
 import { getState, setDragging, setDragMoved, setLastPosition, setTouchStart } from './state.js';
 import { rotateCamera, zoomIn, zoomOut, setCameraZoom } from './camera.js';
-import { handleCellTap } from '../systems/towers.js';
+import { handleCellTap, wouldBlockPath } from '../systems/towers.js';
 import { onResize } from './scene.js';
 import { showUpgrade } from '../ui/upgrade-sheet.js';
 
@@ -37,6 +37,14 @@ let lastTouchCell = null;
 let previewGroup = null;
 let previewCell = null;
 let previewAnimTime = 0;
+
+// Block-prevention state
+let previewIsBlocking = false;
+let shakeActive = false;
+let shakeElapsed = 0;
+const SHAKE_DURATION = 0.2;
+const SHAKE_FREQ = 20;
+const SHAKE_AMPLITUDE = 0.05;
 
 // Preview materials (cached)
 let previewMaterials = {
@@ -112,6 +120,9 @@ const TAP_THRESHOLD_MS = 200;
 // Debounce resize to prevent layout thrashing
 let resizeTimeout = null;
 const RESIZE_DEBOUNCE_MS = 150;
+let globalHandlersAttached = false;
+let keyboardShortcutsAttached = false;
+const attachedCanvases = new WeakSet();
 
 function debouncedResize() {
   if (resizeTimeout) {
@@ -127,20 +138,7 @@ function debouncedResize() {
  * Set up all input handlers
  */
 export function setupInputHandlers() {
-  // Set up window resize handler immediately
-  window.addEventListener('resize', debouncedResize);
-
-  // Set up keyboard shortcuts
-  setupKeyboardShortcuts();
-
-  // Check for canvas periodically
-  const checkCanvas = () => {
-    const wrap = document.querySelector('.canvas-wrap');
-    const canvas = wrap?.querySelector('canvas');
-    if (canvas) {
-      attachHandlers(canvas);
-    }
-  };
+  if (globalHandlersAttached) return;
 
   // Set up window resize handler immediately
   window.addEventListener('resize', debouncedResize);
@@ -148,14 +146,16 @@ export function setupInputHandlers() {
   // Set up keyboard shortcuts
   setupKeyboardShortcuts();
 
-  // Check for canvas periodically
-  checkCanvas();
+  globalHandlersAttached = true;
 }
 
 /**
  * Set up keyboard shortcuts for common actions
  */
 function setupKeyboardShortcuts() {
+  if (keyboardShortcutsAttached) return;
+  keyboardShortcutsAttached = true;
+
   document.addEventListener('keydown', (e) => {
     // Ignore if typing in input field
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -260,6 +260,8 @@ function setupKeyboardShortcuts() {
  */
 export function attachHandlers(canvas) {
   if (!canvas) return;
+  if (attachedCanvases.has(canvas)) return;
+  attachedCanvases.add(canvas);
 
   // Touch events (mobile) - need preventDefault for game control
   canvas.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -276,8 +278,6 @@ export function attachHandlers(canvas) {
   // Wheel needs preventDefault for zoom control
   canvas.addEventListener('wheel', onWheel, { passive: false });
 
-  // Click for tap handling
-  canvas.addEventListener('click', onClick);
 }
 
 /**
@@ -637,11 +637,16 @@ function showPreview(x, y, showInvalid = false) {
   if (!validCell && !showInvalid) return;
 
   const affordable = money >= td.cost;
-  const validPlacement = affordable && validCell;
+  const blocking = validCell ? wouldBlockPath(x, y) : false;
+  const validPlacement = affordable && validCell && !blocking;
   const hw = COLS / 2;
   const hh = ROWS / 2;
   const worldX = x - hw + 0.5;
   const worldZ = y - hh + 0.5;
+
+  // Track blocking state to trigger shake only when first entering a blocking cell
+  const wasBlocking = previewIsBlocking;
+  previewIsBlocking = blocking;
 
   // Remove old preview
   hidePreview();
@@ -692,9 +697,10 @@ function showPreview(x, y, showInvalid = false) {
   previewGroup.userData.rangeMesh = rangeMesh;
 
   // Range indicator - inner fill (very subtle)
+  const rangeFillColor = validPlacement ? 0x22c55e : 0xef4444;
   const rangeFillGeo = new THREE.CircleGeometry(td.rng[0] - 0.08, 64);
   const rangeFillMat = new THREE.MeshBasicMaterial({
-    color: validPlacement ? 0x22c55e : 0xef4444,
+    color: rangeFillColor,
     transparent: true,
     opacity: 0.05,
     side: THREE.DoubleSide
@@ -716,9 +722,44 @@ function showPreview(x, y, showInvalid = false) {
   previewGroup.add(iconMesh);
   previewGroup.userData.iconMesh = iconMesh;
 
+  // X indicator — shown only when placement would block the path
+  if (blocking) {
+    addXIndicator(previewGroup);
+    if (!wasBlocking) {
+      shakeActive = true;
+      shakeElapsed = 0;
+    }
+  } else {
+    shakeActive = false;
+    shakeElapsed = 0;
+  }
+
   scene.add(previewGroup);
   previewCell = { x, y };
   previewAnimTime = 0;
+}
+
+/**
+ * Create and add two crossed box meshes forming an X above the preview
+ * @param {THREE.Group} group
+ */
+function addXIndicator(group) {
+  const xMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9 });
+
+  const barGeo1 = new THREE.BoxGeometry(0.55, 0.06, 0.06);
+  const bar1 = new THREE.Mesh(barGeo1, xMat);
+  bar1.position.y = 0.55;
+  bar1.rotation.y = Math.PI / 4;
+
+  const barGeo2 = new THREE.BoxGeometry(0.55, 0.06, 0.06);
+  const bar2 = new THREE.Mesh(barGeo2, xMat);
+  bar2.position.y = 0.55;
+  bar2.rotation.y = -Math.PI / 4;
+
+  group.add(bar1);
+  group.add(bar2);
+  group.userData.xBar1 = bar1;
+  group.userData.xBar2 = bar2;
 }
 
 /**
@@ -785,6 +826,24 @@ export function updatePreviewAnimation(dt) {
   if (previewGroup.userData.rangeMesh) {
     previewGroup.userData.rangeMesh.material.opacity = 0.12 + Math.sin(t * 2) * 0.05;
   }
+
+  // Shake animation — oscillate X for blocking cells (frame-rate-based, no setTimeout)
+  if (shakeActive) {
+    shakeElapsed += dt;
+    if (shakeElapsed < SHAKE_DURATION) {
+      const offset = Math.sin(shakeElapsed * SHAKE_FREQ * Math.PI * 2) * SHAKE_AMPLITUDE;
+      const { COLS } = getState();
+      const hw = COLS / 2;
+      const baseX = previewCell ? previewCell.x - hw + 0.5 : 0;
+      previewGroup.position.x = baseX + offset;
+    } else {
+      shakeActive = false;
+      if (previewCell) {
+        const { COLS } = getState();
+        previewGroup.position.x = previewCell.x - COLS / 2 + 0.5;
+      }
+    }
+  }
 }
 
 /**
@@ -795,4 +854,11 @@ export function resetInputState() {
   inputState = InputState.IDLE;
   lastTouchCell = null;
   hidePreview();
+}
+
+/**
+ * Test hook — exposes showPreview for unit testing
+ */
+export function showPreviewForTest(x, y) {
+  showPreview(x, y, true);
 }

@@ -7,12 +7,137 @@ import { attachHandlers } from './input.js';
 import { addObstacleVisuals } from '../rendering/obstacles.js';
 import { addSpawnAndPenVisuals } from '../rendering/markers.js';
 import { buildCells, buildLights, addPerimeterDecor } from '../rendering/environment.js';
-import { getQualityTier, applyRendererQuality } from '../rendering/quality.js';
+import { getQualityTier, getQualityName, applyRendererQuality } from '../rendering/quality.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
+import { createPathPreview } from '../rendering/path-preview.js';
+import { initPostProcessing, resizePostProcessing, setPostProcessingQuality } from './postprocessing.js';
+import { setSceneEnvMap } from '../rendering/tower-meshes.js';
+import { on, GameEvents } from './events.js';
+import { initTrails, cleanupTrails } from '../rendering/trails.js';
 
 // Store ambient particles for animation
 let ambientParticles = null;
 let ambientTime = 0;
+
+// Store spotlights for animation updates
+let sceneSpotlights = [];
+let spotBaseIntensities = [];
+
+// SC-2.6: Placement grid mesh (module-level for visibility toggling)
+let placementGrid = null;
+
+// SC-2.6: Cached ice scratch normal map canvas texture (generated once)
+let _iceScratchNormalMap = null;
+
+// Cached floor textures — survive game restarts, cleared on theme change
+let _iceTexture = null;
+let _grassTexture = null;
+let _lastIceThemeKey = null;
+let _lastGrassThemeKey = null;
+
+// SC-2.6: Wire grid visibility to tower selection and wave state
+on(GameEvents.UI_TOWER_SELECT, ({ tower }) => {
+  setGridVisible(tower !== null && tower !== undefined);
+});
+
+// Hide grid when wave starts or ends
+on(GameEvents.WAVE_START, () => setGridVisible(false));
+on(GameEvents.WAVE_END,   () => setGridVisible(false));
+
+/**
+ * SC-2.6: Show or hide the placement grid overlay.
+ * @param {boolean} visible
+ */
+export function setGridVisible(visible) {
+  if (placementGrid) {
+    placementGrid.visible = Boolean(visible);
+  }
+}
+
+/**
+ * SC-2.6: Create (or return cached) ice scratch normal map texture.
+ * Draws 40 random thin lines to simulate skate scratches.
+ * @returns {THREE.CanvasTexture}
+ */
+export function createIceScratchNormalMap() {
+  if (_iceScratchNormalMap) return _iceScratchNormalMap;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Neutral normal map base: RGB(128,128,255)
+  ctx.fillStyle = 'rgb(128,128,255)';
+  ctx.fillRect(0, 0, 512, 512);
+
+  ctx.strokeStyle = 'rgba(128,128,255,0.3)';
+  ctx.lineWidth = 1;
+
+  const scratchCount = 30 + Math.floor(Math.random() * 20);
+  for (let i = 0; i < scratchCount; i++) {
+    const x1 = Math.random() * 512;
+    const y1 = Math.random() * 512;
+    const len = 30 + Math.random() * 80;
+    const angle = Math.random() * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 + Math.cos(angle) * len, y1 + Math.sin(angle) * len);
+    ctx.stroke();
+  }
+
+  _iceScratchNormalMap = new THREE.CanvasTexture(canvas);
+  _iceScratchNormalMap.wrapS = THREE.RepeatWrapping;
+  _iceScratchNormalMap.wrapT = THREE.RepeatWrapping;
+  return _iceScratchNormalMap;
+}
+
+/**
+ * SC-2.6: Build the placement grid LineSegments for the full COLS x ROWS arena.
+ * Grid is hidden by default; shown via setGridVisible(true).
+ */
+function buildPlacementGrid(scene, COLS, ROWS) {
+  const hw = COLS / 2;
+  const hh = ROWS / 2;
+
+  const positions = [];
+  const indices = [];
+  let idx = 0;
+
+  // Vertical lines (along Z axis, stepping X from -hw to +hw)
+  for (let c = 0; c <= COLS; c++) {
+    const x = -hw + c;
+    positions.push(x, 0, -hh, x, 0, hh);
+    indices.push(idx, idx + 1);
+    idx += 2;
+  }
+
+  // Horizontal lines (along X axis, stepping Z from -hh to +hh)
+  for (let r = 0; r <= ROWS; r++) {
+    const z = -hh + r;
+    positions.push(-hw, 0, z, hw, 0, z);
+    indices.push(idx, idx + 1);
+    idx += 2;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute
+    ? new THREE.Float32BufferAttribute(positions, 3)
+    : new THREE.BufferAttribute(new Float32Array(positions), 3));
+  geo.setIndex(indices);
+
+  const mat = new THREE.LineBasicMaterial({
+    color: 0xffffff,
+    opacity: 0.35,
+    transparent: true
+  });
+
+  const grid = new THREE.LineSegments(geo, mat);
+  grid.position.y = 0.02;
+  grid.visible = false;
+  scene.add(grid);
+  placementGrid = grid;
+}
 
 export function init3D() {
   const state = getState();
@@ -54,7 +179,7 @@ export function init3D() {
   const bgColor = visuals.map.background;
   scene.background = new THREE.Color(bgColor);
 
-  scene.fog = new THREE.FogExp2(visuals.map.fog || bgColor, visuals.map.fogDensity || 0.007);
+  scene.fog = new THREE.FogExp2(visuals.map.fog || bgColor, (visuals.map.fogDensity || 0.007) * 0.55);
 
   // Camera with good FOV
   const camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 200);
@@ -127,8 +252,13 @@ export function init3D() {
   // Stadium SpotLights from corner poles (real illumination, not just decorative)
   const hw = COLS / 2;
   const hh = ROWS / 2;
-  const spotColor   = visuals.lighting.sun;
-  const spotIntensity = quality.spotLights ? (isHockey ? 22 : 18) : 0; // Reduced from 60/50 to prevent washout
+  const spotIntensity = quality.spotLights
+    ? (visuals.lighting.spotIntensity ?? (isHockey ? 8 : 18))
+    : 0;
+
+  // Cone variety: alternating wide/tight angles and warm/cool colors
+  const spotAngles = [Math.PI * 0.35, Math.PI * 0.22, Math.PI * 0.35, Math.PI * 0.22];
+  const spotColors  = [0xfff5e0, 0xe8f0ff, 0xfff5e0, 0xe8f0ff]; // warm / cool alternating
 
   const spotPositions = [
     [-hw - 3, 9, -hh - 3],
@@ -137,19 +267,44 @@ export function init3D() {
     [ hw + 3, 9,  hh + 3]
   ];
 
-  spotPositions.forEach(([x, y, z]) => {
+  // Pick 2 spotlights closest to camera default position for shadow casting
+  const camDefaultZ = ROWS * 0.85 * 0.5;
+  const sortedByDist = spotPositions
+    .map(([x, , z], i) => {
+      const dx = x;
+      const dz = z - camDefaultZ;
+      return { i, dist: Math.sqrt(dx * dx + dz * dz) };
+    })
+    .sort((a, b) => a.dist - b.dist);
+  const shadowSpotIndices = new Set([sortedByDist[0].i, sortedByDist[1].i]);
+
+  sceneSpotlights = [];
+  spotBaseIntensities = [];
+
+  spotPositions.forEach(([x, y, z], i) => {
     if (spotIntensity > 0) {
-      const spot = new THREE.SpotLight(spotColor, spotIntensity, 40, Math.PI * 0.28, 0.35, 1.2);
+      const spot = new THREE.SpotLight(spotColors[i], spotIntensity, 40, spotAngles[i], 0.35, 1.2);
       spot.position.set(x, y, z);
       spot.target.position.set(0, 0, 0);
-      spot.castShadow = false; // No shadow from spots (perf)
+
+      // Enable shadows on the 2 closest spots when on high quality
+      if (getQualityName() === 'high' && shadowSpotIndices.has(i)) {
+        spot.castShadow = true;
+        spot.shadow.mapSize.width  = 512;
+        spot.shadow.mapSize.height = 512;
+      } else {
+        spot.castShadow = false;
+      }
+
+      sceneSpotlights.push(spot);
+      spotBaseIntensities.push(spotIntensity);
       scene.add(spot);
       scene.add(spot.target);
     }
 
     // Subtle point light glow at fixture position (reduced intensity)
     if (quality.pointLights) {
-      const pt = new THREE.PointLight(spotColor, isHockey ? 0.25 : 0.20, 12);
+      const pt = new THREE.PointLight(spotColors[i], isHockey ? 0.10 : 0.20, 12);
       pt.position.set(x, y, z);
       scene.add(pt);
     }
@@ -163,7 +318,7 @@ export function init3D() {
   ];
   accentPositions.forEach(([x, y, z]) => {
     if (quality.pointLights) {
-      const pt = new THREE.PointLight(accentColor, 0.15, 10);
+      const pt = new THREE.PointLight(accentColor, isHockey ? 0.08 : 0.15, 10);
       pt.position.set(x, y, z);
       scene.add(pt);
     }
@@ -174,6 +329,16 @@ export function init3D() {
 
   // Store in state
   setThreeObjects(scene, camera, renderer, raycaster, mouse);
+
+  // Initialize post-processing pipeline
+  try {
+    initPostProcessing(renderer, scene, camera);
+    setPostProcessingQuality(getQualityName() || 'high');
+  } catch (e) {
+    console.warn('Post-processing init failed, using direct render:', e);
+    // Ensure we fall back to direct rendering
+    try { setPostProcessingQuality('low'); } catch (_) {}
+  }
 
   // Update camera state
   const stateRef = getState();
@@ -193,8 +358,33 @@ export function init3D() {
   // Add ambient particles
   createAmbientParticles(visuals);
 
+  // Path preview lines (spawn → base)
+  try { createPathPreview(scene); } catch (e) { console.warn('Path preview init failed:', e); }
+
+  // SC-2.5: Generate PMREMGenerator envMap for metallic reflections
+  _generateEnvMap(renderer, scene);
+
+  // SC-3.3: Initialize projectile trail pool
+  try { initTrails(scene); } catch (e) { console.warn('Trails init failed:', e); }
+
   // Setup input handlers on canvas
   attachHandlers(canvas);
+}
+
+/**
+ * Generate a simple envMap from the built scene and apply to metallic materials.
+ * Uses PMREMGenerator to process scene lighting into a cubemap.
+ */
+function _generateEnvMap(renderer, scene) {
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    const envRenderTarget = pmrem.fromScene(scene);
+    setSceneEnvMap(envRenderTarget.texture);
+    pmrem.dispose();
+  } catch (e) {
+    // PMREMGenerator may not be available in all contexts (e.g. tests)
+  }
 }
 
 /**
@@ -268,33 +458,31 @@ function buildSkyDome(scene, isHockey, COLS, ROWS, visuals) {
   scene.add(new THREE.Points(starGeo, starMat));
 }
 
-function buildHockeyRink() {
-  const state = getState();
-  const { scene, themeData, COLS, ROWS } = state;
-  const visuals = getVisualProfile(themeData);
-  const hw = COLS / 2;
-  const hh = ROWS / 2;
+/**
+ * Get or create the ice floor texture, keyed by theme floor colors.
+ * Cached at module level — survives game restarts.
+ */
+function getIceTexture(visuals) {
+  const key = visuals.map.floor.base + '|' + visuals.map.floor.line + '|' + visuals.map.floor.scratch;
+  if (_iceTexture && _lastIceThemeKey === key) return _iceTexture;
 
-  clearCells();
+  if (_iceTexture) _iceTexture.dispose();
 
-  // === ENHANCED ICE FLOOR ===
   const iceCanvas = document.createElement('canvas');
   iceCanvas.width = 512;
   iceCanvas.height = 512;
   const ctx = iceCanvas.getContext('2d');
 
-  // Base ice color – slightly more blue to retain color identity
   ctx.fillStyle = visuals.map.floor.base;
   ctx.fillRect(0, 0, 512, 512);
 
   const iceGrad = ctx.createRadialGradient(256, 256, 40, 256, 256, 390);
-  iceGrad.addColorStop(0, 'rgba(255,255,255,0.22)');
-  iceGrad.addColorStop(0.55, 'rgba(110,190,225,0.08)');
-  iceGrad.addColorStop(1, 'rgba(20,80,120,0.18)');
+  iceGrad.addColorStop(0, 'rgba(255,255,255,0.035)');
+  iceGrad.addColorStop(0.52, 'rgba(53,140,178,0.16)');
+  iceGrad.addColorStop(1, 'rgba(5,45,80,0.32)');
   ctx.fillStyle = iceGrad;
   ctx.fillRect(0, 0, 512, 512);
 
-  // Subtle snow-groomed directional lines
   ctx.strokeStyle = visuals.map.floor.line;
   ctx.lineWidth = 1.5;
   for (let i = 0; i < 48; i++) {
@@ -305,7 +493,6 @@ function buildHockeyRink() {
     ctx.stroke();
   }
 
-  // Subtle cross scratches
   ctx.strokeStyle = visuals.map.floor.scratch;
   ctx.lineWidth = 0.8;
   for (let i = 0; i < 105; i++) {
@@ -319,27 +506,93 @@ function buildHockeyRink() {
     ctx.stroke();
   }
 
-  // Sparkle specular highlights (reduced brightness)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-  for (let i = 0; i < 120; i++) {
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  for (let i = 0; i < 55; i++) {
     const r = Math.random() * 1.8 + 0.3;
     ctx.beginPath();
     ctx.arc(Math.random() * 512, Math.random() * 512, r, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  const iceTexture = new THREE.CanvasTexture(iceCanvas);
+  _iceTexture = new THREE.CanvasTexture(iceCanvas);
+  _lastIceThemeKey = key;
+  return _iceTexture;
+}
+
+/**
+ * Get or create the grass floor texture, keyed by theme floor colors.
+ * Cached at module level — survives game restarts.
+ */
+function getGrassTexture(visuals) {
+  const key = visuals.map.floor.base + '|' + visuals.map.floor.alt + '|' + visuals.map.floor.blade;
+  if (_grassTexture && _lastGrassThemeKey === key) return _grassTexture;
+
+  if (_grassTexture) _grassTexture.dispose();
+
+  const grassCanvas = document.createElement('canvas');
+  grassCanvas.width = 512;
+  grassCanvas.height = 512;
+  const ctx = grassCanvas.getContext('2d');
+
+  const STRIPE_COUNT = 12;
+  const stripH = 512 / STRIPE_COUNT;
+  for (let i = 0; i < STRIPE_COUNT; i++) {
+    ctx.fillStyle = i % 2 === 0 ? visuals.map.floor.alt : visuals.map.floor.base;
+    ctx.fillRect(0, i * stripH, 512, stripH);
+
+    const edgeAlpha = 0.04;
+    ctx.fillStyle = i % 2 === 0
+      ? `rgba(255,255,255,${edgeAlpha})`
+      : `rgba(0,40,0,${edgeAlpha})`;
+    ctx.fillRect(0, i * stripH, 512, 3);
+  }
+
+  for (let i = 0; i < 8; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.035)';
+    ctx.fillRect(i * 64, 0, 64, 512);
+  }
+
+  for (let i = 0; i < 2400; i++) {
+    const alpha = 0.06 + Math.random() * 0.06;
+    ctx.fillStyle = Math.random() > 0.5
+      ? `rgba(0,70,20,${alpha})`
+      : visuals.map.floor.blade;
+    ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random(), 3 + Math.random() * 3);
+  }
+
+  _grassTexture = new THREE.CanvasTexture(grassCanvas);
+  _lastGrassThemeKey = key;
+  return _grassTexture;
+}
+
+function buildHockeyRink() {
+  const state = getState();
+  const { scene, themeData, COLS, ROWS } = state;
+  const visuals = getVisualProfile(themeData);
+  const hw = COLS / 2;
+  const hh = ROWS / 2;
+
+  clearCells();
+
+  // === ENHANCED ICE FLOOR ===
+  const iceTexture = getIceTexture(visuals);
   iceTexture.wrapS = THREE.RepeatWrapping;
   iceTexture.wrapT = THREE.RepeatWrapping;
   iceTexture.repeat.set(COLS / 4, ROWS / 4);
   iceTexture.anisotropy = getQualityTier().anisotropy;
 
+  // SC-2.6: Ice scratch normal map applied to main floor
+  const scratchNormalMap = createIceScratchNormalMap();
+  scratchNormalMap.repeat.set(COLS / 4, ROWS / 4);
+
   const iceMat = new THREE.MeshStandardMaterial({
     color: visuals.map.floor.meshColor,
     map: iceTexture,
-    metalness: 0.12,
-    roughness: 0.12,
-    envMapIntensity: 0.75
+    normalMap: scratchNormalMap,
+    normalScale: new THREE.Vector2(0.18, 0.18),
+    metalness: visuals.map.floor.metalness ?? 0.02,
+    roughness: visuals.map.floor.roughness ?? 0.42,
+    envMapIntensity: 0.14
   });
 
   const ice = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), iceMat);
@@ -347,13 +600,26 @@ function buildHockeyRink() {
   ice.receiveShadow = true;
   scene.add(ice);
 
+  // SC-2.6: Reflective ice "mirror" layer below the main floor (Y = -0.01)
+  const iceReflectMat = new THREE.MeshStandardMaterial({
+    color: 0x6fa9c9,
+    metalness: 0.02,
+    roughness: 0.32,
+    opacity: 0.035,
+    transparent: true
+  });
+  const iceReflect = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), iceReflectMat);
+  iceReflect.rotation.x = -Math.PI / 2;
+  iceReflect.position.y = -0.01;
+  scene.add(iceReflect);
+
   // Subtle reflective gloss layer (reduced opacity to prevent washout)
   const reflectMat = new THREE.MeshStandardMaterial({
-    color: 0xeeeeff,
-    metalness: 0.85,
-    roughness: 0.15,
+    color: 0xb7d4e6,
+    metalness: 0.18,
+    roughness: 0.46,
     transparent: true,
-    opacity: 0.095
+    opacity: 0.018
   });
   const reflect = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), reflectMat);
   reflect.rotation.x = -Math.PI / 2;
@@ -362,9 +628,9 @@ function buildHockeyRink() {
 
   // === BOARDS === (tinted slightly to not blow out white)
   const boardMat = new THREE.MeshStandardMaterial({
-    color: 0xd8dfe8,
-    roughness: 0.35,
-    metalness: 0.08
+    color: 0xb8c5d0,
+    roughness: 0.48,
+    metalness: 0.04
   });
 
   const topCapMat = new THREE.MeshStandardMaterial({
@@ -395,19 +661,9 @@ function buildHockeyRink() {
   });
 
   // === ICE LINES (bolder colors for contrast) ===
-  const redMat = new THREE.MeshStandardMaterial({
-    color: 0xdd1111,
-    emissive: 0xdd1111,
-    emissiveIntensity: 0.25,
-    roughness: 0.70
-  });
+  const redMat = new THREE.MeshBasicMaterial({ color: 0xd7193f, side: THREE.DoubleSide });
 
-  const blueMat = new THREE.MeshStandardMaterial({
-    color: 0x1166dd,
-    emissive: 0x0055cc,
-    emissiveIntensity: 0.20,
-    roughness: 0.70
-  });
+  const blueMat = new THREE.MeshBasicMaterial({ color: 0x006fc9, side: THREE.DoubleSide });
 
   const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.22, ROWS), redMat);
   centerLine.rotation.x = -Math.PI / 2;
@@ -429,7 +685,7 @@ function buildHockeyRink() {
 
   const dot = new THREE.Mesh(
     new THREE.CircleGeometry(0.15, 32),
-    new THREE.MeshStandardMaterial({ color: 0xcc0000, emissive: 0xcc0000, emissiveIntensity: 0.25 })
+    new THREE.MeshBasicMaterial({ color: 0xd7193f, side: THREE.DoubleSide })
   );
   dot.rotation.x = -Math.PI / 2;
   dot.position.y = 0.018;
@@ -473,6 +729,9 @@ function buildHockeyRink() {
   addSpawnAndPenVisuals(hw, hh);
   buildCells(hw, hh);
   buildLights(hw, hh);
+
+  // SC-2.6: Placement grid overlay
+  buildPlacementGrid(scene, COLS, ROWS);
 }
 
 function BASE_SAFE_X(x) {
@@ -489,34 +748,7 @@ function buildSoccerPitch() {
   clearCells();
 
   // === ENHANCED GRASS FLOOR ===
-  const grassCanvas = document.createElement('canvas');
-  grassCanvas.width = 512;
-  grassCanvas.height = 512;
-  const ctx = grassCanvas.getContext('2d');
-
-  // Alternating mow stripes (richer, more saturated greens)
-  const stripH = 512 / 12;
-  for (let i = 0; i < 12; i++) {
-    ctx.fillStyle = i % 2 === 0 ? visuals.map.floor.alt : visuals.map.floor.base;
-    ctx.fillRect(0, i * stripH, 512, stripH);
-  }
-
-  // Faint lengthwise mowing variation to avoid flat green wash.
-  for (let i = 0; i < 8; i++) {
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.035)';
-    ctx.fillRect(i * 64, 0, 64, 512);
-  }
-
-  // Grass blade texture noise
-  for (let i = 0; i < 2400; i++) {
-    const alpha = 0.06 + Math.random() * 0.06;
-    ctx.fillStyle = Math.random() > 0.5
-      ? `rgba(0,70,20,${alpha})`
-      : visuals.map.floor.blade;
-    ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random(), 3 + Math.random() * 3);
-  }
-
-  const grassTexture = new THREE.CanvasTexture(grassCanvas);
+  const grassTexture = getGrassTexture(visuals);
   grassTexture.wrapS = THREE.RepeatWrapping;
   grassTexture.wrapT = THREE.RepeatWrapping;
   grassTexture.repeat.set(COLS / 8, ROWS / 8);
@@ -638,6 +870,9 @@ function buildSoccerPitch() {
   addSpawnAndPenVisuals(hw, hh);
   buildCells(hw, hh);
   buildLights(hw, hh);
+
+  // SC-2.6: Placement grid overlay
+  buildPlacementGrid(scene, COLS, ROWS);
 }
 
 function buildOrbitalPlatform() {
@@ -719,6 +954,9 @@ function buildOrbitalPlatform() {
   addSpawnAndPenVisuals(hw, hh);
   buildCells(hw, hh);
   buildLights(hw, hh);
+
+  // SC-2.6: Placement grid overlay
+  buildPlacementGrid(scene, COLS, ROWS);
 }
 
 /**
@@ -760,6 +998,19 @@ function createAmbientParticles(visuals) {
 
   ambientParticles = new THREE.Points(geometry, material);
   scene.add(ambientParticles);
+}
+
+/**
+ * Update spotlight intensities with subtle flicker animation.
+ * Call from the game loop each frame with accumulated time.
+ * @param {number} time - Accumulated time in seconds
+ */
+export function updateLights(time) {
+  for (let i = 0; i < sceneSpotlights.length; i++) {
+    const spot = sceneSpotlights[i];
+    const base = spotBaseIntensities[i];
+    spot.intensity = base + Math.sin(time * 0.5 + i) * 0.01 * base;
+  }
 }
 
 /**
@@ -807,6 +1058,7 @@ export function onResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
   applyRendererQuality(renderer);
+  resizePostProcessing(w, h);
 }
 
 /**
@@ -817,6 +1069,10 @@ export function cleanupScene() {
   const { scene } = state;
 
   ambientParticles = null;
+  sceneSpotlights = [];
+  spotBaseIntensities = [];
+  placementGrid = null;
+  cleanupTrails();
 
   if (!scene) return;
 

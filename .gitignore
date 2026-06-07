@@ -28,3 +28,8 @@ npm-debug.log*
 .cache/
 
 .vercel
+
+# Local agent and audit artifacts
+.claude/
+.pilot/
+audit-output/

@@ -74,23 +74,23 @@ export function buildLights(hw, hh) {
   ];
 
   const poleMat = new THREE.MeshStandardMaterial({
-    color: 0x2a2a3a,
-    metalness: 0.7,
-    roughness: 0.4
+    color: 0x111827,
+    metalness: 0.55,
+    roughness: 0.58
   });
 
   const fixtureGlowMat = new THREE.MeshStandardMaterial({
-    color: 0xfff8e0,
-    emissive: 0xfff8e0,
-    emissiveIntensity: 0.8,
-    roughness: 0.2,
-    metalness: 0.3
+    color: 0xffe4a6,
+    emissive: 0xffb84d,
+    emissiveIntensity: 0.32,
+    roughness: 0.34,
+    metalness: 0.12
   });
 
   const fixtureMat = new THREE.MeshStandardMaterial({
-    color: 0xaaaaaa,
-    metalness: 0.8,
-    roughness: 0.3
+    color: 0x263143,
+    metalness: 0.62,
+    roughness: 0.44
   });
 
   positions.forEach(([x, z]) => {
@@ -133,7 +133,7 @@ export function buildLights(hw, hh) {
       new THREE.MeshBasicMaterial({
         color: visuals.lighting.accent,
         transparent: true,
-        opacity: 0.12,
+        opacity: 0.06,
         side: THREE.DoubleSide,
         depthWrite: false,
         blending: THREE.AdditiveBlending
@@ -162,26 +162,37 @@ function buildStadiumStands(hw, hh, isHockey, visuals) {
 
   // Seat colors – alternating accent colors
   const seatColors = isHockey
-    ? [0x1a3a6e, 0x0d2050, 0xcc1111, 0x0a1838]
+    ? [0x0e4f8f, 0x123c6b, 0xb91c1c, 0xfacc15, 0xe2e8f0]
     : [visuals.lighting.accent, visuals.map.floor.meshColor || 0x1a5c1a, 0xcc8800, 0x103010];
 
-  // Define stands on all 4 sides
+  const frontGap = 1.05;
+
+  // Define stands by their front edge. Local +Z points outward from the rink.
   const sides = [
-    // [centerX, centerZ, width, rotY]
-    [0,      -(hh + 1.5 + standDepth / 2), hw * 2 + 2, 0          ],
-    [0,       (hh + 1.5 + standDepth / 2), hw * 2 + 2, Math.PI    ],
-    [-(hw + 1.5 + standDepth / 2), 0,      hh * 2 + 2, Math.PI / 2],
-    [ (hw + 1.5 + standDepth / 2), 0,      hh * 2 + 2, -Math.PI / 2]
+    // [frontX, frontZ, width, rotY]
+    [0, -(hh + frontGap), hw * 2 + 2, Math.PI],
+    [0,  (hh + frontGap), hw * 2 + 2, 0],
+    [-(hw + frontGap), 0, hh * 2 + 2, Math.PI / 2],
+    [ (hw + frontGap), 0, hh * 2 + 2, -Math.PI / 2]
   ];
 
-  sides.forEach(([cx, cz, sideWidth, rotY]) => {
+  const transformStandPoint = (frontX, frontZ, localX, localZ, rotY) => {
+    const cosR = Math.cos(rotY);
+    const sinR = Math.sin(rotY);
+    return [
+      frontX + localX * cosR - localZ * sinR,
+      frontZ + localX * sinR + localZ * cosR
+    ];
+  };
+
+  sides.forEach(([frontX, frontZ, sideWidth, rotY]) => {
     for (let row = 0; row < rowCount; row++) {
       const y     = row * rowHeight + rowHeight / 2;
       const depth = rowDepth;
 
       // Stepped platform
       const stepMat = new THREE.MeshStandardMaterial({
-        color: 0x1a1a2e,
+        color: 0x162133,
         roughness: 0.9,
         metalness: 0.1
       });
@@ -213,35 +224,24 @@ function buildStadiumStands(hw, hh, isHockey, visuals) {
         // Position in local stand space, then transform
         const localX = -sideWidth / 2 + s * seatW + seatW / 2;
         const localY = y + rowHeight * 0.2;
-        const localZ = row * rowDepth;
+        const localZ = row * rowDepth + rowDepth * 0.5;
+        const [seatX, seatZ] = transformStandPoint(frontX, frontZ, localX, localZ, rotY);
 
-        const cosR = Math.cos(rotY);
-        const sinR = Math.sin(rotY);
-
-        seat.position.set(
-          cx + localX * cosR - localZ * sinR,
-          localY,
-          cz + localX * sinR + localZ * cosR
-        );
+        seat.position.set(seatX, localY, seatZ);
         seat.rotation.y = rotY;
         scene.add(seat);
       }
 
       // Position the step platform
-      const localZ = row * rowDepth;
-      const cosR = Math.cos(rotY);
-      const sinR = Math.sin(rotY);
-      step.position.set(
-        cx - localZ * sinR,
-        y,
-        cz + localZ * cosR
-      );
+      const localZ = row * rowDepth + rowDepth * 0.5;
+      const [stepX, stepZ] = transformStandPoint(frontX, frontZ, 0, localZ, rotY);
+      step.position.set(stepX, y, stepZ);
       step.rotation.y = rotY;
     }
 
     // Concrete barrier at front of stand
     const barrierMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2a3a,
+      color: 0x25364a,
       roughness: 0.7,
       metalness: 0.2
     });
@@ -251,7 +251,7 @@ function buildStadiumStands(hw, hh, isHockey, visuals) {
     );
     barrier.castShadow = true;
     barrier.receiveShadow = true;
-    barrier.position.set(cx, 0.25, cz);
+    barrier.position.set(frontX, 0.25, frontZ);
     barrier.rotation.y = rotY;
     scene.add(barrier);
   });

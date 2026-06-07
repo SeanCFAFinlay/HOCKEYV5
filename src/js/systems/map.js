@@ -470,7 +470,7 @@ export function generateObstacles(layout) {
   for (let attempt = 0; attempt < 20; attempt++) {
     let ok = true;
     for (const s of SPAWNS) {
-      const p = findPathGrid(s.x, s.y, BASE.x, BASE.y, false);
+      const p = findPathGrid(s.x, s.y, BASE.x, BASE.y);
       if (!(p && p.length > 0)) {
         ok = false;
         break;

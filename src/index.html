@@ -18,6 +18,11 @@
     if (typeof THREE === 'undefined') {
       document.body.innerHTML = '<div style="color:#fff;background:#07090f;padding:24px;text-align:center;font-family:sans-serif"><h2>⚠️ Failed to load 3D engine</h2><p>Please check your internet connection and reload.</p><button onclick="location.reload()" style="margin-top:12px;padding:12px 24px;font-size:1rem;cursor:pointer;border-radius:8px;border:none">Reload</button></div>';
     }
+    // Force-hide loader after 2s regardless of JS state
+    setTimeout(function() {
+      var l = document.getElementById('appLoader');
+      if (l) l.style.display = 'none';
+    }, 2000);
   </script>
 
   <!-- Loading indicator -->
@@ -93,6 +98,8 @@
   <link rel="stylesheet" href="css/modals.css">
   <link rel="stylesheet" href="css/camera-btns.css">
   <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/tooltips.css">
+  <link rel="stylesheet" href="css/settings.css">
 </head>
 <body>
 
@@ -117,6 +124,7 @@
     <p>TOWER DEFENSE 3D</p>
   </div>
   <div class="menu-cards" id="themeCards"></div>
+  <div class="version">v1.0</div>
 </div>
 
 <!-- Map Selection Screen -->
@@ -151,10 +159,10 @@
 
   <div class="canvas-wrap"></div>
 
-  <!-- Wave preview banner (shown between waves) -->
+  <!-- Wave preview panel (shown between waves) -->
   <div class="wave-preview" id="wavePreview" style="display:none">
-    <span class="wave-preview-label">NEXT WAVE</span>
-    <span class="wave-preview-content" id="wavePreviewContent"></span>
+    <div class="wp-header" id="wavePreviewHeader"></div>
+    <div class="wp-body" id="wavePreviewBody"></div>
   </div>
 
 
@@ -189,11 +197,17 @@
       <p id="upLevel">Level 1</p>
       <span class="upgrade-role" id="upRole">Fast</span>
     </div>
+    <button class="upgrade-close" type="button" onclick="hideUpgrade()" aria-label="Close tower upgrade">×</button>
   </div>
   <div class="upgrade-stats">
     <div class="upgrade-stat"><div class="upgrade-stat-label">DMG</div><div class="upgrade-stat-value" id="upDmg">50</div><div class="upgrade-stat-next" id="upDmgNext">→75</div></div>
     <div class="upgrade-stat"><div class="upgrade-stat-label">RNG</div><div class="upgrade-stat-value" id="upRng">3.0</div><div class="upgrade-stat-next" id="upRngNext">→3.5</div></div>
     <div class="upgrade-stat"><div class="upgrade-stat-label">RATE</div><div class="upgrade-stat-value" id="upRate">1.0</div><div class="upgrade-stat-next" id="upRateNext">→1.2</div></div>
+  </div>
+  <div id="upgradePath" class="upgrade-path"></div>
+  <div class="target-priority">
+    <div class="target-priority-label">Target <span id="upPriorityLabel">First</span></div>
+    <div class="priority-controls" id="priorityControls"></div>
   </div>
   <div class="upgrade-btns">
     <button class="upgrade-btn sell" onclick="sellTower()">Sell $<span id="upSell">60</span></button>

@@ -7,27 +7,32 @@
   padding-bottom: calc(4px + env(safe-area-inset-bottom));
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.96) 0%, rgba(0, 0, 0, 0.72) 60%, transparent 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.58) 54%, rgba(0, 0, 0, 0.08) 100%);
+}
+
+/* Subtle separator between tower bar and action bar */
+.tower-bar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .action-bar {
   display: flex;
-  gap: 6px;
-  padding: 0 12px 12px;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md) var(--space-md);
   align-items: stretch;
 }
 
 .action-btn {
   flex: 1;
-  padding: 12px 6px;
+  padding: var(--space-md) var(--space-sm);
   border: 1.5px solid rgba(255,255,255,0.12);
   border-radius: var(--r-sm);
   font-size: 0.78rem;
   font-weight: 700;
   font-family: var(--font-game);
   letter-spacing: 0.3px;
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(8px) saturate(130%);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -35,6 +40,12 @@
   min-height: 48px;
   white-space: nowrap;
   transition: all var(--t-fast);
+  will-change: transform;
+}
+
+.action-btn:hover:not(:disabled) {
+  filter: brightness(1.12);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .action-btn:active {
@@ -44,7 +55,7 @@
 
 .speed-btns {
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
   flex-shrink: 0;
 }
 
@@ -54,7 +65,7 @@
   background: rgba(255, 255, 255, 0.08);
   border: 1.5px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--r-sm);
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 700;
   font-family: var(--font-game);
   font-size: 0.85rem;
@@ -64,6 +75,16 @@
   align-items: center;
   justify-content: center;
   transition: all var(--t-fast);
+  will-change: transform;
+}
+
+.speed-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.speed-btn:active {
+  transform: scale(0.92);
 }
 
 .speed-btn.active {
@@ -76,13 +97,18 @@
 .sell-btn {
   background: rgba(239, 68, 68, 0.15);
   color: var(--red);
-  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border: 1.5px solid rgba(239, 68, 68, 0.4);
+}
+
+.sell-btn:hover:not(.active) {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
 }
 
 .sell-btn.active {
   background: var(--red);
   color: #fff;
-  box-shadow: 0 0 16px var(--red-glow);
+  box-shadow: 0 0 20px var(--red-glow);
 }
 
 .auto-btn {
@@ -91,27 +117,47 @@
   color: rgba(255,255,255,0.75);
 }
 
+.auto-btn:hover:not(.on) {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .auto-btn.on {
-  border-color: rgba(34, 197, 94, 0.7);
-  box-shadow: 0 0 16px var(--grass-glow);
-  color: var(--grass);
+  background: rgba(6, 46, 24, 0.88);
+  border-color: rgba(34, 197, 94, 0.85);
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.48);
+  color: #6ee78f;
 }
 
 .start-btn {
   flex: 2;
   background: linear-gradient(135deg, var(--grass), var(--grass-dim));
   color: #fff;
-  border: none;
-  font-size: 0.88rem;
+  border: 1.5px solid rgba(34, 197, 94, 0.5);
+  font-size: 0.92rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  box-shadow: 0 4px 16px var(--grass-glow);
+  letter-spacing: 1.2px;
+  box-shadow: 0 4px 20px var(--grass-glow);
+  animation: startPulse 2.2s ease-in-out infinite;
 }
 
+.start-btn:not(:disabled):hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 28px rgba(34, 197, 94, 0.55);
+}
+
+/* Pause animation when wave is in progress (disabled state) */
 .start-btn:disabled {
   background: rgba(100, 100, 100, 0.28);
   color: rgba(255, 255, 255, 0.28);
   cursor: not-allowed;
   box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.08);
+  animation: none;
+}
+
+@keyframes startPulse {
+  0%, 100% { box-shadow: 0 4px 20px var(--grass-glow); }
+  50%       { box-shadow: 0 4px 32px rgba(34, 197, 94, 0.6), 0 0 0 3px rgba(34, 197, 94, 0.12); }
 }

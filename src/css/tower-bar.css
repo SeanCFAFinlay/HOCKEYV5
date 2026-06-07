@@ -1,8 +1,8 @@
 .tower-bar {
   display: flex;
-  gap: 8px;
-  padding: 12px;
-  padding-bottom: 10px;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  padding-bottom: var(--space-md);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -12,19 +12,26 @@
 
 .tower-btn {
   flex-shrink: 0;
-  width: 70px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1.5px solid rgba(255, 255, 255, 0.13);
+  width: 76px;
+  background: rgba(8, 16, 30, 0.82);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--r-md);
-  padding: 8px 4px;
+  padding: var(--space-sm) var(--space-xs);
   text-align: center;
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(8px) saturate(135%);
+  -webkit-backdrop-filter: blur(8px) saturate(135%);
   cursor: pointer;
   scroll-snap-align: start;
   transition: all var(--t-mid);
   position: relative;
   overflow: hidden;
+  will-change: transform;
+}
+
+.tower-btn:hover:not(.disabled) {
+  background: rgba(16, 29, 50, 0.92);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
 }
 
 /* Subtle inner highlight */
@@ -35,7 +42,7 @@
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
+  background: linear-gradient(to bottom, rgba(255,255,255,0.035), transparent);
   pointer-events: none;
   border-radius: var(--r-md) var(--r-md) 0 0;
 }
@@ -47,10 +54,11 @@
 
 .tower-btn.selected {
   border-color: var(--c);
-  background: rgba(255, 255, 255, 0.13);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--c) 45%, transparent),
-              inset 0 0 12px color-mix(in srgb, var(--c) 10%, transparent);
-  transform: translateY(-5px);
+  background: color-mix(in srgb, var(--c) 24%, rgba(8, 16, 30, 0.92));
+  box-shadow: 0 0 28px color-mix(in srgb, var(--c) 55%, transparent),
+              0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent),
+              inset 0 0 16px color-mix(in srgb, var(--c) 12%, transparent);
+  transform: translateY(-6px);
 }
 
 .tower-btn.disabled {
@@ -69,7 +77,7 @@
 
 .tower-btn-name {
   font-size: 0.58rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.82);
   margin: 3px 0 0;
   white-space: nowrap;
   overflow: hidden;
@@ -78,9 +86,9 @@
 }
 
 .tower-btn-role {
-  font-size: 0.5rem;
+  font-size: 0.55rem;
   color: var(--c);
-  opacity: 0.85;
+  opacity: 0.9;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 1px 0 2px;
@@ -89,8 +97,19 @@
 }
 
 .tower-btn-cost {
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 700;
   font-family: var(--font-game);
   color: var(--gold);
+  text-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* Affordable pulse — added by JS when player has enough gold */
+.tower-btn.affordable {
+  animation: affordablePulse 2s ease-in-out infinite;
+}
+
+@keyframes affordablePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+  50%       { box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.28); }
 }

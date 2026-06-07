@@ -2,6 +2,7 @@
 
 import { getState } from '../engine/state.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
+import { getQualityName } from '../rendering/quality.js';
 
 // Mesh pool for recycling
 const meshPool = [];
@@ -134,7 +135,7 @@ export function createEnemyMesh(enemy) {
   const group = new THREE.Group();
   const isHockey = theme === 'hockey';
   const isSpace = theme === 'space';
-  const sz = (enemy.sz || 1) * 0.28;
+  const sz = (enemy.sz || 1) * 0.34;
   const mats = getSharedMaterials();
   const roleKey = enemy.slot || enemy.role?.toLowerCase() || 'swarm';
   const visual = visuals.enemies[roleKey] || visuals.enemies[enemy.role?.toLowerCase()] || visuals.enemies.swarm;
@@ -146,10 +147,10 @@ export function createEnemyMesh(enemy) {
   } else if (visual?.color !== undefined) {
     bodyMat = new THREE.MeshStandardMaterial({
       color: visual.color,
-      metalness: isSpace ? 0.65 : 0.45,
-      roughness: isSpace ? 0.22 : 0.38,
+      metalness: isSpace ? 0.65 : (isHockey ? 0.24 : 0.45),
+      roughness: isSpace ? 0.22 : (isHockey ? 0.52 : 0.38),
       emissive: visual.accent || visual.color,
-      emissiveIntensity: isSpace ? 0.36 : 0.16
+      emissiveIntensity: isSpace ? 0.36 : (isHockey ? 0.11 : 0.16)
     });
   } else if (isHockey) {
     bodyMat = mats.puckBody;
@@ -168,27 +169,27 @@ export function createEnemyMesh(enemy) {
     if (isSpeedSkater) {
       bodyMat = new THREE.MeshStandardMaterial({
         color: 0x00ddee, // Bright cyan for speed
-        metalness: 0.6,
-        roughness: 0.25,
+        metalness: 0.24,
+        roughness: 0.50,
         emissive: 0x008899,
-        emissiveIntensity: 0.4
+        emissiveIntensity: 0.20
       });
     } else if (isDefenseman) {
       bodyMat = new THREE.MeshStandardMaterial({
         color: 0x1a3388, // Bold blue for defenseman
-        metalness: 0.55,
-        roughness: 0.35,
+        metalness: 0.26,
+        roughness: 0.52,
         emissive: 0x0a1844,
-        emissiveIntensity: 0.2,
-        envMapIntensity: 0.8
+        emissiveIntensity: 0.12,
+        envMapIntensity: 0.28
       });
     } else if (isEnforcer) {
       bodyMat = new THREE.MeshStandardMaterial({
         color: 0xbb2222, // Saturated red for enforcer
-        metalness: 0.55,
-        roughness: 0.40,
+        metalness: 0.24,
+        roughness: 0.54,
         emissive: 0x550000,
-        emissiveIntensity: 0.25
+        emissiveIntensity: 0.16
       });
     }
     
@@ -354,11 +355,11 @@ export function createEnemyMesh(enemy) {
 
       for (let i = 0; i < 5; i++) {
         const spike = new THREE.Mesh(
-          new THREE.ConeGeometry(0.06, sz * 0.45, 6),
+          new THREE.ConeGeometry(0.07, sz * 0.6, 6),
           mats.gold
         );
         const angle = (i / 5) * Math.PI * 2;
-        spike.position.set(Math.cos(angle) * sz * 0.6, sz * 0.48, Math.sin(angle) * sz * 0.6);
+        spike.position.set(Math.cos(angle) * sz * 0.6, sz * 0.55, Math.sin(angle) * sz * 0.6);
         spike.castShadow = true;
         group.add(spike);
       }
@@ -655,14 +656,22 @@ export function createEnemyMesh(enemy) {
     }
   }
 
-  // Armor plates - enhanced with better materials and detail
+  // Armor plates - enhanced with metallic sheen (metalness >= 0.8)
   if (enemy.armor > 0 && !enemy.boss) {
     const plateCount = Math.min(4 + enemy.armor, 8);
+
+    // Override armor material with higher metalness for sheen effect
+    const sheenArmorMat = new THREE.MeshStandardMaterial({
+      color: 0x4a5c6e,
+      metalness: 0.85,
+      roughness: 0.18,
+      envMapIntensity: 1.0
+    });
 
     for (let i = 0; i < plateCount; i++) {
       const plate = new THREE.Mesh(
         new THREE.BoxGeometry(sz * 0.42, sz * 0.42, 0.05),
-        mats.armor
+        sheenArmorMat
       );
       const angle = (i / plateCount) * Math.PI * 2 + Math.PI / plateCount;
       plate.position.set(Math.cos(angle) * sz * 0.98, 0, Math.sin(angle) * sz * 0.98);
@@ -710,15 +719,29 @@ export function createEnemyMesh(enemy) {
     );
     group.add(armorGlow);
     enemy.armorGlow = armorGlow;
+
+    // Metallic rim highlight mesh
+    const rimHighlight = new THREE.Mesh(
+      new THREE.TorusGeometry(sz * 1.05, sz * 0.018, 8, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xc8d8e8,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+      })
+    );
+    rimHighlight.rotation.x = Math.PI / 2;
+    group.add(rimHighlight);
+    enemy.rimHighlight = rimHighlight;
   }
 
   // Health bar - enhanced with border and glow
   const hpHeight = enemy.boss ? sz * 1.8 : sz * 1.5;
 
   // Outer border
-  const hpBorderGeo = new THREE.PlaneGeometry(sz * 2.3, 0.16);
+  const hpBorderGeo = new THREE.PlaneGeometry(sz * 2.6, 0.22);
   const hpBorder = new THREE.Mesh(hpBorderGeo, new THREE.MeshBasicMaterial({
-    color: 0x444444,
+    color: 0x222222,
     side: THREE.DoubleSide
   }));
   hpBorder.position.y = hpHeight;
@@ -726,9 +749,9 @@ export function createEnemyMesh(enemy) {
   group.add(hpBorder);
 
   // Background
-  const hpBgGeo = new THREE.PlaneGeometry(sz * 2.2, 0.12);
+  const hpBgGeo = new THREE.PlaneGeometry(sz * 2.5, 0.18);
   const hpBg = new THREE.Mesh(hpBgGeo, new THREE.MeshBasicMaterial({
-    color: 0x1a1a1a,
+    color: 0x111111,
     side: THREE.DoubleSide
   }));
   hpBg.position.y = hpHeight + 0.005;
@@ -736,20 +759,36 @@ export function createEnemyMesh(enemy) {
   group.add(hpBg);
 
   // Health fill
-  const hpBarGeo = new THREE.PlaneGeometry(sz * 2, 0.08);
+  const hpBarGeo = new THREE.PlaneGeometry(sz * 2.3, 0.14);
   const hpBar = new THREE.Mesh(hpBarGeo, mats.hpFull.clone());
   hpBar.position.y = hpHeight + 0.01;
   hpBar.rotation.x = -Math.PI / 2;
+  // Smooth fill transition userData
+  hpBar.userData.targetWidth = 1.0;
+  hpBar.userData.currentWidth = 1.0;
   group.add(hpBar);
   enemy.hpBar = hpBar;
-  enemy.hpSize = sz * 2;
+  enemy.hpSize = sz * 2.3;
+
+  // Damage flash overlay — white plane that appears briefly on hit
+  const hpFlashGeo = new THREE.PlaneGeometry(sz * 2.3, 0.14);
+  const hpDamageFlash = new THREE.Mesh(hpFlashGeo, new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0,
+    side: THREE.DoubleSide
+  }));
+  hpDamageFlash.position.y = hpHeight + 0.012;
+  hpDamageFlash.rotation.x = -Math.PI / 2;
+  group.add(hpDamageFlash);
+  enemy.hpDamageFlash = hpDamageFlash;
 
   // Health bar shine
-  const hpShineGeo = new THREE.PlaneGeometry(sz * 2, 0.03);
+  const hpShineGeo = new THREE.PlaneGeometry(sz * 2.3, 0.04);
   const hpShine = new THREE.Mesh(hpShineGeo, new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
-    opacity: 0.3,
+    opacity: 0.35,
     side: THREE.DoubleSide
   }));
   hpShine.position.y = hpHeight + 0.015;
@@ -759,6 +798,31 @@ export function createEnemyMesh(enemy) {
 
   // Store reference for HP color changes
   enemy.hpMats = mats;
+
+  // Movement trail ribbons for fast enemies (SC-5.5: skip on low quality)
+  const _qualityTier = getQualityName();
+  const isFastEnemy = enemy.speed === 'fast' || enemy.speed === 'very_fast';
+  if (isFastEnemy && _qualityTier !== 'low') {
+    group.userData.hasTrail = true;
+    const enemyColor = (enemy.fire ? 0xff6600 : 0x00d4ff);
+    const trailOpacities = [0.3, 0.15, 0.08];
+    enemy.trailMeshes = [];
+    for (let i = 0; i < trailOpacities.length; i++) {
+      const trailPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(sz * 0.3, sz * 0.2),
+        new THREE.MeshBasicMaterial({
+          color: enemyColor,
+          transparent: true,
+          opacity: trailOpacities[i],
+          side: THREE.DoubleSide
+        })
+      );
+      trailPlane.position.set(0, 0, -sz * (0.5 + i * 0.35));
+      trailPlane.rotation.x = -Math.PI / 2;
+      group.add(trailPlane);
+      enemy.trailMeshes.push(trailPlane);
+    }
+  }
 
   // Motion trail group (populated during movement)
   enemy.trailParticles = [];
@@ -784,18 +848,23 @@ export function createEnemyMesh(enemy) {
   frostAura.position.y = 0.05;
   slowGroup.add(frostAura);
 
-  // Ice crystals orbiting
+  // Ice crystals orbiting — 10 crystals on high, 4 on low quality (SC-5.5)
+  const _qualityForCrystals = getQualityName();
+  const CRYSTAL_COUNT = _qualityForCrystals === 'low' ? 4 : 10;
   enemy.iceCrystals = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < CRYSTAL_COUNT; i++) {
+    const sizeVariation = 0.06 + (i % 3) * 0.02; // 0.06, 0.08, 0.10 cycling
     const crystal = new THREE.Mesh(
-      new THREE.OctahedronGeometry(sz * 0.08, 0),
-      new THREE.MeshBasicMaterial({
+      new THREE.OctahedronGeometry(sz * sizeVariation, 0),
+      new THREE.MeshStandardMaterial({
         color: 0xaaeeff,
         transparent: true,
-        opacity: 0.85
+        opacity: 0.85,
+        emissive: 0x88ddff,
+        emissiveIntensity: 0.4
       })
     );
-    const angle = (i / 6) * Math.PI * 2;
+    const angle = (i / CRYSTAL_COUNT) * Math.PI * 2;
     crystal.position.set(
       Math.cos(angle) * sz * 1.0,
       sz * 0.3 + Math.sin(i) * sz * 0.1,
@@ -867,9 +936,26 @@ export function createEnemyMesh(enemy) {
     enemy.burnFlames.push({ mesh: burnFlame, baseAngle: angle });
   }
 
-  // Ember particles
+  // Heat distortion ring — animated torus above enemy
+  const heatRing = new THREE.Mesh(
+    new THREE.TorusGeometry(sz * 0.8, sz * 0.03, 8, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0xff6600,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide
+    })
+  );
+  heatRing.position.y = sz * 0.8;
+  heatRing.rotation.x = Math.PI / 2;
+  burnGroup.add(heatRing);
+  enemy.heatRing = heatRing;
+
+  // Ember particles — 8 on high, 3 on low quality (SC-5.5)
+  const _qualityForEmbers = getQualityName();
+  const EMBER_COUNT = _qualityForEmbers === 'low' ? 3 : 8;
   enemy.burnEmbers = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < EMBER_COUNT; i++) {
     const ember = new THREE.Mesh(
       new THREE.SphereGeometry(sz * 0.03, 4, 4),
       new THREE.MeshBasicMaterial({
@@ -878,10 +964,11 @@ export function createEnemyMesh(enemy) {
         opacity: 0.9
       })
     );
+    const angle = (i / 8) * Math.PI * 2;
     ember.position.set(
-      (Math.random() - 0.5) * sz * 1.0,
-      sz * 0.8 + Math.random() * sz * 0.3,
-      (Math.random() - 0.5) * sz * 1.0
+      Math.cos(angle) * sz * 0.5,
+      sz * 0.8 + (i % 3) * sz * 0.1,
+      Math.sin(angle) * sz * 0.5
     );
     burnGroup.add(ember);
     enemy.burnEmbers.push({ mesh: ember, offset: i });
@@ -890,6 +977,29 @@ export function createEnemyMesh(enemy) {
   group.add(burnGroup);
   enemy.burnGroup = burnGroup;
   enemy.heatAura = heatAura;
+
+  // Boss upgrades: scale 1.3x + pulsing aura (SC-5.5: skip aura on low quality)
+  if (enemy.boss) {
+    group.scale.x = 1.3;
+    group.scale.y = 1.3;
+    group.scale.z = 1.3;
+
+    const _qualityForAura = getQualityName();
+    if (_qualityForAura !== 'low') {
+      const auraRadius = sz * 1.6;
+      const bossAura = new THREE.Mesh(
+        new THREE.SphereGeometry(auraRadius, 16, 12),
+        new THREE.MeshBasicMaterial({
+          color: 0xffd700,
+          transparent: true,
+          opacity: 0.12,
+          side: THREE.DoubleSide
+        })
+      );
+      group.add(bossAura);
+      enemy.bossAura = bossAura;
+    }
+  }
 
   group.position.set(enemy.x, enemy.flying ? 1.2 : 0.2, enemy.z);
 

@@ -5,6 +5,9 @@ import { on, GameEvents } from '../engine/events.js';
 import { hideUpgrade } from './upgrade-sheet.js';
 import { createDefeatEffect } from '../systems/particles.js';
 import { getWaveThemeName, getWavePreview } from '../config/waves.js';
+import { initCurrencyFly } from './currency-fly.js';
+import { initTooltips, attachTooltip, hideTooltip } from './tooltips.js';
+import { setDangerVignette } from '../engine/postprocessing.js';
 
 // DOM element cache
 let domCache = null;
@@ -14,6 +17,10 @@ let initialized = false;
 
 // Track previous money for animation direction
 let prevMoneyValue = 0;
+
+// Tower bar button cache: avoids recreating buttons on every render
+let _towerBarButtons = [];
+let _towerBarTheme = null;
 
 // Tower role display names
 const ROLE_DISPLAY = {
@@ -44,10 +51,10 @@ function cacheDOMElements() {
     enemyCount: document.getElementById('enemyCount'),
     enemyCounter: document.getElementById('enemyCounter'),
     startBtn: document.getElementById('startBtn'),
+    autoBtn: document.getElementById('autoBtn'),
     towerBar: document.getElementById('towerBar'),
     sellBtn: document.getElementById('sellBtn'),
-    wavePreview: document.getElementById('wavePreview'),
-    wavePreviewContent: document.getElementById('wavePreviewContent')
+    wavePreview: document.getElementById('wavePreview')
   };
 }
 
@@ -59,6 +66,12 @@ export function initHUD() {
 
   cacheDOMElements();
   prevMoneyValue = getState().money;
+
+  // Initialize currency fly-to effect
+  if (domCache.moneyStat) initCurrencyFly(domCache.moneyStat);
+
+  // Initialize tooltips
+  initTooltips();
 
   // Subscribe to state changes
   subscribeToState('money', (newVal, oldVal) => {
@@ -96,6 +109,8 @@ export function initHUD() {
       } else {
         domCache.livesStat.classList.remove('warning');
       }
+
+      setDangerVignette(newVal <= threshold && newVal > 0);
     }
   });
 
@@ -117,6 +132,13 @@ export function initHUD() {
 
     // Update wave theme
     updateWaveTheme(wave);
+
+    // Show wave announcement overlay
+    const state = getState();
+    const totalWaves = state.mapData?.waves || 20;
+    const themeName = getWaveThemeName(wave, totalWaves);
+    const isBoss = themeName === 'BOSS';
+    showWaveAnnouncement(wave, themeName, isBoss);
 
     // Activate enemy counter
     if (domCache.enemyCounter) {
@@ -144,11 +166,13 @@ export function initHUD() {
 
   on(GameEvents.GAME_LOSE, () => {
     if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
+    hideUpgrade();
     // Modal is handled by modals.js event listener
   });
 
   on(GameEvents.GAME_WIN, () => {
     if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
+    hideUpgrade();
     // Modal is handled by modals.js event listener
   });
 
@@ -212,6 +236,10 @@ export function updateHUD() {
 
   // Update wave button
   if (domCache.startBtn) domCache.startBtn.disabled = state.waveActive;
+  if (domCache.autoBtn) {
+    domCache.autoBtn.textContent = state.autoWave ? 'AUTO: ON' : 'AUTO: OFF';
+    domCache.autoBtn.classList.toggle('on', state.autoWave);
+  }
 
   // Update lives warning
   if (domCache.livesStat && state.mapData) {
@@ -221,6 +249,7 @@ export function updateHUD() {
     } else {
       domCache.livesStat.classList.remove('warning');
     }
+    setDangerVignette(state.lives <= threshold && state.lives > 0);
   }
 
   // Update enemy counter active state
@@ -302,7 +331,8 @@ function getEnemyIcon(enemy, theme) {
 }
 
 /**
- * Render tower selection bar
+ * Render tower selection bar.
+ * Creates buttons once per theme; subsequent calls only update classes.
  */
 export function renderTowers() {
   const state = getState();
@@ -313,23 +343,44 @@ export function renderTowers() {
   const bar = domCache.towerBar || document.getElementById('towerBar');
   if (!bar || !themeData) return;
 
-  // Use document fragment for batch DOM updates
-  const fragment = document.createDocumentFragment();
+  const needsRebuild = _towerBarTheme !== themeData;
 
-  themeData.towers.forEach(t => {
-    const btn = document.createElement('div');
+  if (needsRebuild) {
+    _buildTowerButtons(bar, themeData);
+    _towerBarTheme = themeData;
+  }
+
+  // Fast path: just update classes
+  themeData.towers.forEach((t, i) => {
+    const btn = _towerBarButtons[i];
+    if (!btn) return;
+
     const affordable = money >= t.cost;
     const selected = selectedTower === t.id;
 
     btn.className = 'tower-btn' +
       (affordable ? '' : ' disabled') +
       (selected ? ' selected' : '');
+  });
+}
 
-    btn.style.setProperty('--c', t.clr);
+/**
+ * Build tower buttons once and store references.
+ * @param {HTMLElement} bar - The tower bar container
+ * @param {Object} themeData - Current theme data
+ */
+function _buildTowerButtons(bar, themeData) {
+  bar.innerHTML = '';
+  _towerBarButtons = [];
 
-    // Get role display name
+  const fragment = document.createDocumentFragment();
+
+  themeData.towers.forEach(t => {
+    const btn = document.createElement('div');
     const roleDisplay = ROLE_DISPLAY[t.role] || '';
 
+    btn.className = 'tower-btn';
+    btn.style.setProperty('--c', t.clr);
     btn.innerHTML = `
       <div class="tower-btn-icon">${t.icon}</div>
       <div class="tower-btn-name">${t.nm}</div>
@@ -338,6 +389,10 @@ export function renderTowers() {
     `;
 
     btn.onclick = () => {
+      hideTooltip();
+      const s = getState();
+      const affordable = s.money >= t.cost;
+      const selected = s.selectedTower === t.id;
       if (affordable) {
         setSelectedTower(selected ? null : t.id);
         setSellMode(false);
@@ -348,12 +403,160 @@ export function renderTowers() {
       }
     };
 
+    attachTooltip(btn, t);
+    _towerBarButtons.push(btn);
     fragment.appendChild(btn);
   });
 
-  // Clear and append all at once
-  bar.innerHTML = '';
   bar.appendChild(fragment);
+}
+
+/**
+ * Compute difficulty rating 1–5 based on total enemy HP.
+ * @param {Array} entries - Preview entries with {count, hp}
+ * @param {number} averageHpPerWave - Baseline HP for rating 1
+ * @returns {number} 1–5
+ */
+export function computeWaveDifficulty(entries, averageHpPerWave) {
+  const totalHp = entries.reduce((sum, e) => sum + (e.hp || 0) * (e.count || 1), 0);
+  const baseline = (averageHpPerWave || 600) * 1.5;
+  return Math.min(5, Math.max(1, Math.ceil(totalHp / baseline)));
+}
+
+/**
+ * Determine the primary wave type from entries for border styling.
+ * @param {Array} entries
+ * @returns {string} 'boss'|'air'|'fire'|'tank'|'swarm'|'mixed'
+ */
+export function getWaveTypeClass(entries) {
+  if (entries.some(e => e.boss || (e.tags || []).includes('boss'))) return 'boss';
+  const tagCounts = { air: 0, fire: 0, tank: 0, swarm: 0 };
+  entries.forEach(e => {
+    const tags = e.tags || [];
+    if (tags.includes('air') || tags.includes('flying')) tagCounts.air += e.count || 1;
+    if (tags.includes('fire')) tagCounts.fire += e.count || 1;
+    if (tags.includes('armor') || tags.includes('tank')) tagCounts.tank += e.count || 1;
+    if (tags.includes('swarm') || tags.includes('speed')) tagCounts.swarm += e.count || 1;
+  });
+  const max = Math.max(...Object.values(tagCounts));
+  if (max === 0) return 'mixed';
+  const dominant = Object.entries(tagCounts).find(([, v]) => v === max)[0];
+  return dominant;
+}
+
+/**
+ * Get speed indicator emoji for an enemy.
+ * @param {string} speedClass
+ * @returns {string}
+ */
+export function getSpeedIndicator(speedClass) {
+  if (speedClass === 'slow') return '🐢';
+  if (speedClass === 'fast' || speedClass === 'very_fast') return '⚡';
+  return '🏃';
+}
+
+/**
+ * Get special ability badges HTML for an enemy entry.
+ * @param {Object} entry
+ * @returns {string}
+ */
+function getAbilityBadges(entry) {
+  const tags = new Set(entry.tags || []);
+  const badges = [];
+  if (entry.boss || tags.has('boss')) badges.push('👑');
+  if (entry.flying || tags.has('air')) badges.push('🦅');
+  if (entry.armor || tags.has('armor')) badges.push('🛡️');
+  if (entry.fire || tags.has('fire')) badges.push('🔥');
+  return badges.join('');
+}
+
+/**
+ * Build and display the enhanced wave preview panel.
+ * Exported for testability.
+ */
+export function buildEnhancedWavePreview() {
+  const panel = document.getElementById('wavePreview');
+  const headerEl = document.getElementById('wavePreviewHeader');
+  const bodyEl = document.getElementById('wavePreviewBody');
+
+  if (!panel) return;
+
+  const state = getState();
+  const { wave, WAVES, themeData, waveActive } = state;
+
+  // Hide if wave is active or no more waves
+  if (waveActive || !WAVES || wave >= WAVES.length) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  const nextWaveData = WAVES[wave];
+  if (!nextWaveData) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  const preview = getWavePreview(nextWaveData, themeData.enemies);
+  if (!preview.entries.length) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  // Enrich entries with HP data from themeData.enemies
+  const byId = new Map((themeData.enemies || []).map(e => [e.id, e]));
+  const richEntries = preview.entries.map(entry => {
+    const enemyDef = byId.get(entry.id);
+    return { ...entry, hp: enemyDef?.hp || 0, speedClass: enemyDef?.speedClass || 'normal' };
+  });
+
+  // Calculate average HP across all enemies in all waves (rough baseline)
+  const averageHpPerWave = computeAverageHpBaseline(WAVES, themeData.enemies);
+  const difficulty = computeWaveDifficulty(richEntries, averageHpPerWave);
+  const waveType = getWaveTypeClass(richEntries);
+  const maxHp = Math.max(...richEntries.map(e => e.hp), 1);
+
+  // Update border type class
+  ['boss', 'air', 'fire', 'tank', 'swarm', 'mixed'].forEach(t => panel.classList.remove(`wp-type-${t}`));
+  panel.classList.add(`wp-type-${waveType}`);
+
+  // Render header
+  if (headerEl) {
+    const skulls = '💀'.repeat(difficulty);
+    headerEl.innerHTML = `<span class="wp-label">NEXT WAVE</span><span class="wp-skulls">${skulls}</span>`;
+  }
+
+  // Render enemy rows
+  if (bodyEl) {
+    bodyEl.innerHTML = richEntries.map(entry => buildEnemyRow(entry, maxHp)).join('');
+  }
+
+  panel.style.display = 'flex';
+}
+
+function computeAverageHpBaseline(WAVES, enemies) {
+  if (!WAVES || !WAVES.length) return 600;
+  const byId = new Map((enemies || []).map(e => [e.id, e]));
+  const sample = WAVES.slice(0, Math.min(5, WAVES.length));
+  const totals = sample.map(waveData => {
+    return Object.entries(waveData).reduce((sum, [id, count]) => {
+      return sum + ((byId.get(id)?.hp || 0) * count);
+    }, 0);
+  });
+  const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
+  return avg || 600;
+}
+
+function buildEnemyRow(entry, maxHp) {
+  const speed = getSpeedIndicator(entry.speedClass);
+  const badges = getAbilityBadges(entry);
+  const hpPct = Math.max(8, Math.round((entry.hp / maxHp) * 100));
+  return `<div class="wp-enemy-row">
+    <span class="wp-enemy-name">${entry.name}</span>
+    <span class="wp-enemy-count">×${entry.count}</span>
+    <span class="wp-speed">${speed}</span>
+    <span class="wp-badges">${badges}</span>
+    <div class="wp-hp-bar-wrap"><div class="wp-hp-bar" style="width:${hpPct}%"></div></div>
+  </div>`;
 }
 
 /**
@@ -361,52 +564,106 @@ export function renderTowers() {
  * Displayed between waves so players can plan.
  */
 function showWavePreview() {
-  if (!domCache) cacheDOMElements();
-
-  const state = getState();
-  const { wave, WAVES, themeData } = state;
-
-  // Don't show if no upcoming wave
-  if (!WAVES || wave >= WAVES.length) {
-    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
-    return;
-  }
-
-  // state.wave is the last completed wave (1-based after increment).
-  // WAVES is a 0-indexed array, so WAVES[state.wave] is the *next* wave's data.
-  const nextWaveData = WAVES[wave];
-  if (!nextWaveData) {
-    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
-    return;
-  }
-
-  const parts = [];
-  const preview = getWavePreview(nextWaveData, themeData.enemies);
-  preview.entries.forEach(entry => {
-    const flags = getThreatBadges(entry);
-    parts.push(`${entry.count}×${entry.name}${flags ? ' ' + flags : ''}`);
-  });
-
-  if (parts.length === 0) {
-    if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
-    return;
-  }
-
-  const pressure = preview.pressureTags.length ? ` [${preview.pressureTags.join(', ')}]` : '';
-  if (domCache.wavePreviewContent) domCache.wavePreviewContent.textContent = `${parts.join('  ·  ')}${pressure}`;
-  if (domCache.wavePreview) domCache.wavePreview.style.display = 'flex';
+  buildEnhancedWavePreview();
 }
 
-function getThreatBadges(entry) {
-  const tags = new Set(entry.tags || []);
-  const badges = [];
-  if (entry.boss || tags.has('boss')) badges.push('Boss');
-  if (entry.flying || tags.has('air')) badges.push('Air');
-  if (entry.armor || tags.has('armor')) badges.push('Armor');
-  if (entry.fire || tags.has('fire')) badges.push('Fire');
-  if (tags.has('speed')) badges.push('Fast');
-  if (tags.has('bruiser')) badges.push('Bruiser');
-  return badges.join('/');
+// Wave announcement container (created once, reused)
+let announceContainer = null;
+let announceClearTimer = null;
+
+/**
+ * Show a dramatic wave announcement overlay.
+ * @param {number} waveNumber - Current wave number
+ * @param {string} themeName  - Wave theme label (e.g. "Swarm", "Heavy")
+ * @param {boolean} isBoss    - Whether this is a boss wave
+ */
+export function showWaveAnnouncement(waveNumber, themeName, isBoss) {
+  const container = getOrCreateAnnounceContainer();
+  resetAnnounceState(container);
+  populateAnnounceContent(container, waveNumber, themeName, isBoss);
+  triggerAnnounceAnimation(container, isBoss);
+}
+
+function getOrCreateAnnounceContainer() {
+  if (announceContainer) return announceContainer;
+
+  const el = document.createElement('div');
+  el.classList.add('wave-announce');
+
+  const numEl = document.createElement('div');
+  numEl.classList.add('wave-announce-number');
+
+  const themeEl = document.createElement('div');
+  themeEl.classList.add('wave-announce-theme');
+
+  el.appendChild(numEl);
+  el.appendChild(themeEl);
+
+  const gameScreen = document.getElementById('gameScreen') || document.body;
+  gameScreen.appendChild(el);
+
+  announceContainer = el;
+  return el;
+}
+
+function resetAnnounceState(container) {
+  container.classList.remove('active', 'boss');
+
+  if (announceClearTimer) {
+    clearTimeout(announceClearTimer);
+    announceClearTimer = null;
+  }
+}
+
+function populateAnnounceContent(container, waveNumber, themeName, isBoss) {
+  const numEl = container.querySelector('.wave-announce-number');
+  const themeEl = container.querySelector('.wave-announce-theme');
+
+  if (numEl) {
+    numEl.textContent = isBoss ? `WARNING  WAVE ${waveNumber}` : `WAVE ${waveNumber}`;
+  }
+
+  if (themeEl) {
+    themeEl.textContent = themeName;
+    themeEl.className = 'wave-announce-theme';
+    const themeClass = resolveThemeClass(themeName);
+    if (themeClass) themeEl.classList.add(themeClass);
+  }
+}
+
+function resolveThemeClass(themeName) {
+  const themeClassMap = {
+    'Swarm': 'swarm',
+    'Heavy': 'heavy',
+    'Air Raid': 'air-raid',
+    'Inferno': 'inferno',
+    'BOSS': 'boss',
+    'Breather': 'breather',
+    'Mixed': 'mixed'
+  };
+  return themeClassMap[themeName] || themeName.toLowerCase().replace(/\s+/g, '-');
+}
+
+function triggerAnnounceAnimation(container, isBoss) {
+  if (isBoss) {
+    container.classList.add('boss');
+    triggerBossVignette();
+  }
+
+  container.classList.add('active');
+
+  announceClearTimer = setTimeout(() => {
+    container.classList.remove('active');
+    announceClearTimer = null;
+  }, 2500);
+}
+
+function triggerBossVignette() {
+  const gameScreen = document.getElementById('gameScreen');
+  if (!gameScreen) return;
+
+  gameScreen.classList.add('boss-vignette');
+  setTimeout(() => gameScreen.classList.remove('boss-vignette'), 1800);
 }
 
 /**
@@ -414,6 +671,10 @@ function getThreatBadges(entry) {
  */
 export function resetHUD() {
   if (!domCache) cacheDOMElements();
+
+  // Clear tower button cache so buttons are rebuilt for new theme
+  _towerBarButtons = [];
+  _towerBarTheme = null;
 
   // Reset previous money tracking
   prevMoneyValue = getState().money;
@@ -429,8 +690,9 @@ export function resetHUD() {
   // Reset auto button
   const autoBtn = document.getElementById('autoBtn');
   if (autoBtn) {
-    autoBtn.textContent = 'AUTO: OFF';
-    autoBtn.classList.remove('on');
+    const autoWave = getState().autoWave;
+    autoBtn.textContent = autoWave ? 'AUTO: ON' : 'AUTO: OFF';
+    autoBtn.classList.toggle('on', autoWave);
   }
 
   // Reset speed buttons
@@ -448,6 +710,7 @@ export function resetHUD() {
   if (domCache.livesStat) {
     domCache.livesStat.classList.remove('warning');
   }
+  setDangerVignette(false);
 
   // Reset money animations
   if (domCache.moneyStat) {

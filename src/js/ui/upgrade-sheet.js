@@ -2,10 +2,12 @@
 
 import { getState, setSelectedPlaced, dispatch, ActionTypes, addMoney, removeTower } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
+import { playSound, playSoundAt } from '../engine/audio.js';
 import { onNavChanged } from '../systems/pathfinding.js';
-import { createTowerMesh } from '../rendering/tower-meshes.js';
+import { createTowerMesh, updateTowerRangeGeometry } from '../rendering/tower-meshes.js';
 import { updateHUD } from './hud.js';
 import { createImpact, createExplosion } from '../systems/particles.js';
+import { renderUpgradePath, applyMaxLevelState, animateStat } from './upgrade-path.js';
 
 // Tower role descriptions for upgrade sheet
 const ROLE_DESCRIPTIONS = {
@@ -18,6 +20,14 @@ const ROLE_DESCRIPTIONS = {
   'DOT': 'Burn Damage',
   'BOSS_KILLER': 'Boss Killer'
 };
+
+const PRIORITY_OPTIONS = [
+  { value: 'first', label: 'First' },
+  { value: 'strong', label: 'Strong' },
+  { value: 'close', label: 'Close' },
+  { value: 'weak', label: 'Weak' },
+  { value: 'last', label: 'Last' }
+];
 
 export function showUpgrade(tower) {
   const state = getState();
@@ -57,6 +67,10 @@ export function showUpgrade(tower) {
     document.getElementById('upBtn').classList.toggle('available', canUpgrade);
   }
 
+  renderUpgradePath(td, tower.lv);
+  applyMaxLevelState(tower.lv >= 3);
+  renderPriorityControls(tower);
+
   document.getElementById('upgradeSheet').classList.add('show');
 }
 
@@ -75,6 +89,7 @@ export function doUpgrade() {
   const upgradeCost = td.up[selectedPlaced.lv];
   if (state.money < upgradeCost) return;
 
+  const prevLv = selectedPlaced.lv;
   dispatch(ActionTypes.ADD_MONEY, -upgradeCost); // Use dispatch so subscribers fire
   selectedPlaced.lv++;
   selectedPlaced.hp = (selectedPlaced.hp || 160) + 60;
@@ -89,10 +104,7 @@ export function doUpgrade() {
 
   // Update range indicator - dispose old geometry to prevent memory leak
   if (selectedPlaced.rangeMesh) {
-    if (selectedPlaced.rangeMesh.geometry) {
-      selectedPlaced.rangeMesh.geometry.dispose();
-    }
-    selectedPlaced.rangeMesh.geometry = new THREE.RingGeometry(selectedPlaced.rng - 0.08, selectedPlaced.rng, 64);
+    updateTowerRangeGeometry(selectedPlaced);
   }
 
   // Rebuild mesh
@@ -108,9 +120,54 @@ export function doUpgrade() {
   createImpact(wx, 0.45, wz, parseInt(td.clr.replace('#', '0x'), 16));
   createExplosion(wx, 0.45, wz, false, parseInt(td.clr.replace('#', '0x'), 16));
 
+  playSound('upgrade');
   emit(GameEvents.TOWER_UPGRADE, { tower: selectedPlaced });
   updateHUD();
   showUpgrade(selectedPlaced);
+
+  // Animate stat counters from old → new values
+  animateStat(document.getElementById('upDmg'), td.dmg[prevLv], td.dmg[selectedPlaced.lv], 300);
+  animateStat(document.getElementById('upRng'), td.rng[prevLv], td.rng[selectedPlaced.lv], 300, 1);
+  animateStat(document.getElementById('upRate'), td.rate[prevLv], td.rate[selectedPlaced.lv], 300, 2);
+}
+
+function getPriorityLabel(priority) {
+  return PRIORITY_OPTIONS.find(option => option.value === priority)?.label || 'First';
+}
+
+function renderPriorityControls(tower) {
+  const controls = document.getElementById('priorityControls');
+  const label = document.getElementById('upPriorityLabel');
+  if (!controls || !tower) return;
+
+  const current = tower.priority || 'first';
+  if (label) label.textContent = getPriorityLabel(current);
+
+  controls.innerHTML = PRIORITY_OPTIONS.map(option => `
+    <button
+      type="button"
+      class="priority-btn${option.value === current ? ' active' : ''}"
+      data-priority="${option.value}"
+    >${option.label}</button>
+  `).join('');
+
+  controls.querySelectorAll('.priority-btn').forEach(btn => {
+    btn.onclick = () => setTowerPriorityFromUI(btn.dataset.priority);
+  });
+}
+
+export function setTowerPriorityFromUI(priority) {
+  const option = PRIORITY_OPTIONS.find(item => item.value === priority);
+  const tower = getState().selectedPlaced;
+  if (!option || !tower) return;
+
+  tower.priority = option.value;
+  renderPriorityControls(tower);
+  emit(GameEvents.UI_UPDATE, {
+    kind: 'tower-priority',
+    tower,
+    priority: option.value
+  });
 }
 
 export function sellTower() {
@@ -137,12 +194,16 @@ export function sellTower() {
   removeTower(selectedPlaced); // Use removeTower dispatch so REMOVE_TOWER events fire
 
   emit(GameEvents.TOWER_SELL, { tower: selectedPlaced, value: val });
+  {
+    const state2 = getState();
+    const hw = state2.COLS / 2;
+    const hh = state2.ROWS / 2;
+    playSoundAt('towerSell', selectedPlaced.x - hw + 0.5, selectedPlaced.y - hh + 0.5);
+  }
 
   onNavChanged();
   hideUpgrade();
   updateHUD();
 }
 
-// Expose to window for HTML onclick handlers
-window.doUpgrade = doUpgrade;
-window.sellTower = sellTower;
+// window.doUpgrade and window.sellTower exposed in main.js

@@ -17,10 +17,9 @@ const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
  * @param {number} sy - Start Y (grid coords)
  * @param {number} gx - Goal X (grid coords)
  * @param {number} gy - Goal Y (grid coords)
- * @param {boolean} allowBreak - Allow breaking through towers
  * @returns {Array|null} Path array or null
  */
-export function findPathGrid(sx, sy, gx, gy, allowBreak) {
+export function findPathGrid(sx, sy, gx, gy) {
   const state = getState();
   const { COLS, ROWS, grid, navVersion } = state;
 
@@ -31,14 +30,14 @@ export function findPathGrid(sx, sy, gx, gy, allowBreak) {
   }
 
   // Check cache
-  const cacheKey = `${sx},${sy}-${gx},${gy}-${allowBreak ? 1 : 0}`;
+  const cacheKey = `${sx},${sy}-${gx},${gy}`;
   if (pathCache.has(cacheKey)) {
     // Return a copy to prevent mutation
     return pathCache.get(cacheKey).map(p => [...p]);
   }
 
   // Compute path
-  const path = computePath(sx, sy, gx, gy, allowBreak, COLS, ROWS, grid);
+  const path = computePath(sx, sy, gx, gy, COLS, ROWS, grid);
 
   // Cache result (even null paths)
   if (path) {
@@ -54,7 +53,7 @@ export function findPathGrid(sx, sy, gx, gy, allowBreak) {
 /**
  * Internal A* computation
  */
-function computePath(sx, sy, gx, gy, allowBreak, COLS, ROWS, grid) {
+function computePath(sx, sy, gx, gy, COLS, ROWS, grid) {
   const inBounds = (x, y) => x >= 0 && x < COLS && y >= 0 && y < ROWS;
   const key = (x, y) => (x << 16) | y; // Faster than string concat
   const h = (x, y) => Math.abs(gx - x) + Math.abs(gy - y); // Manhattan distance
@@ -78,7 +77,7 @@ function computePath(sx, sy, gx, gy, allowBreak, COLS, ROWS, grid) {
   const getCost = (x, y) => {
     const c = grid[y][x];
     if (c.type === 'obstacle') return Infinity;
-    if (c.tower) return allowBreak ? 30 : Infinity;
+    if (c.tower) return Infinity;
     return 1;
   };
 
@@ -164,7 +163,8 @@ export function onNavChanged() {
     const gx = Math.max(0, Math.min(COLS - 1, Math.floor(e.x + hw)));
     const gy = Math.max(0, Math.min(ROWS - 1, Math.floor(e.z + hh)));
 
-    e.path = findPathGrid(gx, gy, BASE.x, BASE.y, true);
+    e.path = findPathGrid(gx, gy, BASE.x, BASE.y);
+    e.stuck = !e.path;
     e.pathIdx = 1;
     e.navV = state.navVersion;
   }

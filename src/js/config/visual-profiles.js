@@ -5,12 +5,12 @@ export const VISUAL_PROFILES = {
       fog: 0x071626,
       fogDensity: 0.007,
       floor: {
-        base: '#b8d9e8',
-        line: 'rgba(92, 150, 184, 0.42)',
-        scratch: 'rgba(255, 255, 255, 0.28)',
-        meshColor: 0x9fcbe0,
-        roughness: 0.22,
-        metalness: 0.08
+        base: '#5f94ad',
+        line: 'rgba(16, 70, 115, 0.72)',
+        scratch: 'rgba(255, 255, 255, 0.10)',
+        meshColor: 0x4f8fae,
+        roughness: 0.50,
+        metalness: 0.02
       },
       path: {
         color: 0x80dfff,
@@ -30,13 +30,14 @@ export const VISUAL_PROFILES = {
     lighting: {
       hemiSky: 0xaedcff,
       hemiGround: 0x263955,
-      hemiIntensity: 0.46,
+      hemiIntensity: 0.24,
       sun: 0xe5f7ff,
-      sunIntensity: 1.18,
+      sunIntensity: 0.62,
       rim: 0x1e88ff,
-      rimIntensity: 0.34,
+      rimIntensity: 0.22,
       accent: 0x00d4ff,
-      exposure: 0.94
+      spotIntensity: 6,
+      exposure: 0.72
     },
     ui: { accent: '#00d4ff', dark: '#06111f' },
     projectiles: {

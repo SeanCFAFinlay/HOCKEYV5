@@ -3,12 +3,15 @@
 
 import { getState, addEnemy, decrementLives, decrementSpawnsPending, addMoney, addScore, incrementKills } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
+import { playSoundAt } from '../engine/audio.js';
 import { findPathGrid, onNavChanged } from './pathfinding.js';
 import { createEnemyMesh, returnEnemyMesh } from '../rendering/enemy-meshes.js';
 import { attachEnemyPowerLabel } from '../rendering/sprites.js';
 import { updateHUD } from '../ui/hud.js';
+import { triggerCurrencyFly } from '../ui/currency-fly.js';
 import { hideUpgrade } from '../ui/upgrade-sheet.js';
 import { assertDefined, assertPositiveNumber, warnIf } from '../utils/assertions.js';
+import { cameraBossTrack } from '../engine/camera.js';
 
 // Enemy state machine states
 export const EnemyState = {
@@ -137,6 +140,11 @@ export function spawnEnemy(ed) {
 
   addEnemy(e);
   decrementSpawnsPending();
+
+  // Dynamic camera: track boss briefly when it spawns
+  if (e.boss) {
+    cameraBossTrack(e.x, e.z);
+  }
 }
 
 /**
@@ -262,7 +270,8 @@ function updateGroundEnemy(e, dt, speed, hw, hh, index) {
 
   // Check if path needs update
   if (e.navV !== navVersion || !e.path) {
-    e.path = findPathGrid(gx, gy, BASE.x, BASE.y, true);
+    e.path = findPathGrid(gx, gy, BASE.x, BASE.y);
+    e.stuck = !e.path;
     e.pathIdx = 1;
     e.navV = navVersion;
   }
@@ -407,22 +416,29 @@ function handleEnemyDeath(e, index) {
 
   e.state = EnemyState.DEAD;
 
-  // Remove mesh
-  if (e.mesh) {
-    state.scene.remove(e.mesh);
-    returnEnemyMesh(e);
-  }
-
-  // Award rewards
+  // Award rewards immediately
   addMoney(e.rwd);
   addScore(Math.floor(e.rwd * 1.5));
   incrementKills();
 
-  // Remove from array
+  // Fly-to currency effect
+  triggerCurrencyFly(e.rwd, e.x, e.y ?? 0.5, e.z);
+
+  // Remove from active enemies array immediately so towers don't target it
   state.enemies.splice(index, 1);
+
+  // SC-5.2: enemy death sound (boss vs normal)
+  const deathSound = e.boss ? 'enemyDeathBoss' : 'enemyDeath';
+  playSoundAt(deathSound, e.x, e.z);
 
   emit(GameEvents.ENEMY_DEATH, { enemy: e, reward: e.rwd });
   updateHUD();
+
+  // Remove mesh and dispose
+  if (e.mesh) {
+    state.scene.remove(e.mesh);
+    returnEnemyMesh(e);
+  }
 }
 
 /**

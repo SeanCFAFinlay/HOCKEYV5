@@ -25,6 +25,7 @@ export const ActionTypes = {
   // Wave state
   SET_WAVE_ACTIVE: 'SET_WAVE_ACTIVE',
   SET_AUTO_WAVE: 'SET_AUTO_WAVE',
+  SET_WAVE_START_LIVES: 'SET_WAVE_START_LIVES',
   SET_SPAWNS_PENDING: 'SET_SPAWNS_PENDING',
   DECREMENT_SPAWNS: 'DECREMENT_SPAWNS',
 
@@ -106,8 +107,9 @@ const initialState = {
     towersLost: 0,
     result: null
   },
-  autoWave: false,
+  autoWave: true,
   autoWaveTimer: null,
+  waveStartLives: 0,
   spawnsPending: 0,
 
   // Entity arrays
@@ -312,6 +314,10 @@ export function dispatch(type, payload) {
       state.autoWave = payload;
       break;
 
+    case ActionTypes.SET_WAVE_START_LIVES:
+      state.waveStartLives = payload;
+      break;
+
     case ActionTypes.SET_AUTO_WAVE_TIMER:
       state.autoWaveTimer = payload;
       break;
@@ -459,8 +465,9 @@ export function dispatch(type, payload) {
       state.sellMode = false;
       state.waveActive = false;
       state.spawnsPending = 0;
-      state.autoWave = false;
+      state.autoWave = true;
       state.autoWaveTimer = null;
+      state.waveStartLives = 0;
       state.animTime = 0;
       state.kills = 0;
       state.runStats = { ...initialState.runStats };
@@ -555,6 +562,10 @@ export function updateRunStats(stats) {
 
 export function setAutoWave(autoWave) {
   dispatch(ActionTypes.SET_AUTO_WAVE, autoWave);
+}
+
+export function setWaveStartLives(lives) {
+  dispatch(ActionTypes.SET_WAVE_START_LIVES, lives);
 }
 
 export function setAutoWaveTimer(timer) {

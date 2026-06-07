@@ -15,6 +15,7 @@ import {
   setWaves,
   setKills,
   setGameMode,
+  setAutoWave,
   resetGameState
 } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
@@ -24,9 +25,12 @@ import { clearSpawnQueue } from '../systems/waves.js';
 import { init3D, onResize, cleanupScene } from '../engine/scene.js';
 import { startGameLoop, stopGameLoop, resetGameTime } from '../engine/loop.js';
 import { initCameraState } from '../engine/camera.js';
+import { setSpeedEffect } from '../engine/postprocessing.js';
+import { clearTargetingFeedback } from '../rendering/targeting-feedback.js';
 import { updateHUD, renderTowers, initHUD, resetHUD } from './hud.js';
 import { performFullCleanup } from '../engine/cleanup.js';
 import { getMapsWithProgress, getThemeProgress, getStarDisplay } from '../systems/progression.js';
+import { showScreenAnimated, cancelTransition } from './transitions.js';
 
 export function renderThemeCards() {
   const container = document.getElementById('themeCards');
@@ -53,6 +57,10 @@ export function renderThemeCards() {
 export function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+}
+
+export function showScreenWithAnimation(id) {
+  showScreenAnimated(id);
 }
 
 export function selectTheme(t) {
@@ -124,7 +132,7 @@ export function selectTheme(t) {
     grid.appendChild(card);
   });
 
-  showScreen('mapScreen');
+  showScreenAnimated('mapScreen');
 }
 
 export function startGame(idx, mode = 'campaign') {
@@ -147,19 +155,22 @@ export function startGame(idx, mode = 'campaign') {
   setScore(0);
   setKills(0);
   setGameSpeed(1);
+  setSpeedEffect(1);
   setGameMode(mode);
+  clearTargetingFeedback();
 
   // Reset all systems
   resetGameState();
   clearPathCache();
   clearSpawnQueue();
   resetGameTime();
+  setAutoWave(true);
 
   // Reset UI
   const ab = document.getElementById('autoBtn');
   if (ab) {
-    ab.textContent = 'AUTO: OFF';
-    ab.classList.remove('on');
+    ab.textContent = 'AUTO: ON';
+    ab.classList.add('on');
   }
 
   // Reset speed buttons
@@ -171,7 +182,7 @@ export function startGame(idx, mode = 'campaign') {
   generateMap();
   setWaves(generateWaves(mapData.waves, themeData, { mode }));
 
-  showScreen('gameScreen');
+  showScreenAnimated('gameScreen');
 
   // Wait for layout before initializing 3D
   (function waitForLayout() {
@@ -215,6 +226,7 @@ export function exitGame() {
 
   // Perform full cleanup
   performFullCleanup();
+  clearTargetingFeedback();
 
   // Hide modals
   document.getElementById('winModal')?.classList.remove('show');
@@ -239,6 +251,8 @@ export function replayGame() {
 
   // Stop current game
   stopGameLoop();
+  setSpeedEffect(1);
+  clearTargetingFeedback();
 
   // Cleanup
   if (state.autoWaveTimer) {
@@ -253,10 +267,6 @@ export function replayGame() {
   }, 100);
 }
 
-// Expose to window for HTML onclick handlers
-window.showScreen = showScreen;
-window.selectTheme = selectTheme;
-window.exitGame = exitGame;
-window.replayGame = replayGame;
+// window.showScreen, showScreenWithAnimation, selectTheme, exitGame, replayGame exposed in main.js
 
 document.addEventListener('DOMContentLoaded', renderThemeCards);

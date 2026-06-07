@@ -4,16 +4,19 @@
   "description": "Hockey vs Soccer Tower Defense 3D Game",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "node scripts/dev-server.mjs",
+    "build": "node scripts/build.mjs",
     "preview": "vite preview",
     "serve": "npx serve .",
     "validate:config": "node scripts/validate-configs.mjs",
     "validate": "npm run validate:config",
     "smoke": "npm run validate:config",
-    "qa": "npm run validate && npm run build"
+    "qa": "npm run validate && npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^4.1.5"
   }
 }

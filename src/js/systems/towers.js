@@ -3,12 +3,16 @@
 
 import { getState, addTower, removeTower, setSelectedTower, setSellMode, addMoney, dispatch, ActionTypes } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
-import { onNavChanged } from './pathfinding.js';
-import { createTowerMesh } from '../rendering/tower-meshes.js';
+import { onNavChanged, findPathGrid } from './pathfinding.js';
+import { createTowerMesh, flashTowerEmissive } from '../rendering/tower-meshes.js';
 import { createProjectile } from './projectiles.js';
 import { updateHUD, renderTowers } from '../ui/hud.js';
 import { showUpgrade, hideUpgrade } from '../ui/upgrade-sheet.js';
 import { assertDefined, assertValidGridPos, warnIf } from '../utils/assertions.js';
+import { spawnGroundRipple, spawnTowerDust } from './particles.js';
+import { shakeCamera } from '../engine/camera.js';
+import { playFireSound } from '../config/sounds.js';
+import { playSoundAt } from '../engine/audio.js';
 
 // Targeting priority modes
 export const TargetPriority = {
@@ -18,6 +22,39 @@ export const TargetPriority = {
   CLOSEST: 'close',   // Nearest to tower
   WEAKEST: 'weak'     // Lowest HP
 };
+
+/**
+ * Check if placing a tower at (col, row) would block all paths from any spawn to base.
+ * @returns {boolean} true if placement would block paths
+ */
+export function wouldBlockPath(col, row) {
+  const state = getState();
+  const { grid, COLS, ROWS } = state;
+  const cell = grid[row] && grid[row][col];
+  if (!cell || cell.tower || cell.type !== 'ground') return true;
+
+  // Temporarily simulate tower placement
+  cell.tower = { id: '__sim__' };
+  try {
+    const spawns = [];
+    const bases = [];
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (grid[y][x].type === 'spawn') spawns.push({ x, y });
+        if (grid[y][x].type === 'base') bases.push({ x, y });
+      }
+    }
+    const base = state.BASE || bases[0];
+    if (!base) return false;
+    for (const s of (state.SPAWNS || spawns)) {
+      const path = findPathGrid(s.x, s.y, base.x, base.y);
+      if (!path || path.length === 0) return true;
+    }
+    return false;
+  } finally {
+    cell.tower = null;
+  }
+}
 
 /**
  * Handle tap on a grid cell
@@ -52,6 +89,11 @@ export function handleCellTap(x, y) {
     }
 
     emit(GameEvents.TOWER_SELL, { tower: cell.tower, value: val });
+    {
+      const hw = state.COLS / 2;
+      const hh = state.ROWS / 2;
+      playSoundAt('towerSell', cell.tower.x - hw + 0.5, cell.tower.y - hh + 0.5);
+    }
     removeTower(cell.tower);
     cell.tower = null;
     onNavChanged();
@@ -82,6 +124,11 @@ export function handleCellTap(x, y) {
     if (!td) return;
 
     if (money >= td.cost) {
+      if (wouldBlockPath(x, y)) {
+        shakeCamera(0.18, 0.08);
+        return;
+      }
+
       const tower = {
         type: selectedTower,
         x,
@@ -112,8 +159,31 @@ export function handleCellTap(x, y) {
       if (td.crit) tower.crit = td.crit;
 
       tower.mesh = createTowerMesh(tower);
+
+      // SC-3.2: drop animation — start mesh 0.5 above final position
+      if (tower.mesh && tower.mesh.position && tower.mesh.userData !== undefined) {
+        tower.mesh.position.y = 0.5;
+        tower.mesh.userData.dropAnim = {
+          elapsed: 0,
+          duration: 0.15,
+          startY: 0.5
+        };
+      }
+
       addTower(tower);
       cell.tower = tower;
+
+      // SC-3.2: placement satisfaction effects
+      const state = getState();
+      const hw = state.COLS / 2;
+      const hh = state.ROWS / 2;
+      const wx = x - hw + 0.5;
+      const wz = y - hh + 0.5;
+
+      spawnGroundRipple(wx, wz, 0xffffff);
+      spawnTowerDust(wx, wz);
+      shakeCamera(0.3, 0.08);
+      playSoundAt('towerPlace', wx, wz);
 
       dispatch(ActionTypes.ADD_MONEY, -td.cost);
       onNavChanged();
@@ -137,20 +207,25 @@ export function updateTowers(dt, gameTime) {
     // Reduce cooldown
     tw.cooldown -= dt;
 
-    // Skip if still on cooldown
-    if (tw.cooldown > 0) continue;
-
     const tx = tw.x - hw + 0.5;
     const tz = tw.y - hh + 0.5;
 
-    // Find best target based on priority
+    // Find best target every tick so selected-tower feedback stays live.
     const target = findTarget(tw, enemies, tx, tz);
+    tw.currentTarget = target;
+
+    // Skip firing if still on cooldown.
+    if (tw.cooldown > 0) continue;
 
     if (target) {
       const p = createProjectile(tw, target, tx, tz);
       if (p) {
         state.projectiles.push(p);
         emit(GameEvents.TOWER_FIRE, { tower: tw, target });
+        // SC-2.5: emissive pulse on fire
+        flashTowerEmissive(tw.mesh, null, 100);
+        // SC-5.2: throttled fire sound
+        playFireSound(tw, tx, tz);
       }
 
       // Set cooldown based on fire rate
@@ -254,6 +329,29 @@ export function cycleTowerPriority(tower) {
 }
 
 /**
+ * Set tower targeting priority directly.
+ * @param {Object} tower - Tower to update
+ * @param {string} priority - TargetPriority value
+ * @returns {boolean} true when applied
+ */
+export function setTowerPriority(tower, priority) {
+  if (!tower || !Object.values(TargetPriority).includes(priority)) return false;
+  tower.priority = priority;
+  return true;
+}
+
+/**
+ * Get ordered priority options for UI controls.
+ * @returns {Array<{value:string,label:string}>}
+ */
+export function getPriorityOptions() {
+  return Object.values(TargetPriority).map(value => ({
+    value,
+    label: getPriorityName(value)
+  }));
+}
+
+/**
  * Get priority display name
  * @param {string} priority - Priority value
  * @returns {string} Display name
@@ -269,5 +367,4 @@ export function getPriorityName(priority) {
   }
 }
 
-// Expose to window for HTML onclick
-window.toggleSell = toggleSell;
+// window.toggleSell exposed in main.js

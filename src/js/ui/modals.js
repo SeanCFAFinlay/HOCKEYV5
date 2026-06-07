@@ -4,6 +4,7 @@ import { getState } from '../engine/state.js';
 import { on, GameEvents } from '../engine/events.js';
 import { selectTheme, startGame } from './screens.js';
 import { saveMapCompletion, getMapProgress } from '../systems/storage.js';
+import { showResultsModal } from './transitions.js';
 
 /**
  * Initialize modal event listeners.
@@ -59,7 +60,7 @@ function _showWinModal(score, waveReached) {
   if (el('winScore'))  el('winScore').textContent  = score;
   if (el('winWaves'))  el('winWaves').textContent  = waveReached;
   if (el('winBest'))   el('winBest').textContent   = best > 0 ? best : '—';
-  el('winModal')?.classList.add('show');
+  showResultsModal('winModal');
 }
 
 function _showLoseModal(wave, score) {
@@ -75,9 +76,7 @@ function _showLoseModal(wave, score) {
   if (el('loseWave'))  el('loseWave').textContent  = wave;
   if (el('loseScore')) el('loseScore').textContent = score;
   if (el('loseBest'))  el('loseBest').textContent  = best > 0 ? best : '—';
-  el('loseModal')?.classList.add('show');
+  showResultsModal('loseModal');
 }
 
-// Expose to window for HTML onclick handlers
-window.closeModal = closeModal;
-window.replayGame = replayGame;
+// window.closeModal and window.replayGame exposed in main.js

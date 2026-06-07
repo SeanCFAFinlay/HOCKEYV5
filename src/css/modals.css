@@ -25,14 +25,16 @@
 
 .modal {
   background: linear-gradient(145deg, rgba(18, 20, 32, 0.99), rgba(10, 12, 20, 0.99));
-  padding: 32px 28px;
+  padding: 36px 28px 28px;
   border-radius: var(--r-xl);
   text-align: center;
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
   border: 1.5px solid;
   box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255,255,255,0.03);
   animation: modal-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
 }
 
 @keyframes modal-pop {
@@ -62,12 +64,68 @@
 
 .modal.win h2 {
   color: var(--grass);
-  text-shadow: 0 0 20px var(--grass-glow);
+  text-shadow: 0 0 20px var(--grass-glow), 0 0 40px rgba(34,197,94,0.25);
 }
 
 .modal.win {
-  border-color: rgba(34, 197, 94, 0.5);
-  box-shadow: var(--shadow-xl), 0 0 40px var(--grass-glow);
+  border-color: rgba(34, 197, 94, 0.55);
+  box-shadow: var(--shadow-xl), 0 0 60px rgba(34,197,94,0.2), 0 0 120px rgba(34,197,94,0.08);
+}
+
+/* Victory golden shimmer sweep */
+.modal.win::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 80%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 215, 0, 0.06) 40%,
+    rgba(255, 215, 0, 0.12) 50%,
+    rgba(255, 215, 0, 0.06) 60%,
+    transparent 100%
+  );
+  animation: win-shimmer 2.4s ease-in-out 0.4s infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes win-shimmer {
+  0%   { left: -120%; }
+  100% { left: 120%; }
+}
+
+/* Confetti particles (pseudo-element, pure CSS) */
+.modal.win::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    #ffd700 0px, #ffd700 6px,
+    #22c55e 6px, #22c55e 12px,
+    #00d4ff 12px, #00d4ff 18px,
+    transparent 18px, transparent 24px
+  );
+  animation: confetti-drop 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+  border-radius: 0 0 4px 4px;
+  opacity: 0.8;
+}
+
+@keyframes confetti-drop {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 0.8; }
+}
+
+.modal > * {
+  position: relative;
+  z-index: 1;
 }
 
 .modal.lose h2 {
@@ -80,6 +138,23 @@
   box-shadow: var(--shadow-xl), 0 0 40px var(--red-glow);
 }
 
+/* Defeat: subtle pulsing border to encourage retry */
+.modal.lose::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--r-xl);
+  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  animation: lose-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes lose-pulse {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  50%       { border-color: rgba(239, 68, 68, 0.45); box-shadow: 0 0 20px rgba(239,68,68,0.1); }
+}
+
 .modal-stats {
   display: flex;
   justify-content: center;
@@ -89,11 +164,22 @@
 }
 
 .modal-stat-val {
-  font-size: 1.7rem;
+  font-size: 2rem;
   font-weight: 700;
   font-family: var(--font-game);
   color: var(--gold);
   text-shadow: 0 0 12px var(--gold-glow);
+  animation: stat-scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Stagger stat animations */
+.modal-stats > :nth-child(1) .modal-stat-val { animation-delay: 0.15s; }
+.modal-stats > :nth-child(2) .modal-stat-val { animation-delay: 0.25s; }
+.modal-stats > :nth-child(3) .modal-stat-val { animation-delay: 0.35s; }
+
+@keyframes stat-scale-in {
+  from { transform: scale(0.5) translateY(8px); opacity: 0; }
+  to   { transform: scale(1) translateY(0);     opacity: 1; }
 }
 
 .modal-stat-label {
@@ -112,35 +198,55 @@
 
 .modal-btn {
   flex: 1;
-  padding: 14px;
+  padding: 16px 12px;
   border: none;
   border-radius: var(--r-md);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   font-family: var(--font-game);
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   color: #fff;
   cursor: pointer;
-  min-height: 48px;
+  min-height: 52px;
   transition: all var(--t-fast);
 }
 
 .modal-btn:active {
-  transform: scale(0.96);
-  opacity: 0.85;
+  transform: scale(0.95) translateY(1px);
+  opacity: 0.9;
+}
+
+@media (hover: hover) {
+  .modal-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+  }
 }
 
 .modal-btn.secondary {
   background: rgba(255, 255, 255, 0.1);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+}
+
+@media (hover: hover) {
+  .modal-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
 }
 
 .modal.win .modal-btn:not(.secondary) {
   background: linear-gradient(135deg, var(--grass), var(--grass-dim));
-  box-shadow: 0 4px 16px var(--grass-glow);
+  box-shadow: 0 4px 20px var(--grass-glow), 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .modal.lose .modal-btn:not(.secondary) {
-  background: linear-gradient(135deg, var(--red), #cc2222);
-  box-shadow: 0 4px 16px var(--red-glow);
+  background: linear-gradient(135deg, var(--ice), var(--ice-dim));
+  box-shadow: 0 4px 20px var(--ice-glow), 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Retry label guidance for defeat */
+.modal.lose .modal-btn:not(.secondary)::before {
+  content: '↺ ';
+  font-size: 1.1em;
 }
