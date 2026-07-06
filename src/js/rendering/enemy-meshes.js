@@ -427,6 +427,39 @@ export function createEnemyMesh(enemy) {
       group.add(crown);
       enemy.crownGlow = crown;
     }
+    
+    // Add particle effects for space enemies
+    const _qualityTier = getQualityName();
+    if (_qualityTier !== 'low') {
+      // Particle system for energy trails
+      const particles = new THREE.Group();
+      
+      // Create a few floating particles around the enemy
+      for (let i = 0; i < 15; i++) {
+        const particle = new THREE.Mesh(
+          new THREE.SphereGeometry(sz * 0.03, 8, 8),
+          new THREE.MeshBasicMaterial({
+            color: accent,
+            transparent: true,
+            opacity: 0.7
+          })
+        );
+        
+        // Random position around the enemy
+        const angle = Math.random() * Math.PI * 2;
+        const distance = sz * (0.5 + Math.random() * 0.5);
+        particle.position.set(
+          Math.cos(angle) * distance,
+          Math.sin(Math.random() * Math.PI) * sz * 0.5,
+          Math.sin(angle) * distance
+        );
+        
+        particles.add(particle);
+      }
+      
+      group.add(particles);
+      enemy.particleSystem = particles;
+    }
   } else {
     // SOCCER BALL - Enhanced with better geometry and shine
     const ballBody = new THREE.Mesh(new THREE.SphereGeometry(sz, 32, 32), bodyMat);
@@ -664,7 +697,7 @@ export function createEnemyMesh(enemy) {
   frostAura.position.y = 0.05;
   slowGroup.add(frostAura);
 
-  // Ice crystals orbiting — 10 crystals on high, 4 on low quality (SC-5.5)
+  // Ice crystals orbiting - 10 crystals on high, 4 on low quality (SC-5.5)
   const _qualityForCrystals = getQualityName();
   const CRYSTAL_COUNT = _qualityForCrystals === 'low' ? 4 : 10;
   enemy.iceCrystals = [];
@@ -748,11 +781,12 @@ export function createEnemyMesh(enemy) {
       sz * 0.15,
       Math.sin(angle) * sz * 0.75
     );
+    burnFlame.rotation.x = Math.PI / 2;
     burnGroup.add(burnFlame);
     enemy.burnFlames.push({ mesh: burnFlame, baseAngle: angle });
   }
 
-  // Heat distortion ring — animated torus above enemy
+  // Heat distortion ring - animated torus above enemy
   const heatRing = new THREE.Mesh(
     new THREE.TorusGeometry(sz * 0.8, sz * 0.03, 8, 24),
     new THREE.MeshBasicMaterial({
@@ -767,7 +801,7 @@ export function createEnemyMesh(enemy) {
   burnGroup.add(heatRing);
   enemy.heatRing = heatRing;
 
-  // Ember particles — 8 on high, 3 on low quality (SC-5.5)
+  // Ember particles - 8 on high, 3 on low quality (SC-5.5)
   const _qualityForEmbers = getQualityName();
   const EMBER_COUNT = _qualityForEmbers === 'low' ? 3 : 8;
   enemy.burnEmbers = [];
@@ -821,6 +855,29 @@ export function createEnemyMesh(enemy) {
       enemy.pulseOffset = Math.random() * Math.PI * 2;
       enemy.pulseSpeed = pulseSpeed;
       enemy.pulseIntensity = pulseIntensity;
+    }
+    
+    // Add special boss effects
+    if (_qualityTier !== 'low') {
+      // Boss energy rings
+      const bossRings = new THREE.Group();
+      
+      for (let i = 0; i < 3; i++) {
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(sz * (1.2 + i * 0.2), sz * 0.05, 16, 32),
+          new THREE.MeshBasicMaterial({
+            color: 0xffd700,
+            transparent: true,
+            opacity: 0.4,
+            side: THREE.DoubleSide
+          })
+        );
+        ring.rotation.x = Math.PI / 2;
+        bossRings.add(ring);
+      }
+      
+      group.add(bossRings);
+      enemy.bossRings = bossRings;
     }
   }
 
