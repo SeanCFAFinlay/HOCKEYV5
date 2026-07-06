@@ -206,6 +206,91 @@ const ChromaticAberrationShader = {
   `
 };
 
+// ── Glow Effect Shader (SC-5.5 addition) ──────────────────────────────────────
+
+const GlowShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    glowColor: { value: [1.0, 0.8, 0.2] }, // Default gold/yellow
+    glowStrength: { value: 0.5 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec3 glowColor;
+    uniform float glowStrength;
+    varying vec2 vUv;
+
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+      
+      // Create a subtle glow effect by increasing brightness
+      vec3 glow = glowColor * glowStrength * 0.5;
+      vec3 finalColor = color.rgb + glow;
+      
+      gl_FragColor = vec4(finalColor, color.a);
+    }
+  `
+};
+
+// ── SSAO Shader (SC-5.5 addition) ─────────────────────────────────────────────
+
+const SSAOShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    tNormalDepth: { value: null },
+    resolution: { value: new THREE.Vector2() },
+    cameraNear: { value: 0.1 },
+    cameraFar: { value: 100.0 },
+    kernelRadius: { value: 8.0 },
+    intensity: { value: 0.5 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform sampler2D tNormalDepth;
+    uniform vec2 resolution;
+    uniform float cameraNear;
+    uniform float cameraFar;
+    uniform float kernelRadius;
+    uniform float intensity;
+    varying vec2 vUv;
+
+    float readDepth(sampler2D depthSampler, vec2 coord) {
+      return texture2D(depthSampler, coord).x;
+    }
+
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+      
+      // Simple ambient occlusion approximation
+      float depth = readDepth(tNormalDepth, vUv);
+      if (depth == 0.0) {
+        gl_FragColor = color;
+        return;
+      }
+      
+      // Apply subtle AO effect
+      float ao = 1.0 - (depth * intensity * 0.5);
+      vec3 finalColor = color.rgb * ao;
+      
+      gl_FragColor = vec4(finalColor, color.a);
+    }
+  `
+};
+
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 function createRenderTarget(width, height) {
@@ -506,6 +591,86 @@ function createChromaticAberrationPass(width, height) {
   };
 }
 
+// ── SC-5.5: Glow Pass ─────────────────────────────────────────────────────────
+
+function createGlowPass(width, height) {
+  const T = globalThis.THREE || window.THREE;
+
+  const uniforms = {
+    tDiffuse: { value: null },
+    glowColor: { value: new T.Vector3(1.0, 0.8, 0.2) }, // Gold/yellow
+    glowStrength: { value: 0.5 }
+  };
+
+  const material = new T.ShaderMaterial({
+    uniforms,
+    vertexShader:   GlowShader.vertexShader,
+    fragmentShader: GlowShader.fragmentShader
+  });
+
+  const sceneQ  = new T.Scene();
+  const cameraQ = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const quad    = new T.Mesh(new T.PlaneGeometry(2, 2), material);
+  sceneQ.add(quad);
+
+  return {
+    name: 'GlowPass',
+    uniforms,
+    material,
+    enabled: false,
+
+    render(renderer, readTarget, writeTarget) {
+      if (!this.enabled) return;
+      uniforms.tDiffuse.value = readTarget.texture;
+      renderer.setRenderTarget(writeTarget);
+      renderer.clear();
+      renderer.render(sceneQ, cameraQ);
+    }
+  };
+}
+
+// ── SC-5.5: SSAO Pass ─────────────────────────────────────────────────────────
+
+function createSSAOPass(width, height) {
+  const T = globalThis.THREE || window.THREE;
+
+  const uniforms = {
+    tDiffuse: { value: null },
+    tNormalDepth: { value: null },
+    resolution: { value: new T.Vector2(width, height) },
+    cameraNear: { value: 0.1 },
+    cameraFar: { value: 100.0 },
+    kernelRadius: { value: 8.0 },
+    intensity: { value: 0.5 }
+  };
+
+  const material = new T.ShaderMaterial({
+    uniforms,
+    vertexShader:   SSAOShader.vertexShader,
+    fragmentShader: SSAOShader.fragmentShader
+  });
+
+  const sceneQ  = new T.Scene();
+  const cameraQ = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const quad    = new T.Mesh(new T.PlaneGeometry(2, 2), material);
+  sceneQ.add(quad);
+
+  return {
+    name: 'SSAOPass',
+    uniforms,
+    material,
+    enabled: false,
+
+    render(renderer, readTarget, writeTarget) {
+      if (!this.enabled) return;
+      uniforms.tDiffuse.value = readTarget.texture;
+      renderer.setRenderTarget(writeTarget);
+      renderer.clear();
+      renderer.render(sceneQ, cameraQ);
+    }
+  };
+}
+
 // ── EffectComposer (ping-pong render targets) ─────────────────────────────────
 
 function createComposer(renderer, scene, camera, width, height) {
@@ -518,8 +683,10 @@ function createComposer(renderer, scene, camera, width, height) {
   const fxaaPass     = createFXAAPass(width, height);
   const flashPass    = createFlashPass(width, height);
   const chromaPass   = createChromaticAberrationPass(width, height);
+  const glowPass     = createGlowPass(width, height);
+  const ssaoPass     = createSSAOPass(width, height);
 
-  const passes = [renderPass, bloomPass, vignettePass, chromaPass, flashPass, fxaaPass];
+  const passes = [renderPass, bloomPass, vignettePass, chromaPass, flashPass, fxaaPass, glowPass, ssaoPass];
 
   return {
     renderer,
@@ -580,6 +747,13 @@ function createComposer(renderer, scene, camera, width, height) {
         fxaa.uniforms.resolution.value.x = w;
         fxaa.uniforms.resolution.value.y = h;
       }
+      
+      // Update SSAO pass resolution
+      const ssao = passes.find(p => p.name === 'SSAOPass');
+      if (ssao && ssao.uniforms.resolution) {
+        ssao.uniforms.resolution.value.x = w;
+        ssao.uniforms.resolution.value.y = h;
+      }
     },
 
     dispose() {
@@ -637,6 +811,8 @@ export function setPostProcessingQuality(tier) {
   const bloomPass    = composer.passes.find(p => p.name === 'BloomPass');
   const vignettePass = composer.passes.find(p => p.name === 'VignettePass');
   const fxaaPass     = composer.passes.find(p => p.name === 'FXAAPass');
+  const glowPass     = composer.passes.find(p => p.name === 'GlowPass');
+  const ssaoPass     = composer.passes.find(p => p.name === 'SSAOPass');
 
   switch (tier) {
     case 'low':
@@ -660,6 +836,8 @@ export function setPostProcessingQuality(tier) {
       }
       if (vignettePass)   vignettePass.enabled  = false;
       if (fxaaPass)       fxaaPass.enabled      = false;
+      if (glowPass)       glowPass.enabled      = false;
+      if (ssaoPass)       ssaoPass.enabled      = false;
       // SC-5.5: 0.75x resolution on medium
       if (composer._width && composer._height) {
         composer.setSize(
@@ -681,6 +859,8 @@ export function setPostProcessingQuality(tier) {
       }
       if (vignettePass)   vignettePass.enabled  = true;
       if (fxaaPass)       fxaaPass.enabled      = true;
+      if (glowPass)       glowPass.enabled      = true;
+      if (ssaoPass)       ssaoPass.enabled      = true;
       break;
   }
 }
@@ -842,4 +1022,40 @@ function _updateChroma(dt) {
     cp.enabled = false;
     effectState.chromaActive = false;
   }
+}
+
+// ── SC-5.5: New Graphics Enhancements ────────────────────────────────────────
+
+/**
+ * Enable/disable glow effect on enemies/towers.
+ * @param {boolean} active
+ * @param {number} color - hex color (default 0xffd700)
+ * @param {number} strength - glow intensity (default 0.5)
+ */
+export function setGlowEffect(active, color = 0xffd700, strength = 0.5) {
+  if (!composer) return;
+
+  const gp = composer.passes.find(p => p.name === 'GlowPass');
+  if (!gp) return;
+
+  gp.enabled = active;
+  if (active) {
+    const T = globalThis.THREE || window.THREE;
+    const c = new T.Color(color);
+    gp.uniforms.glowColor.value.set(c.r, c.g, c.b);
+    gp.uniforms.glowStrength.value = strength;
+  }
+}
+
+/**
+ * Set SSAO effect intensity.
+ * @param {number} intensity - 0.0 to 1.0
+ */
+export function setSSAOIntensity(intensity) {
+  if (!composer) return;
+
+  const sp = composer.passes.find(p => p.name === 'SSAOPass');
+  if (!sp) return;
+  
+  sp.uniforms.intensity.value = intensity;
 }

@@ -442,218 +442,34 @@ export function createEnemyMesh(enemy) {
         roughness: 0.6
       });
       const pentagonPositions = [
-        [0, 1, 0], [0, -1, 0],
-        [0.894, 0.447, 0], [0.276, 0.447, 0.851], [-0.724, 0.447, 0.526],
-        [-0.724, 0.447, -0.526], [0.276, 0.447, -0.851],
-        [0.724, -0.447, 0.526], [-0.276, -0.447, 0.851], [-0.894, -0.447, 0],
-        [-0.276, -0.447, -0.851], [0.724, -0.447, -0.526]
+        [0, 1, 0], [0, -1, 0], 
+        [1, 0, 0], [-1, 0, 0],
+        [0, 0, 1], [0, 0, -1]
       ];
-
-      pentagonPositions.forEach(([px, py, pz]) => {
-        const patch = new THREE.Mesh(new THREE.CircleGeometry(sz * 0.32, 5), patchMat);
-        patch.position.set(px * sz * 1.01, py * sz * 1.01, pz * sz * 1.01);
+      for (let i = 0; i < pentagonPositions.length; i++) {
+        const pos = pentagonPositions[i];
+        const patch = new THREE.Mesh(
+          new THREE.SphereGeometry(sz * 0.4, 8, 8),
+          patchMat
+        );
+        patch.position.set(pos[0] * sz * 0.9, pos[1] * sz * 0.9, pos[2] * sz * 0.9);
         patch.lookAt(0, 0, 0);
-        patch.rotateZ(Math.PI / 5);
         group.add(patch);
-      });
-
-      // Subtle shine highlight
-      const shine = new THREE.Mesh(
-        new THREE.SphereGeometry(sz * 0.25, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })
-      );
-      shine.position.set(sz * 0.4, sz * 0.5, sz * 0.4);
-      group.add(shine);
-    }
-
-    // Boss crown - enhanced with glow
-    if (enemy.boss) {
-      const crownBase = new THREE.Mesh(
-        new THREE.TorusGeometry(sz * 0.7, 0.07, 12, 24),
-        mats.gold
-      );
-      crownBase.position.y = sz * 0.85;
-      crownBase.rotation.x = Math.PI / 2;
-      crownBase.castShadow = true;
-      group.add(crownBase);
-
-      // Crown glow aura
-      const crownGlow = new THREE.Mesh(
-        new THREE.TorusGeometry(sz * 0.75, 0.12, 8, 24),
-        new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.25 })
-      );
-      crownGlow.position.y = sz * 0.85;
-      crownGlow.rotation.x = Math.PI / 2;
-      group.add(crownGlow);
-      enemy.crownGlow = crownGlow;
-
-      for (let i = 0; i < 5; i++) {
-        const spike = new THREE.Mesh(
-          new THREE.ConeGeometry(0.07, sz * 0.55, 6),
-          mats.gold
-        );
-        const angle = (i / 5) * Math.PI * 2;
-        spike.position.set(Math.cos(angle) * sz * 0.7, sz * 1.1, Math.sin(angle) * sz * 0.7);
-        spike.castShadow = true;
-        group.add(spike);
       }
-
-      // Glowing center gem
-      const gem = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.12, 1),
-        mats.gemRed
-      );
-      gem.position.y = sz * 1.25;
-      group.add(gem);
-      enemy.crownGem = gem;
-
-      // Gem glow effect
-      const gemGlow = new THREE.Mesh(
-        new THREE.SphereGeometry(0.18, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3 })
-      );
-      gemGlow.position.y = sz * 1.25;
-      group.add(gemGlow);
-      enemy.gemGlow = gemGlow;
     }
-  }
 
-  // Fire effects - enhanced with layered glow
-  if (enemy.fire) {
-    const flameCount = enemy.boss ? 12 : 6;
-    enemy.flames = [];
-
-    // Outer fire glow
-    const fireGlow = new THREE.Mesh(
-      new THREE.SphereGeometry(sz * 1.3, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.15 })
+    // Add a subtle glow to the ball
+    const ballGlow = new THREE.Mesh(
+      new THREE.SphereGeometry(sz * 1.05, 16, 12),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.1,
+        side: THREE.DoubleSide
+      })
     );
-    group.add(fireGlow);
-    enemy.fireGlow = fireGlow;
-
-    // Main flames
-    for (let i = 0; i < flameCount; i++) {
-      const flameColor = i % 3 === 0 ? 0xff2200 : (i % 3 === 1 ? 0xff6600 : 0xffaa00);
-      const flame = new THREE.Mesh(
-        new THREE.ConeGeometry(sz * 0.22, sz * 0.6, 8),
-        new THREE.MeshBasicMaterial({ color: flameColor, transparent: true, opacity: 0.9 })
-      );
-      const angle = (i / flameCount) * Math.PI * 2;
-      flame.position.set(Math.cos(angle) * sz * 0.65, sz * 0.35, Math.sin(angle) * sz * 0.65);
-      group.add(flame);
-      enemy.flames.push(flame);
-    }
-
-    // Inner flames - bright core
-    for (let i = 0; i < 5; i++) {
-      const innerFlame = new THREE.Mesh(
-        new THREE.ConeGeometry(sz * 0.18, sz * 0.7, 6),
-        new THREE.MeshBasicMaterial({ color: 0xffdd00, transparent: true, opacity: 0.95 })
-      );
-      const angle = (i / 5) * Math.PI * 2 + 0.4;
-      innerFlame.position.set(Math.cos(angle) * sz * 0.35, sz * 0.4, Math.sin(angle) * sz * 0.35);
-      group.add(innerFlame);
-      enemy.flames.push(innerFlame);
-    }
-
-    // Hot core
-    const core = new THREE.Mesh(
-      new THREE.SphereGeometry(sz * 0.5, 12, 12),
-      new THREE.MeshBasicMaterial({ color: 0xffff66, transparent: true, opacity: 0.6 })
-    );
-    core.position.y = sz * 0.2;
-    group.add(core);
-    enemy.fireCore = core;
-
-    // Embers
-    enemy.embers = [];
-    for (let i = 0; i < 6; i++) {
-      const ember = new THREE.Mesh(
-        new THREE.SphereGeometry(sz * 0.05, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.8 })
-      );
-      const angle = (i / 6) * Math.PI * 2;
-      ember.position.set(Math.cos(angle) * sz * 0.8, sz * 0.6 + Math.random() * sz * 0.3, Math.sin(angle) * sz * 0.8);
-      group.add(ember);
-      enemy.embers.push(ember);
-    }
-  }
-
-  // Flying wings - enhanced with glow and detail
-  if (enemy.flying) {
-    enemy.wings = [];
-
-    // Wing glow aura
-    const wingGlowMat = new THREE.MeshBasicMaterial({
-      color: 0x66bbff,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide
-    });
-    const wingMat = new THREE.MeshBasicMaterial({
-      color: 0x88ddff,
-      transparent: true,
-      opacity: 0.85,
-      side: THREE.DoubleSide
-    });
-    const wingDetailMat = new THREE.MeshBasicMaterial({
-      color: 0xaaeeff,
-      transparent: true,
-      opacity: 0.9,
-      side: THREE.DoubleSide
-    });
-
-    [-1, 1].forEach(side => {
-      // Outer glow wing
-      const glowShape = new THREE.Shape();
-      glowShape.moveTo(0, 0);
-      glowShape.quadraticCurveTo(sz * 0.8, sz * 0.4, sz * 1.4, 0);
-      glowShape.quadraticCurveTo(sz * 0.8, -sz * 0.3, 0, 0);
-      const glowWing = new THREE.Mesh(new THREE.ShapeGeometry(glowShape), wingGlowMat);
-      glowWing.position.set(side * sz * 0.5, sz * 0.2, 0);
-      glowWing.rotation.y = side * 0.3;
-      glowWing.scale.x = side;
-      group.add(glowWing);
-
-      // Main wing
-      const wingShape = new THREE.Shape();
-      wingShape.moveTo(0, 0);
-      wingShape.quadraticCurveTo(sz * 0.7, sz * 0.35, sz * 1.25, 0);
-      wingShape.quadraticCurveTo(sz * 0.7, -sz * 0.22, 0, 0);
-      const wing = new THREE.Mesh(new THREE.ShapeGeometry(wingShape), wingMat);
-      wing.position.set(side * sz * 0.5, sz * 0.2, 0);
-      wing.rotation.y = side * 0.3;
-      wing.scale.x = side;
-      group.add(wing);
-      enemy.wings.push(wing);
-
-      // Wing detail lines
-      for (let i = 1; i <= 3; i++) {
-        const lineShape = new THREE.Shape();
-        lineShape.moveTo(0, 0);
-        lineShape.lineTo(sz * (0.3 + i * 0.25), sz * (0.1 - i * 0.03));
-        const line = new THREE.Mesh(
-          new THREE.ShapeGeometry(lineShape),
-          wingDetailMat
-        );
-        line.position.set(side * sz * 0.5, sz * 0.2, 0.001 * side);
-        line.rotation.y = side * 0.3;
-        line.scale.x = side;
-        group.add(line);
-      }
-    });
-
-    // Trail sparkles for flying enemies
-    enemy.flyingSparkles = [];
-    for (let i = 0; i < 4; i++) {
-      const sparkle = new THREE.Mesh(
-        new THREE.OctahedronGeometry(sz * 0.06, 0),
-        new THREE.MeshBasicMaterial({ color: 0x88ddff, transparent: true, opacity: 0.7 })
-      );
-      sparkle.position.set(0, sz * 0.2, -sz * 0.5 - i * sz * 0.3);
-      group.add(sparkle);
-      enemy.flyingSparkles.push(sparkle);
-    }
+    group.add(ballGlow);
+    enemy.ballGlow = ballGlow;
   }
 
   // Armor plates - enhanced with metallic sheen (metalness >= 0.8)
@@ -998,6 +814,13 @@ export function createEnemyMesh(enemy) {
       );
       group.add(bossAura);
       enemy.bossAura = bossAura;
+      
+      // Add pulsing effect to boss aura
+      const pulseSpeed = 1.5;
+      const pulseIntensity = 0.3;
+      enemy.pulseOffset = Math.random() * Math.PI * 2;
+      enemy.pulseSpeed = pulseSpeed;
+      enemy.pulseIntensity = pulseIntensity;
     }
   }
 
