@@ -429,8 +429,8 @@ export function createEnemyMesh(enemy) {
     }
     
     // Add particle effects for space enemies
-    const _qualityTier = getQualityName();
-    if (_qualityTier !== 'low') {
+    const qualityTier = getQualityName();
+    if (qualityTier !== 'low') {
       // Particle system for energy trails
       const particles = new THREE.Group();
       
@@ -649,9 +649,9 @@ export function createEnemyMesh(enemy) {
   enemy.hpMats = mats;
 
   // Movement trail ribbons for fast enemies (SC-5.5: skip on low quality)
-  const _qualityTier = getQualityName();
+  const qualityTier = getQualityName();
   const isFastEnemy = enemy.speed === 'fast' || enemy.speed === 'very_fast';
-  if (isFastEnemy && _qualityTier !== 'low') {
+  if (isFastEnemy && qualityTier !== 'low') {
     group.userData.hasTrail = true;
     const enemyColor = (enemy.fire ? 0xff6600 : 0x00d4ff);
     const trailOpacities = [0.3, 0.15, 0.08];
@@ -698,8 +698,8 @@ export function createEnemyMesh(enemy) {
   slowGroup.add(frostAura);
 
   // Ice crystals orbiting - 10 crystals on high, 4 on low quality (SC-5.5)
-  const _qualityForCrystals = getQualityName();
-  const CRYSTAL_COUNT = _qualityForCrystals === 'low' ? 4 : 10;
+  const qualityForCrystals = getQualityName();
+  const CRYSTAL_COUNT = qualityForCrystals === 'low' ? 4 : 10;
   enemy.iceCrystals = [];
   for (let i = 0; i < CRYSTAL_COUNT; i++) {
     const sizeVariation = 0.06 + (i % 3) * 0.02; // 0.06, 0.08, 0.10 cycling
@@ -802,8 +802,8 @@ export function createEnemyMesh(enemy) {
   enemy.heatRing = heatRing;
 
   // Ember particles - 8 on high, 3 on low quality (SC-5.5)
-  const _qualityForEmbers = getQualityName();
-  const EMBER_COUNT = _qualityForEmbers === 'low' ? 3 : 8;
+  const qualityForEmbers = getQualityName();
+  const EMBER_COUNT = qualityForEmbers === 'low' ? 3 : 8;
   enemy.burnEmbers = [];
   for (let i = 0; i < EMBER_COUNT; i++) {
     const ember = new THREE.Mesh(
@@ -834,8 +834,8 @@ export function createEnemyMesh(enemy) {
     group.scale.y = 1.3;
     group.scale.z = 1.3;
 
-    const _qualityForAura = getQualityName();
-    if (_qualityForAura !== 'low') {
+    const qualityForAura = getQualityName();
+    if (qualityForAura !== 'low') {
       const auraRadius = sz * 1.6;
       const bossAura = new THREE.Mesh(
         new THREE.SphereGeometry(auraRadius, 16, 12),
@@ -858,7 +858,7 @@ export function createEnemyMesh(enemy) {
     }
     
     // Add special boss effects
-    if (_qualityTier !== 'low') {
+    if (qualityTier !== 'low') {
       // Boss energy rings
       const bossRings = new THREE.Group();
       
