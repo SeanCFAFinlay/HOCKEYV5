@@ -204,22 +204,24 @@ function buildTowerBase(group, tower, scale, visuals, theme, color, lv) {
  * @param {number} scale
  * @param {THREE.Color} color - tower accent colour
  */
-function addTowerDetail(group, scale, color) {
+function addTowerDetail(group, scale, color, theme) {
   if (!group.userData.animParts) group.userData.animParts = [];
+  const isHockey = theme === 'hockey';
+  const GOLD = 0xffd257;
 
   // Holographic ring hovering just above the base — the clearest "this is a
-  // built machine" cue at distance. Spins via the existing 'spin' anim type.
+  // built machine" cue at distance. Gold on hockey to carry the team look from
+  // the reference art; the tower's accent colour elsewhere. Spins via 'spin'.
   const holo = new THREE.Mesh(
-    new THREE.TorusGeometry(0.3 * scale, 0.008 * scale, 6, 40),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+    new THREE.TorusGeometry(0.3 * scale, 0.01 * scale, 8, 40),
+    new THREE.MeshBasicMaterial({ color: isHockey ? GOLD : color, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   holo.rotation.x = Math.PI / 2;
   holo.position.y = 0.26;
   group.add(holo);
   group.userData.animParts.push({ mesh: holo, type: 'spin', speed: 0.6 });
 
-  // Bright core spark low in the body, pulsing. (LED strips now live on the
-  // platform base — see buildTowerBase — so no vents here.)
+  // Bright core spark low in the body, pulsing.
   const core = new THREE.Mesh(
     new THREE.SphereGeometry(0.05 * scale, 24, 24),
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
@@ -227,6 +229,24 @@ function addTowerDetail(group, scale, color) {
   core.position.y = 0.34 * scale;
   group.add(core);
   group.userData.animParts.push({ mesh: core, type: 'pulse' });
+
+  // Hockey team trim: a solid gold collar band where the figure meets the
+  // platform, and gold shoulder studs — the navy/gold/red uniform cue that ties
+  // every hockey tower to the reference art regardless of its accent colour.
+  if (isHockey) {
+    const goldMat = new THREE.MeshStandardMaterial({ color: GOLD, metalness: 0.95, roughness: 0.12, emissive: 0x5a3d00, emissiveIntensity: 0.3, envMapIntensity: 1 });
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.2 * scale, 0.035 * scale, 12, 32), goldMat);
+    collar.rotation.x = Math.PI / 2;
+    collar.position.y = 0.26 * scale;
+    collar.castShadow = true;
+    group.add(collar);
+
+    for (let i = 0; i < 2; i++) {
+      const stud = new THREE.Mesh(new THREE.SphereGeometry(0.05 * scale, 24, 24), goldMat);
+      stud.position.set((i ? 1 : -1) * 0.2 * scale, 0.26 * scale, 0);
+      group.add(stud);
+    }
+  }
 }
 
 // Shared enhanced materials
@@ -338,10 +358,11 @@ export function createTowerMesh(tower) {
   const hw = COLS / 2;
   const hh = ROWS / 2;
   const lv = tower.lv || 0;
-  // Base 1.15 (was 1.0) for more visual presence at the camera distance. Only
-  // the tower's own geometry keys off `scale`; the range rings use tower.rng
-  // directly, so this stays purely cosmetic and never misstates range.
-  const scale = 1.15 + lv * 0.08;
+  // Base 1.5 (was 1.15) for real presence at the camera distance — the towers
+  // were too small for their detail to read. Only the tower's own geometry keys
+  // off `scale`; the range rings use tower.rng directly, so this is purely
+  // cosmetic and never misstates range.
+  const scale = 1.5 + lv * 0.1;
   const mats = getTowerMaterials();
 
   // Enhanced materials with emissive glow based on tower color
@@ -414,7 +435,7 @@ export function createTowerMesh(tower) {
   }
 
   addUpgradeCollars(group, lv, scale, visuals.towers.levelGlow);
-  addTowerDetail(group, scale, color);
+  addTowerDetail(group, scale, color, theme);
 
   // Range indicator - hidden by default and revealed for selected towers.
   const rangeOuter = createRangeRing(tower.rng - 0.1, tower.rng, color, 0.38);

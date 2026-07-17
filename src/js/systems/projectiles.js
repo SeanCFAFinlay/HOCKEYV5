@@ -269,38 +269,36 @@ export function createProjectile(tw, target, sx, sz) {
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
-  // Slightly larger core so the shot reads at a distance without becoming a blob.
-  mesh.scale.multiplyScalar(1.9);
+  // Bigger core so shots read as substantial projectiles at the camera distance,
+  // not specks (was 1.9).
+  mesh.scale.multiplyScalar(2.6);
 
-  // Enhanced glow effect with multiple layers. Brighter than before (inner
-  // 0.65 / outer 0.32) so shots register as bright bolts against the lit ice
-  // and feed the bloom pass more; additive blending keeps them from darkening
-  // anything they pass over.
+  // Three-layer additive glow so every shot registers as a bright bolt against
+  // the lit ice and feeds the bloom pass; additive blending keeps them from
+  // darkening anything they cross. Larger and brighter than before.
   const glowCol = trailColor || (mat && mat.color) || new THREE.Color(c);
 
-  // Inner glow
-  const innerGlowGeo = new THREE.SphereGeometry(0.13, 12, 12);
-  const innerGlowMat = new THREE.MeshBasicMaterial({
-    color: glowCol,
-    transparent: true,
-    opacity: 0.82,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-  const innerGlow = new THREE.Mesh(innerGlowGeo, innerGlowMat);
-  innerGlow.renderOrder = 998;
+  // Inner glow — hot core.
+  const innerGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 14, 14),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  innerGlow.renderOrder = 999;
   mesh.add(innerGlow);
 
-  // Outer glow
-  const outerGlowGeo = new THREE.SphereGeometry(0.26, 10, 10);
-  const outerGlowMat = new THREE.MeshBasicMaterial({
-    color: glowCol,
-    transparent: true,
-    opacity: 0.42,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-  const outerGlow = new THREE.Mesh(outerGlowGeo, outerGlowMat);
+  // Mid glow — the projectile's colour.
+  const midGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 12, 12),
+    new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  midGlow.renderOrder = 998;
+  mesh.add(midGlow);
+
+  // Outer halo.
+  const outerGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.38, 12, 12),
+    new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
   outerGlow.renderOrder = 997;
   mesh.add(outerGlow);
 
