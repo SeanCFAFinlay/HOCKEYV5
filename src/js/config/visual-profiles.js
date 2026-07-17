@@ -9,8 +9,11 @@ export const VISUAL_PROFILES = {
         line: 'rgba(16, 70, 115, 0.72)',
         scratch: 'rgba(255, 255, 255, 0.10)',
         meshColor: 0x4f8fae,
-        roughness: 0.50,
-        metalness: 0.02
+        // Low roughness for a wet-ice sheen. Reads as polished only because
+        // scene.environment now gives it something to reflect (see scene.js
+        // _generateEnvMap); the scratch normal map keeps it from mirroring.
+        roughness: 0.28,
+        metalness: 0.05
       },
       path: {
         color: 0x80dfff,

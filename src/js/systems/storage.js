@@ -229,12 +229,11 @@ export function getMapProgress(theme, mapIndex) {
  * @returns {boolean} Whether map is unlocked
  */
 export function isMapUnlocked(theme, mapIndex) {
-  // First map is always unlocked
-  if (mapIndex === 0) return true;
-
-  // Other maps require previous map to be completed
-  const prevProgress = getMapProgress(theme, mapIndex - 1);
-  return prevProgress?.completed === true;
+  // All maps are open. Progression (stars, best scores, completion) is still
+  // tracked and shown, but no map is gated behind finishing the previous one —
+  // a player can jump to any arena. Was: mapIndex 0 free, each later map
+  // required the previous one completed.
+  return true;
 }
 
 /**

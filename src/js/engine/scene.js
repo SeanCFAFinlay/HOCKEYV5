@@ -376,15 +376,63 @@ export function init3D() {
 }
 
 /**
- * Generate a simple envMap from the built scene and apply to metallic materials.
- * Uses PMREMGenerator to process scene lighting into a cubemap.
+ * Build a small equirectangular gradient standing in for the arena's lighting
+ * environment: a bright overhead band (the rink lights) fading to a cool sky
+ * above and a dark floor below.
+ *
+ * This replaces reflecting the scene itself, which is near-black — so its
+ * reflections added nothing and every metallic/glossy surface read as flat.
+ * A lit gradient gives the ice a sheen and the pucks/towers a real highlight.
+ * Kept deliberately muted (no pure white) so image-based lighting adds gloss,
+ * not the blown-out washout that stacked spotlights used to cause.
+ *
+ * @param {object} visuals - active visual profile (for the accent tint)
+ * @returns {THREE.Texture} equirectangular reflection texture
+ */
+function _buildEnvGradientTexture(visuals) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+
+  const g = ctx.createLinearGradient(0, 0, 0, 128);
+  g.addColorStop(0.00, '#2a3a52'); // cool upper sky
+  g.addColorStop(0.34, '#4a6076'); // horizon haze
+  g.addColorStop(0.42, '#cfe0ec'); // bright light band (the fixtures)
+  g.addColorStop(0.50, '#8aa4b8');
+  g.addColorStop(0.72, '#1a2436'); // lower surroundings
+  g.addColorStop(1.00, '#0a0f18'); // dark floor
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 128);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  return tex;
+}
+
+/**
+ * Generate an envMap from a lit gradient and apply it scene-wide.
+ * Uses PMREMGenerator to prefilter it for MeshStandardMaterial roughness.
  */
 function _generateEnvMap(renderer, scene) {
   try {
+    const visuals = getVisualProfile(getState().themeData);
     const pmrem = new THREE.PMREMGenerator(renderer);
     pmrem.compileEquirectangularShader();
-    const envRenderTarget = pmrem.fromScene(scene);
-    setSceneEnvMap(envRenderTarget.texture);
+
+    const gradient = _buildEnvGradientTexture(visuals);
+    const envRenderTarget = pmrem.fromEquirectangular(gradient);
+    const envTex = envRenderTarget.texture;
+
+    // scene.environment applies to EVERY MeshStandardMaterial at once — ice,
+    // enemies, boards, towers — each modulated by its own envMapIntensity, so
+    // the subtle surfaces stay subtle and only the metallic ones pop.
+    scene.environment = envTex;
+    // Keep feeding the tower shared-material path too; per-material envMap wins
+    // over scene.environment, and the towers want a slightly stronger reflection.
+    setSceneEnvMap(envTex);
+
+    gradient.dispose();
     pmrem.dispose();
   } catch (e) {
     // PMREMGenerator may not be available in all contexts (e.g. tests)
@@ -595,8 +643,12 @@ function buildHockeyRink() {
     normalMap: scratchNormalMap,
     normalScale: new THREE.Vector2(0.18, 0.18),
     metalness: visuals.map.floor.metalness ?? 0.02,
-    roughness: visuals.map.floor.roughness ?? 0.42,
-    envMapIntensity: 0.14
+    // Glossier and more reflective now that scene.environment exists to reflect.
+    // The scratch normal map breaks the sheen into streaks, so it reads as
+    // polished ice rather than a mirror. Was roughness 0.42 / envMapIntensity
+    // 0.14, which with no envMap gave a flat matte sheet.
+    roughness: visuals.map.floor.roughness ?? 0.3,
+    envMapIntensity: 0.5
   });
 
   const ice = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), iceMat);

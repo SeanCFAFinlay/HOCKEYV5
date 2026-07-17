@@ -148,9 +148,12 @@ export function createEnemyMesh(enemy) {
     bodyMat = new THREE.MeshStandardMaterial({
       color: visual.color,
       metalness: isSpace ? 0.65 : (isHockey ? 0.24 : 0.45),
-      roughness: isSpace ? 0.22 : (isHockey ? 0.52 : 0.38),
+      // Glossier + a stronger self-glow so each type's identity colour reads
+      // against the now-brighter ice. Hockey emissive was 0.11 — barely lit —
+      // which is why the pieces looked washed and hard to tell apart.
+      roughness: isSpace ? 0.22 : (isHockey ? 0.4 : 0.32),
       emissive: visual.accent || visual.color,
-      emissiveIntensity: isSpace ? 0.36 : (isHockey ? 0.11 : 0.16)
+      emissiveIntensity: isSpace ? 0.36 : (isHockey ? 0.3 : 0.24)
     });
   } else if (isHockey) {
     bodyMat = mats.puckBody;
@@ -166,30 +169,33 @@ export function createEnemyMesh(enemy) {
     const isEnforcer = enemyName.includes('Enforcer');
     
     // Adjust body material for new enemy types – vivid distinct colors
+    // Glossier and brighter self-glow than before (was ~0.12-0.20 emissive,
+    // 0.50-0.54 roughness) so the three special types stay distinct against the
+    // reflective ice.
     if (isSpeedSkater) {
       bodyMat = new THREE.MeshStandardMaterial({
         color: 0x00ddee, // Bright cyan for speed
-        metalness: 0.24,
-        roughness: 0.50,
-        emissive: 0x008899,
-        emissiveIntensity: 0.20
+        metalness: 0.28,
+        roughness: 0.4,
+        emissive: 0x00c2d6,
+        emissiveIntensity: 0.42
       });
     } else if (isDefenseman) {
       bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x1a3388, // Bold blue for defenseman
-        metalness: 0.26,
-        roughness: 0.52,
-        emissive: 0x0a1844,
-        emissiveIntensity: 0.12,
-        envMapIntensity: 0.28
+        color: 0x2247c4, // Bold blue for defenseman
+        metalness: 0.3,
+        roughness: 0.4,
+        emissive: 0x14307f,
+        emissiveIntensity: 0.34,
+        envMapIntensity: 0.5
       });
     } else if (isEnforcer) {
       bodyMat = new THREE.MeshStandardMaterial({
-        color: 0xbb2222, // Saturated red for enforcer
-        metalness: 0.24,
-        roughness: 0.54,
-        emissive: 0x550000,
-        emissiveIntensity: 0.16
+        color: 0xdd2a2a, // Saturated red for enforcer
+        metalness: 0.28,
+        roughness: 0.42,
+        emissive: 0x8f1414,
+        emissiveIntensity: 0.36
       });
     }
     
