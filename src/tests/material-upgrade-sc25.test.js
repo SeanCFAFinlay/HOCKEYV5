@@ -256,16 +256,19 @@ describe('SC-2.5 Material Upgrade', () => {
       expect(baseChild).toBeDefined();
     });
 
-    it('tower base material roughness is >= 0.55 (matte, not shiny)', () => {
+    it('tower base platform reads as finished metal, not raw/rough', () => {
       const group = createTowerMesh({ type: 't1', lv: 0, x: 5, y: 5, rng: 3 });
-      // Find base mesh (first CylinderGeometry hex child)
+      // Find the platform body (first round CylinderGeometry with a PBR material).
       const baseMesh = group.children.find(c =>
         c instanceof MockMesh &&
         c.geometry?.constructor?.name === 'CylinderGeometry' &&
         c.material?.roughness !== undefined
       );
       if (baseMesh) {
-        expect(baseMesh.material.roughness).toBeGreaterThanOrEqual(0.55);
+        // The reference platform is a semi-glossy navy metal, not a matte block:
+        // a mid roughness with real metalness, so the scene env map reflects on it.
+        expect(baseMesh.material.roughness).toBeLessThanOrEqual(0.6);
+        expect(baseMesh.material.metalness).toBeGreaterThanOrEqual(0.4);
       }
     });
 

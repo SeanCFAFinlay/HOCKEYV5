@@ -225,20 +225,23 @@ describe('SC-2.3 Improved Procedural Meshes', () => {
   });
 
   describe('Layered base platform', () => {
-    it('has an inner raised hex platform (smaller radius cylinder with 6 sides)', () => {
+    // The base is a round reference-styled command platform (buildTowerBase):
+    // a faceted body, a chamfered lip and an icy top, all round cylinders,
+    // rather than the earlier stacked 6-sided hexes.
+    it('has a layered round platform built from several stacked cylinders', () => {
       const tower = { type: 't1', lv: 0, x: 5, y: 5, rng: 3 };
       const group = createTowerMesh(tower);
-      const hexCyls = getCylinders(group).filter(c => c.radialSegments === 6);
-      // Should have at least 2 hex cylinders: main base + inner raised hex
-      expect(hexCyls.length).toBeGreaterThanOrEqual(2);
+      // Platform body, lip and icy top are all many-sided round cylinders.
+      const roundCyls = getCylinders(group).filter(c => c.radialSegments >= 16);
+      expect(roundCyls.length).toBeGreaterThanOrEqual(3);
     });
 
-    it('inner hex is smaller radius than outer base', () => {
+    it('platform layers have varied radii (body wider than the icy top)', () => {
       const tower = { type: 't1', lv: 0, x: 5, y: 5, rng: 3 };
       const group = createTowerMesh(tower);
-      const hexCyls = getCylinders(group).filter(c => c.radialSegments === 6);
-      const radii = hexCyls.map(c => c.radiusTop).sort((a, b) => a - b);
-      // Smallest radius (inner) should be less than largest (outer)
+      const roundCyls = getCylinders(group).filter(c => c.radialSegments >= 16);
+      const radii = roundCyls.map(c => c.radiusTop).sort((a, b) => a - b);
+      // Smallest (icy top) is meaningfully narrower than the widest (body/glow).
       expect(radii[0]).toBeLessThan(radii[radii.length - 1]);
     });
 

@@ -84,19 +84,112 @@ function getDetailBoxGeo() {
   return _detailBoxGeo;
 }
 
-function addBaseRivets(group, scale, mat) {
-  const geo = getDetailSphereGeo();
-  const count = 6;
-  for (let i = 0; i < count; i++) {
-    const angle = (i / count) * Math.PI * 2;
-    const rivet = new THREE.Mesh(geo, mat);
-    rivet.position.set(
-      Math.cos(angle) * 0.38 * scale,
-      0.13,
-      Math.sin(angle) * 0.38 * scale
-    );
+/**
+ * The reference-art command platform every tower sits on: a round, faceted navy
+ * disc with a chamfered top, glowing LED strips inset in the rim, red accent
+ * panels, chrome rivets, and an icy top surface carrying a red face-off ring.
+ * Modelled on the supplied hockey tower renders; accent colours track the theme.
+ *
+ * Assigns tower.baseGlow and tower.baseRim, which the firing flash pulses.
+ *
+ * @param {THREE.Group} group
+ * @param {object} tower
+ * @param {number} scale
+ * @param {object} visuals - active visual profile
+ * @param {string} theme
+ * @param {THREE.Color} color - tower accent colour
+ * @param {number} lv - upgrade level
+ */
+function buildTowerBase(group, tower, scale, visuals, theme, color, lv) {
+  const isHockey = theme === 'hockey';
+  // Brighter navy than the very-dark profile base so the platform reads as a
+  // solid object, matching the reference. Non-hockey themes keep their own hue.
+  const platformColor = isHockey ? 0x1c3a63 : visuals.towers.base;
+  const ledColor = visuals.towers.levelGlow ?? 0x00d4ff;
+  const redAccent = 0xd42f2f;
+  const R = 0.52 * scale;
+
+  // Main faceted platform body.
+  const platMat = new THREE.MeshStandardMaterial({
+    color: platformColor, metalness: 0.55, roughness: 0.42, envMapIntensity: 0.7
+  });
+  const platform = new THREE.Mesh(new THREE.CylinderGeometry(R, R * 1.08, 0.16, 20), platMat);
+  platform.position.y = 0.08;
+  platform.castShadow = true;
+  platform.receiveShadow = true;
+  group.add(platform);
+
+  // Chamfered top lip, a touch lighter for edge definition.
+  const lipMat = new THREE.MeshStandardMaterial({
+    color: isHockey ? 0x24487a : platformColor, metalness: 0.6, roughness: 0.35, envMapIntensity: 0.8
+  });
+  const lip = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.92, R, 0.04, 20), lipMat);
+  lip.position.y = 0.17;
+  group.add(lip);
+
+  // Icy top surface the character/turret stands on.
+  const iceTopMat = new THREE.MeshStandardMaterial({
+    color: 0xcfe8f6, metalness: 0.1, roughness: 0.22, envMapIntensity: 0.6
+  });
+  const iceTop = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.82, R * 0.82, 0.02, 32), iceTopMat);
+  iceTop.position.y = 0.2;
+  iceTop.receiveShadow = true;
+  group.add(iceTop);
+
+  // Red face-off ring on the ice, like the reference platforms.
+  const faceoff = new THREE.Mesh(
+    new THREE.TorusGeometry(R * 0.55, 0.012 * scale, 8, 40),
+    new THREE.MeshBasicMaterial({ color: redAccent })
+  );
+  faceoff.rotation.x = Math.PI / 2;
+  faceoff.position.y = 0.212;
+  group.add(faceoff);
+
+  // Glowing LED strips inset around the rim — the platform's signature.
+  const ledMat = new THREE.MeshBasicMaterial({ color: ledColor, blending: THREE.AdditiveBlending, depthWrite: false });
+  const redPanelMat = new THREE.MeshStandardMaterial({ color: redAccent, metalness: 0.3, roughness: 0.5, emissive: redAccent, emissiveIntensity: 0.25 });
+  const rivetMat = new THREE.MeshStandardMaterial({ color: visuals.towers.metal, metalness: 0.9, roughness: 0.12 });
+  const segCount = 8;
+  for (let i = 0; i < segCount; i++) {
+    const a = (i / segCount) * Math.PI * 2;
+    const nx = Math.cos(a), nz = Math.sin(a);
+    // Every third segment is a red accent panel; the rest are blue LED strips.
+    if (i % 3 === 1) {
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.03 * scale, 0.1, 0.14 * scale), redPanelMat);
+      panel.position.set(nx * R * 1.02, 0.08, nz * R * 1.02);
+      panel.rotation.y = -a;
+      group.add(panel);
+    } else {
+      const led = new THREE.Mesh(new THREE.BoxGeometry(0.02 * scale, 0.03, 0.13 * scale), ledMat);
+      led.position.set(nx * R * 1.03, 0.1, nz * R * 1.03);
+      led.rotation.y = -a;
+      group.add(led);
+    }
+    // A chrome rivet above each segment boundary.
+    const ra = a + Math.PI / segCount;
+    const rivet = new THREE.Mesh(getDetailSphereGeo(), rivetMat);
+    rivet.position.set(Math.cos(ra) * R * 1.0, 0.14, Math.sin(ra) * R * 1.0);
     group.add(rivet);
   }
+
+  // Soft underglow puddle on the ice beneath the platform.
+  const baseGlow = new THREE.Mesh(
+    new THREE.CylinderGeometry(R * 1.15, R * 1.2, 0.02, 24),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  baseGlow.position.y = 0.012;
+  group.add(baseGlow);
+  tower.baseGlow = baseGlow;
+
+  // Accent rim the firing flash pulses.
+  const baseRim = new THREE.Mesh(
+    new THREE.TorusGeometry(R * 0.86, 0.016 * scale, 12, 40),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  baseRim.rotation.x = Math.PI / 2;
+  baseRim.position.y = 0.205;
+  group.add(baseRim);
+  tower.baseRim = baseRim;
 }
 
 /**
@@ -121,26 +214,17 @@ function addTowerDetail(group, scale, color) {
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   holo.rotation.x = Math.PI / 2;
-  holo.position.y = 0.24;
+  holo.position.y = 0.26;
   group.add(holo);
   group.userData.animParts.push({ mesh: holo, type: 'spin', speed: 0.6 });
 
-  // Glowing vent segments seated in the base rim, tinted by the tower colour.
-  const ventMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false });
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
-    const vent = new THREE.Mesh(new THREE.BoxGeometry(0.05 * scale, 0.012, 0.11 * scale), ventMat);
-    vent.position.set(Math.cos(a) * 0.34 * scale, 0.125, Math.sin(a) * 0.34 * scale);
-    vent.rotation.y = -a;
-    group.add(vent);
-  }
-
-  // Bright core spark low in the body, pulsing.
+  // Bright core spark low in the body, pulsing. (LED strips now live on the
+  // platform base — see buildTowerBase — so no vents here.)
   const core = new THREE.Mesh(
     new THREE.SphereGeometry(0.05 * scale, 24, 24),
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
   );
-  core.position.y = 0.26 * scale;
+  core.position.y = 0.34 * scale;
   group.add(core);
   group.userData.animParts.push({ mesh: core, type: 'pulse' });
 }
@@ -295,65 +379,10 @@ export function createTowerMesh(tower) {
   const whiteMat = mats.white;
   const goldMat = mats.gold;
 
-  // Hexagonal base platform with enhanced materials
-  const baseShape = new THREE.CylinderGeometry(0.4 * scale, 0.45 * scale, 0.12, 6);
-  const base = new THREE.Mesh(baseShape, baseMat);
-  base.position.y = 0.06;
-  base.castShadow = true;
-  base.receiveShadow = true;
-  group.add(base);
-
-  // Inner raised hex — layered base for depth
-  const innerHexMat = new THREE.MeshStandardMaterial({
-    color: visuals.towers.base,
-    metalness: 0.55,
-    roughness: 0.4,
-    emissive: visuals.towers.base,
-    emissiveIntensity: 0.15 + lv * 0.04
-  });
-  const innerHex = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.28 * scale, 0.32 * scale, 0.06, 6),
-    innerHexMat
-  );
-  innerHex.position.y = 0.15;
-  innerHex.castShadow = true;
-  group.add(innerHex);
-
-  // Base glow underneath
-  const baseGlow = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.42 * scale, 0.47 * scale, 0.02, 6),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4 })
-  );
-  baseGlow.position.y = 0.01;
-  group.add(baseGlow);
-  tower.baseGlow = baseGlow;
-
-  // Base rim glow - enhanced with pulsing (between outer and inner hex layers)
-  const baseRim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.34 * scale, 0.018, 16, 6),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 })
-  );
-  baseRim.rotation.x = Math.PI / 2;
-  baseRim.position.y = 0.145;
-  group.add(baseRim);
-  tower.baseRim = baseRim;
-
-  // Inner rim detail
-  const innerRim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.26 * scale, 0.012, 8, 6),
-    new THREE.MeshStandardMaterial({ color: 0x333344, metalness: 0.7, roughness: 0.3 })
-  );
-  innerRim.rotation.x = Math.PI / 2;
-  innerRim.position.y = 0.18;
-  group.add(innerRim);
-
-  // Rivets around base perimeter
-  const rivetMat = new THREE.MeshStandardMaterial({
-    color: visuals.towers.metal,
-    metalness: 0.9,
-    roughness: 0.1
-  });
-  addBaseRivets(group, scale, rivetMat);
+  // Reference-styled command platform: a round navy sci-fi disc with glowing
+  // LED strips, red accent panels, chrome rivets and an icy top carrying a red
+  // face-off ring. Sets tower.baseGlow / tower.baseRim for the firing flash.
+  buildTowerBase(group, tower, scale, visuals, theme, color, lv);
 
   // Level indicator stars with glow
   for (let i = 0; i <= lv; i++) {
