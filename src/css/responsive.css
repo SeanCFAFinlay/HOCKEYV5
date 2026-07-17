@@ -495,27 +495,35 @@ button, .tower-btn, .menu-card, .map-card {
   }
 }
 
-/* ── Phone: keep the HUD stat chips on a single row ───────────────────────── */
+/* ── Phone: only four things stay on the HUD ─────────────────────────────── */
 /*
- * #minimapContainer is pinned at top:70px, which assumes a one-row HUD —
- * .hud-left is 69px tall. .hud-right defaults to `flex-wrap: wrap` with
- * `max-width: 50%`, and on a 390px screen four chips need ~216px against the
- * 195px that allows. They wrapped onto a second row and collided with the
- * minimap. Shrink the chips instead of wrapping them.
+ * Pause, wave, money, lives. Everything else moves into the pause sheet, which
+ * is what it exists for — see js/ui/pause-sheet.js.
+ *
+ * Money and lives are the two numbers a player reads constantly while deciding
+ * what to place, so they earn a permanent slot. Kills and score are read at the
+ * end of a run, not during one; the enemy count duplicates what the board
+ * already shows; and the settings gear is a once-a-session control sitting in
+ * prime real estate.
+ *
+ * This also removes the wrapping problem the chips used to have. #minimapContainer
+ * is pinned at top:70px, which assumes a one-row HUD (.hud-left is 69px tall),
+ * but .hud-right is `flex-wrap: wrap; max-width: 50%` — on a 390px screen that
+ * gave 195px to fit ~216px of chips, so they wrapped onto a second row and
+ * collided with the minimap. Two chips fit without being shrunk to fine print.
  */
 @media (max-width: 480px) {
+  .hud-stat.kills,
+  .hud-stat.score,
+  .hud-center,
+  .hud-right .settings-btn {
+    display: none;
+  }
+
   .hud-right {
     flex-wrap: nowrap;
     max-width: none;
     min-width: 0;
-  }
-
-  .hud-stat {
-    padding: 5px 7px;
-    font-size: 0.7rem;
-    gap: 3px;
-    border-width: 1px;
-    white-space: nowrap;
   }
 
   /* 120px of a 390px screen is a lot of pitch to cover. */

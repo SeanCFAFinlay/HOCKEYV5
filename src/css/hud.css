@@ -417,6 +417,11 @@
   user-select: none;
   -webkit-user-select: none;
   pointer-events: auto;
+  /* Column, so the toggle sits under the map rather than on top of it. It used
+     to be a 10px-tall chip pinned over the map's bottom-right corner: too small
+     to hit and covering the thing it belonged to. */
+  display: flex;
+  flex-direction: column;
 }
 
 #minimapCanvas {
@@ -427,22 +432,47 @@
 }
 
 #minimapToggle {
-  position: absolute;
-  bottom: 2px;
-  right: 4px;
+  width: 100%;
+  min-height: 44px;
   background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 10px;
-  padding: 1px 4px;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 17px;
   cursor: pointer;
-  line-height: 1.4;
-  z-index: 1;
-  font-family: var(--font-game, 'Rajdhani', sans-serif);
-  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--t-fast), color var(--t-fast);
 }
 
 #minimapToggle:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#minimapToggle:focus-visible {
+  outline: 2px solid var(--theme-accent, var(--ice));
+  outline-offset: -2px;
+}
+
+/* Collapsed: the widget is just its button, so the board is unobstructed. */
+#minimapContainer.collapsed {
+  width: auto;
+  background: transparent;
+  border-color: transparent;
+}
+
+#minimapContainer.collapsed #minimapCanvas {
+  display: none;
+}
+
+#minimapContainer.collapsed #minimapToggle {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
 }

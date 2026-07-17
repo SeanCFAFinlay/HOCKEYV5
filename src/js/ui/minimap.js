@@ -10,11 +10,17 @@ import {
 
 const CANVAS_SIZE        = 120;
 const UPDATE_INTERVAL_MS = 200;
+const COLLAPSE_KEY       = 'hockeyTD_minimapCollapsed';
 
 let container        = null;
 let canvas           = null;
 let ctx              = null;
+let toggleBtn        = null;
+// Whether the widget exists on screen at all.
 let visible          = true;
+// Whether the map body is folded away, leaving just the toggle. Distinct from
+// `visible`: a collapsed minimap still offers its button.
+let collapsed        = false;
 let lastDrawTime     = -Infinity;
 // SC-5.5: low quality — only update on explicit calls, not on the game loop
 let _lowQualityMode  = false;
@@ -31,13 +37,46 @@ export function initMinimap() {
   canvas    = _buildCanvas(container);
   ctx       = canvas.getContext('2d');
 
-  const toggleBtn = _buildToggleButton(container);
+  toggleBtn = _buildToggleButton(container);
   canvas.addEventListener('click', _handleMinimapTap);
   canvas.addEventListener('touchstart', _handleMinimapTouch, { passive: true });
   toggleBtn.addEventListener('click', _handleToggle);
 
+  collapsed = _prefersCollapsed();
+  _applyCollapsed();
+
   const gameScreen = document.getElementById('gameScreen') || document.body;
   gameScreen.appendChild(container);
+}
+
+/**
+ * Should the minimap start folded away?
+ *
+ * Collapsed by default on a portrait phone: at 88px it takes roughly a fifth of
+ * a 390px width, competing with the HUD, for information the board already
+ * shows. Elsewhere there is room for it.
+ *
+ * An explicit choice always wins over the default, and persists — a player who
+ * opens the map on their phone should not have to reopen it every wave.
+ */
+function _prefersCollapsed() {
+  try {
+    const saved = localStorage.getItem(COLLAPSE_KEY);
+    if (saved !== null) return saved === '1';
+  } catch {
+    // localStorage can throw in private-mode Safari; fall through to the default.
+  }
+
+  if (typeof matchMedia !== 'function') return false;
+  return matchMedia('(max-width: 480px) and (orientation: portrait)').matches;
+}
+
+function _applyCollapsed() {
+  if (container) container.classList.toggle('collapsed', collapsed);
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    toggleBtn.setAttribute('aria-label', collapsed ? 'Show minimap' : 'Hide minimap');
+  }
 }
 
 /**
@@ -55,7 +94,9 @@ export function setMinimapVisible(show) {
  * explicitly on tower place/sell events.
  */
 export function updateMinimap() {
-  if (!canvas || !ctx || !visible) return;
+  // A collapsed map is not on screen, so drawing it is pure cost — which is
+  // most of the point of collapsing it by default on a phone.
+  if (!canvas || !ctx || !visible || collapsed) return;
   if (_lowQualityMode) return; // SC-5.5: low quality — skip automatic updates
   const now = performance.now();
   if (now - lastDrawTime < UPDATE_INTERVAL_MS) return;
@@ -77,7 +118,7 @@ export function setMinimapLowQualityMode(enabled) {
  * Use on tower place / sell events when in low quality mode.
  */
 export function forceMinimapRedraw() {
-  if (!canvas || !ctx || !visible) return;
+  if (!canvas || !ctx || !visible || collapsed) return;
   lastDrawTime = performance.now();
   _drawMinimap();
 }
@@ -128,8 +169,11 @@ function _buildCanvas(parent) {
 function _buildToggleButton(parent) {
   const btn = document.createElement('button');
   btn.id = 'minimapToggle';
-  btn.textContent = 'M';
-  btn.setAttribute('aria-label', 'Toggle minimap');
+  btn.type = 'button';
+  // A map, not the letter M — which named nothing and read as debug output.
+  btn.textContent = '🗺';
+  // aria-label and aria-expanded are set by _applyCollapsed, which knows which
+  // way the button currently points.
   parent.appendChild(btn);
   return btn;
 }
@@ -179,8 +223,15 @@ function _renderMarkers(spawns, base, cellW, cellH) {
 // ── Event handlers ─────────────────────────────────────────────────────────
 
 function _handleToggle() {
-  visible = !visible;
-  if (canvas) canvas.style.display = visible ? 'block' : 'none';
+  collapsed = !collapsed;
+  try {
+    localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+  } catch {
+    // Not being able to remember the choice is not a reason to ignore it.
+  }
+  _applyCollapsed();
+  // Collapsing skips redraws, so the map is stale by the time it reopens.
+  if (!collapsed) forceMinimapRedraw();
 }
 
 function _handleMinimapTap(evt) {
