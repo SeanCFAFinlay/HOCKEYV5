@@ -96,6 +96,7 @@
   <link rel="stylesheet" href="css/action-bar.css">
   <link rel="stylesheet" href="css/upgrade-sheet.css">
   <link rel="stylesheet" href="css/pause-sheet.css">
+  <link rel="stylesheet" href="css/icons.css">
   <link rel="stylesheet" href="css/modals.css">
   <link rel="stylesheet" href="css/camera-btns.css">
   <link rel="stylesheet" href="css/responsive.css">
@@ -120,7 +121,7 @@
 <!-- Menu Screen -->
 <div id="menuScreen" class="screen active">
   <div class="logo">
-    <div class="logo-icons">🏒 ⚡ ⚽</div>
+    <div class="logo-icons"><span data-icon="stick"></span><span data-icon="bolt"></span><span data-icon="ball"></span></div>
     <h1><span class="ice">HOCKEY</span> vs <span class="grass">SOCCER</span></h1>
     <p>TOWER DEFENSE 3D</p>
   </div>
@@ -141,20 +142,20 @@
 <div id="gameScreen" class="screen">
   <div class="hud">
     <div class="hud-left">
-      <button class="hud-menu" type="button" onclick="togglePauseMenu()" aria-label="Pause game">❚❚</button>
+      <button class="hud-menu" type="button" onclick="togglePauseMenu()" aria-label="Pause game"><span data-icon="pause"></span></button>
       <div class="hud-wave-group">
-        <div class="hud-wave">🌊 <span id="waveNum">0</span>/<span id="waveMax">20</span></div>
+        <div class="hud-wave"><span class="hud-ic" data-icon="wave"></span> <span id="waveNum">0</span>/<span id="waveMax">20</span></div>
         <div class="hud-wave-theme" id="waveTheme"></div>
       </div>
     </div>
     <div class="hud-center">
-      <div class="hud-stat enemies" id="enemyCounter">👾<span id="enemyCount">0</span></div>
+      <div class="hud-stat enemies" id="enemyCounter"><span class="hud-ic" data-icon="enemies"></span><span id="enemyCount">0</span></div>
     </div>
     <div class="hud-right">
-      <div class="hud-stat kills">💀<span id="killsVal">0</span></div>
-      <div class="hud-stat money" id="moneyStat">💰<span id="moneyVal">500</span></div>
-      <div class="hud-stat lives" id="livesStat">❤️<span id="livesVal">20</span></div>
-      <div class="hud-stat score">⭐<span id="scoreVal">0</span></div>
+      <div class="hud-stat kills"><span class="hud-ic" data-icon="skull"></span><span id="killsVal">0</span></div>
+      <div class="hud-stat money" id="moneyStat"><span class="hud-ic" data-icon="coin"></span><span id="moneyVal">500</span></div>
+      <div class="hud-stat lives" id="livesStat"><span class="hud-ic" data-icon="heart"></span><span id="livesVal">20</span></div>
+      <div class="hud-stat score"><span class="hud-ic" data-icon="star"></span><span id="scoreVal">0</span></div>
     </div>
   </div>
 
@@ -219,7 +220,7 @@
 <div class="upgrade-sheet" id="upgradeSheet">
   <div class="upgrade-handle"></div>
   <div class="upgrade-header">
-    <div class="upgrade-icon" id="upIcon">🏒</div>
+    <div class="upgrade-icon" id="upIcon"></div>
     <div class="upgrade-info">
       <h3 id="upName">Tower</h3>
       <p id="upLevel">Level 1</p>
@@ -246,7 +247,7 @@
 <!-- Win Modal -->
 <div class="modal-overlay" id="winModal">
   <div class="modal win">
-    <div class="modal-icon">🏆</div>
+    <div class="modal-icon"><span data-icon="trophy"></span></div>
     <h2>VICTORY!</h2>
     <div class="modal-stats">
       <div><div class="modal-stat-val" id="winScore">0</div><div class="modal-stat-label">Score</div></div>
@@ -263,7 +264,7 @@
 <!-- Lose Modal -->
 <div class="modal-overlay" id="loseModal">
   <div class="modal lose">
-    <div class="modal-icon">💀</div>
+    <div class="modal-icon"><span data-icon="skull"></span></div>
     <h2>DEFEATED</h2>
     <div class="modal-stats">
       <div><div class="modal-stat-val" id="loseWave">0</div><div class="modal-stat-label">Wave</div></div>

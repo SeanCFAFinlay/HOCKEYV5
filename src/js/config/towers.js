@@ -17,7 +17,7 @@ export const HOCKEY_TOWERS = [
   {
     id: 't1',
     nm: 'Slap Shot',
-    icon: '🏒',
+    icon: 'stick',
     role: 'ANTI-SWARM',  // Fast base tower, good vs basic pucks
     cost: 80,
     clr: '#00d4ff',
@@ -30,7 +30,7 @@ export const HOCKEY_TOWERS = [
   {
     id: 't2',
     nm: 'Sniper',
-    icon: '🎯',
+    icon: 'target',
     role: 'SNIPER',  // Long range, high damage - vs armored/boss
     cost: 150,
     clr: '#ef4444',
@@ -43,7 +43,7 @@ export const HOCKEY_TOWERS = [
   {
     id: 't3',
     nm: 'Enforcer',
-    icon: '👊',
+    icon: 'fist',
     role: 'SPLASH',  // Area damage - clears groups
     cost: 120,
     clr: '#f97316',
@@ -57,7 +57,7 @@ export const HOCKEY_TOWERS = [
   {
     id: 't4',
     nm: 'Ice Spray',
-    icon: '❄️',
+    icon: 'snowflake',
     role: 'CROWD_CONTROL',  // Slows enemies for other towers
     cost: 90,
     clr: '#38bdf8',
@@ -72,7 +72,7 @@ export const HOCKEY_TOWERS = [
   {
     id: 't5',
     nm: 'Goalie',
-    icon: '🥅',
+    icon: 'net',
     role: 'CHOKEPOINT',  // High damage, short range - last defense
     cost: 200,
     clr: '#ffd700',
@@ -85,7 +85,7 @@ export const HOCKEY_TOWERS = [
   {
     id: 't6',
     nm: 'Power Play',
-    icon: '⚡',
+    icon: 'bolt',
     role: 'CHAIN',  // Hits multiple enemies in sequence
     cost: 160,
     clr: '#a855f7',
@@ -100,7 +100,7 @@ export const HOCKEY_TOWERS = [
   {
     id: 't7',
     nm: 'Hot Stick',
-    icon: '🔥',
+    icon: 'flame',
     role: 'DOT',  // Burn damage over time - good vs tanks
     cost: 140,
     clr: '#f97316',
@@ -115,7 +115,7 @@ export const HOCKEY_TOWERS = [
   {
     id: 't8',
     nm: 'Captain',
-    icon: '👑',
+    icon: 'crown',
     role: 'BOSS_KILLER',  // Massive crit damage, very slow
     cost: 280,
     clr: '#fbbf24',
@@ -132,7 +132,7 @@ export const SOCCER_TOWERS = [
   {
     id: 't1',
     nm: 'Striker',
-    icon: '⚽',
+    icon: 'ball',
     role: 'ANTI-SWARM',  // Fast base tower
     cost: 80,
     clr: '#22c55e',
@@ -145,7 +145,7 @@ export const SOCCER_TOWERS = [
   {
     id: 't2',
     nm: 'Free Kick',
-    icon: '🎯',
+    icon: 'target',
     role: 'SNIPER',  // Long range precision
     cost: 150,
     clr: '#fbbf24',
@@ -158,7 +158,7 @@ export const SOCCER_TOWERS = [
   {
     id: 't3',
     nm: 'Header',
-    icon: '🤕',
+    icon: 'medcross',
     role: 'SPLASH',  // Area damage
     cost: 120,
     clr: '#3b82f6',
@@ -172,7 +172,7 @@ export const SOCCER_TOWERS = [
   {
     id: 't4',
     nm: 'Tackle',
-    icon: '🦶',
+    icon: 'foot',
     role: 'CROWD_CONTROL',  // Slow effect
     cost: 90,
     clr: '#f97316',
@@ -187,7 +187,7 @@ export const SOCCER_TOWERS = [
   {
     id: 't5',
     nm: 'Keeper',
-    icon: '🧤',
+    icon: 'glove',
     role: 'CHOKEPOINT',  // High damage, short range
     cost: 200,
     clr: '#a855f7',
@@ -200,7 +200,7 @@ export const SOCCER_TOWERS = [
   {
     id: 't6',
     nm: 'Playmaker',
-    icon: '🔄',
+    icon: 'cycle',
     role: 'CHAIN',  // Multi-target
     cost: 160,
     clr: '#06b6d4',
@@ -215,7 +215,7 @@ export const SOCCER_TOWERS = [
   {
     id: 't7',
     nm: 'Flare',
-    icon: '🔥',
+    icon: 'flame',
     role: 'DOT',  // Burn damage
     cost: 140,
     clr: '#ef4444',
@@ -230,7 +230,7 @@ export const SOCCER_TOWERS = [
   {
     id: 't8',
     nm: 'Legend',
-    icon: '👑',
+    icon: 'crown',
     role: 'BOSS_KILLER',  // Massive crit damage
     cost: 280,
     clr: '#fbbf24',

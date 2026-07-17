@@ -28,6 +28,7 @@ import { setSpeedEffect } from '../engine/postprocessing.js';
 import { clearTargetingFeedback } from '../rendering/targeting-feedback.js';
 import { updateHUD, renderTowers, initHUD, resetHUD } from './hud.js';
 import { resetGameSpeed } from './controls.js';
+import { icon } from './icons.js';
 import { performFullCleanup } from '../engine/cleanup.js';
 import { getMapsWithProgress, getThemeProgress, getStarDisplay } from '../systems/progression.js';
 import { showScreenAnimated, cancelTransition } from './transitions.js';
@@ -46,7 +47,7 @@ export function renderThemeCards() {
     card.style.setProperty('--c', pack.color);
     card.onclick = () => selectTheme(pack.id);
     card.innerHTML = `
-      <div class="menu-card-icon">${pack.icon}</div>
+      <div class="menu-card-icon">${icon(pack.icon)}</div>
       <div><h3>${pack.name}</h3><p>${pack.description}</p></div>
       <div class="menu-card-arrow">›</div>
     `;
@@ -73,7 +74,7 @@ export function selectTheme(t) {
   const mapsWithProgress = getMapsWithProgress(t, themeData.maps);
   const themeProgressData = getThemeProgress(t, themeData.maps.length);
 
-  document.getElementById('mapTitle').textContent = themeData.icon + ' ' + themeData.name;
+  document.getElementById('mapTitle').innerHTML = `${icon(themeData.icon)} <span>${themeData.name}</span>`;
   document.getElementById('mapTitle').style.color = themeData.color;
 
   const grid = document.getElementById('mapGrid');
@@ -98,7 +99,7 @@ export function selectTheme(t) {
     }
 
     card.innerHTML = `
-      <div class="map-card-icon">${isLocked ? '🔒' : themeData.icon}</div>
+      <div class="map-card-icon">${icon(isLocked ? 'lock' : themeData.icon)}</div>
       <div class="map-card-name">${m.name}</div>
       <div class="map-card-info">${m.waves} Waves • ${m.cols}×${m.rows}</div>
       <div class="map-card-meta">${m.metadata?.layoutType || m.layout} • ${m.metadata?.pressureType || 'mixed'}</div>

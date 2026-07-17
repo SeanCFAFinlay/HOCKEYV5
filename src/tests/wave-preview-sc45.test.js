@@ -342,29 +342,29 @@ describe('getWaveTypeClass', () => {
 describe('getSpeedIndicator', () => {
   afterEach(() => vi.resetModules());
 
-  it('returns turtle emoji for slow speed class', async () => {
+  it('returns the turtle icon key for slow speed class', async () => {
     const { getSpeedIndicator } = await importHud();
-    expect(getSpeedIndicator('slow')).toBe('🐢');
+    expect(getSpeedIndicator('slow')).toBe('turtle');
   });
 
-  it('returns runner emoji for normal speed class', async () => {
+  it('returns the runner icon key for normal speed class', async () => {
     const { getSpeedIndicator } = await importHud();
-    expect(getSpeedIndicator('normal')).toBe('🏃');
+    expect(getSpeedIndicator('normal')).toBe('runner');
   });
 
-  it('returns lightning emoji for fast speed class', async () => {
+  it('returns the bolt icon key for fast speed class', async () => {
     const { getSpeedIndicator } = await importHud();
-    expect(getSpeedIndicator('fast')).toBe('⚡');
+    expect(getSpeedIndicator('fast')).toBe('bolt');
   });
 
-  it('returns lightning emoji for very_fast speed class', async () => {
+  it('returns the bolt icon key for very_fast speed class', async () => {
     const { getSpeedIndicator } = await importHud();
-    expect(getSpeedIndicator('very_fast')).toBe('⚡');
+    expect(getSpeedIndicator('very_fast')).toBe('bolt');
   });
 
   it('returns runner as default', async () => {
     const { getSpeedIndicator } = await importHud();
-    expect(getSpeedIndicator('unknown')).toBe('🏃');
+    expect(getSpeedIndicator('unknown')).toBe('runner');
   });
 });
 
@@ -411,13 +411,15 @@ describe('buildEnhancedWavePreview — difficulty skulls', () => {
     const { buildEnhancedWavePreview } = await importHud();
     buildEnhancedWavePreview();
     const header = wavePreviewHeaderEl;
-    expect(header.innerHTML).toContain('💀');
+    // Difficulty is now rendered as SVG skull icons rather than the 💀 emoji.
+    expect(header.innerHTML).toContain('wp-skulls');
+    expect(header.innerHTML).toContain('<svg');
   });
 
-  it('renders between 1 and 5 skull characters', async () => {
+  it('renders between 1 and 5 skull icons', async () => {
     const { buildEnhancedWavePreview } = await importHud();
     buildEnhancedWavePreview();
-    const skulls = (wavePreviewHeaderEl.innerHTML.match(/💀/g) || []).length;
+    const skulls = (wavePreviewHeaderEl.innerHTML.match(/<svg/g) || []).length;
     expect(skulls).toBeGreaterThanOrEqual(1);
     expect(skulls).toBeLessThanOrEqual(5);
   });
@@ -451,8 +453,9 @@ describe('buildEnhancedWavePreview — enemy rows', () => {
     const { buildEnhancedWavePreview } = await importHud();
     buildEnhancedWavePreview();
     const html = wavePreviewBodyEl.innerHTML;
-    // e3 is fast → ⚡, e1 is fast → ⚡
-    expect(html).toContain('⚡');
+    // Speed is now an SVG icon inside .wp-speed rather than the ⚡/🐢/🏃 emoji.
+    expect(html).toContain('wp-speed');
+    expect(html).toMatch(/wp-speed"><svg/);
   });
 });
 
@@ -496,7 +499,11 @@ describe('buildEnhancedWavePreview — special ability badges', () => {
     const { buildEnhancedWavePreview } = await importHud();
     buildEnhancedWavePreview();
     const html = wavePreviewBodyEl.innerHTML;
-    expect(html).toContain('🛡️');
+    // Armor is now the shield SVG icon in .wp-badges rather than the 🛡️ emoji.
+    // Match the shield path's distinctive opening so it's the armor badge, not
+    // just any icon.
+    expect(html).toContain('wp-badges');
+    expect(html).toContain('M12 3l7 2.5');
   });
 });
 

@@ -12,35 +12,35 @@ export const ACHIEVEMENTS = {
     id: 'first_win',
     name: 'First Victory',
     description: 'Win your first game',
-    icon: '🏆',
+    icon: 'trophy',
     category: 'beginner'
   },
   FIRST_PERFECT: {
     id: 'first_perfect',
     name: 'Perfect Defense',
     description: 'Win a game without losing any lives',
-    icon: '🛡️',
+    icon: 'shield',
     category: 'beginner'
   },
   TOWER_MASTER: {
     id: 'tower_master',
     name: 'Tower Master',
     description: 'Place 100 towers total',
-    icon: '🏗️',
+    icon: 'build',
     category: 'progression'
   },
   EXTERMINATOR: {
     id: 'exterminator',
     name: 'Exterminator',
     description: 'Defeat 1000 enemies total',
-    icon: '💀',
+    icon: 'skull',
     category: 'progression'
   },
   MILLIONAIRE: {
     id: 'millionaire',
     name: 'Millionaire',
     description: 'Earn 100,000 gold total',
-    icon: '💰',
+    icon: 'coin',
     category: 'progression'
   },
 
@@ -49,28 +49,28 @@ export const ACHIEVEMENTS = {
     id: 'three_stars',
     name: 'Perfect Rating',
     description: 'Get 3 stars on any map',
-    icon: '⭐',
+    icon: 'star',
     category: 'skill'
   },
   SPEEDRUNNER: {
     id: 'speedrunner',
     name: 'Speedrunner',
     description: 'Win a game in under 5 minutes',
-    icon: '⚡',
+    icon: 'bolt',
     category: 'skill'
   },
   NO_TOWERS_LOST: {
     id: 'no_towers_lost',
     name: 'Indestructible',
     description: 'Win a game without losing any towers',
-    icon: '🔒',
+    icon: 'lock',
     category: 'skill'
   },
   BOSS_SLAYER: {
     id: 'boss_slayer',
     name: 'Boss Slayer',
     description: 'Defeat 10 bosses',
-    icon: '👑',
+    icon: 'crown',
     category: 'skill'
   },
 
@@ -79,28 +79,28 @@ export const ACHIEVEMENTS = {
     id: 'hockey_master',
     name: 'Hockey Champion',
     description: 'Complete all Hockey maps',
-    icon: '🏒',
+    icon: 'stick',
     category: 'completion'
   },
   SOCCER_MASTER: {
     id: 'soccer_master',
     name: 'Soccer Champion',
     description: 'Complete all Soccer maps',
-    icon: '⚽',
+    icon: 'ball',
     category: 'completion'
   },
   ALL_STARS_HOCKEY: {
     id: 'all_stars_hockey',
     name: 'Hockey All-Star',
     description: 'Get 3 stars on all Hockey maps',
-    icon: '🌟',
+    icon: 'sparkle',
     category: 'completion'
   },
   ALL_STARS_SOCCER: {
     id: 'all_stars_soccer',
     name: 'Soccer All-Star',
     description: 'Get 3 stars on all Soccer maps',
-    icon: '🌟',
+    icon: 'sparkle',
     category: 'completion'
   },
 
@@ -109,21 +109,21 @@ export const ACHIEVEMENTS = {
     id: 'minimalist',
     name: 'Minimalist',
     description: 'Win with only 3 towers placed',
-    icon: '🎯',
+    icon: 'target',
     category: 'challenge'
   },
   HIGH_SCORE: {
     id: 'high_score',
     name: 'High Scorer',
     description: 'Score over 50,000 in a single game',
-    icon: '📈',
+    icon: 'trend',
     category: 'challenge'
   },
   SURVIVOR: {
     id: 'survivor',
     name: 'Survivor',
     description: 'Win with only 1 life remaining',
-    icon: '❤️',
+    icon: 'heart',
     category: 'challenge'
   }
 };

@@ -544,16 +544,11 @@
   box-shadow: none;
 }
 
-/* Lock icon overlay for locked cards */
+/* Locked cards already show the SVG lock in .map-card-icon (see screens.js),
+   so this corner overlay no longer carries an emoji. Kept as a hook in case a
+   badge is wanted later. */
 .map-card.locked::after {
-  content: '🔒';
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  font-size: 1rem;
-  opacity: 0.7;
-  pointer-events: none;
-  filter: grayscale(0.3);
+  content: '';
 }
 
 /* Completed map cards */

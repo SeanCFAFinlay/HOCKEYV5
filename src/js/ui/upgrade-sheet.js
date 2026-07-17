@@ -8,6 +8,7 @@ import { createTowerMesh, updateTowerRangeGeometry } from '../rendering/tower-me
 import { updateHUD } from './hud.js';
 import { createImpact, createExplosion } from '../systems/particles.js';
 import { renderUpgradePath, applyMaxLevelState, animateStat } from './upgrade-path.js';
+import { icon } from './icons.js';
 
 // Tower role descriptions for upgrade sheet
 const ROLE_DESCRIPTIONS = {
@@ -36,7 +37,7 @@ export function showUpgrade(tower) {
   setSelectedPlaced(tower);
   const td = themeData.towers.find(t => t.id === tower.type);
 
-  document.getElementById('upIcon').textContent = td.icon;
+  document.getElementById('upIcon').innerHTML = icon(td.icon);
   document.getElementById('upName').textContent = td.nm;
   document.getElementById('upLevel').textContent = `Level ${tower.lv + 1} • Visual tier ${tower.lv + 1}/4`;
   document.getElementById('upRole').textContent = ROLE_DESCRIPTIONS[td.role] || td.role || '';

@@ -23,6 +23,7 @@ import { initSettings, openSettings } from './ui/settings.js';
 import { showScreen, showScreenWithAnimation, selectTheme, exitGame, replayGame as replayGameScreens } from './ui/screens.js';
 import { initModals, closeModal } from './ui/modals.js';
 import { initPauseSheet, togglePauseMenu, closePauseMenu } from './ui/pause-sheet.js';
+import { initIcons, icon } from './ui/icons.js';
 import { doUpgrade, hideUpgrade, sellTower, setTowerPriorityFromUI } from './ui/upgrade-sheet.js';
 import './ui/controls.js';
 
@@ -105,6 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('Hockey vs Soccer TD - Initializing...');
 
   try {
+  // Fill static [data-icon] placeholders (HUD, menu logo, modals) with SVG.
+  initIcons();
+
   // Validate all config data on startup
   const configValid = runValidation(THEMES, false);
   if (!configValid) {
@@ -223,7 +227,7 @@ function showAchievementNotification(achievement) {
   const notification = document.createElement('div');
   notification.className = 'achievement-notification';
   notification.innerHTML = `
-    <div class="achievement-icon">${achievement.icon}</div>
+    <div class="achievement-icon">${icon(achievement.icon)}</div>
     <div class="achievement-text">
       <div class="achievement-title">Achievement Unlocked!</div>
       <div class="achievement-name">${achievement.name}</div>

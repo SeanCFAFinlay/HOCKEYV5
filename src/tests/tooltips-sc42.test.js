@@ -112,7 +112,7 @@ function setupDOM() {
 const MOCK_TOWER = {
   id: 't1',
   nm: 'Slap Shot',
-  icon: '🏒',
+  icon: 'stick',
   role: 'ANTI-SWARM',
   cost: 80,
   clr: '#00d4ff',
@@ -124,7 +124,7 @@ const MOCK_TOWER = {
 const MOCK_SNIPER = {
   id: 't2',
   nm: 'Sniper',
-  icon: '🎯',
+  icon: 'target',
   role: 'SNIPER',
   cost: 150,
   clr: '#ef4444',
@@ -136,7 +136,7 @@ const MOCK_SNIPER = {
 const MOCK_SPLASH = {
   id: 't3',
   nm: 'Enforcer',
-  icon: '👊',
+  icon: 'fist',
   role: 'SPLASH',
   cost: 120,
   clr: '#f97316',
@@ -149,7 +149,7 @@ const MOCK_SPLASH = {
 const MOCK_CROWD = {
   id: 't4',
   nm: 'Ice Spray',
-  icon: '❄️',
+  icon: 'snowflake',
   role: 'CROWD_CONTROL',
   cost: 90,
   clr: '#38bdf8',
@@ -163,7 +163,7 @@ const MOCK_CROWD = {
 const MOCK_DOT = {
   id: 't7',
   nm: 'Hot Stick',
-  icon: '🔥',
+  icon: 'flame',
   role: 'DOT',
   cost: 140,
   clr: '#f97316',
@@ -177,7 +177,7 @@ const MOCK_DOT = {
 const MOCK_CHAIN = {
   id: 't6',
   nm: 'Power Play',
-  icon: '⚡',
+  icon: 'bolt',
   role: 'CHAIN',
   cost: 160,
   clr: '#a855f7',
@@ -191,7 +191,7 @@ const MOCK_CHAIN = {
 const MOCK_BOSS = {
   id: 't8',
   nm: 'Captain',
-  icon: '👑',
+  icon: 'crown',
   role: 'BOSS_KILLER',
   cost: 280,
   clr: '#fbbf24',
@@ -224,7 +224,7 @@ describe('SC-4.2 Tower Tooltips', () => {
     it('returns HTML containing tower icon', async () => {
       const { buildTooltipContent } = await import('../js/ui/tooltips.js');
       const html = buildTooltipContent(MOCK_TOWER);
-      expect(html).toContain('🏒');
+      expect(html).toContain('<svg'); // tower icon is now inline SVG
     });
 
     it('returns HTML containing cost', async () => {

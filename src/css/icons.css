@@ -1,0 +1,49 @@
+/* Inline SVG icons — see js/ui/icons.js */
+
+.icon {
+  display: inline-block;
+  vertical-align: -0.14em;
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+
+/* Stroke icons inherit the surrounding text colour; fill icons too. Line width
+   is in viewBox units (24), so ~1.8 reads as a clean medium stroke at any size. */
+.icon .ln {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon .fl {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* HUD stat markers: sized a touch larger than the number they precede and
+   tinted by the stat's own colour (the .hud-stat.* rules set `color`). */
+.hud-ic {
+  display: inline-flex;
+  align-items: center;
+}
+
+.hud-ic .icon {
+  width: 1.15em;
+  height: 1.15em;
+}
+
+/* Tower dock icon: the big glyph at the top of each tower button. */
+.tower-btn-icon .icon {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+/* Menu logo row */
+.logo-icons .icon {
+  width: 2.2rem;
+  height: 2.2rem;
+  margin: 0 0.15em;
+}

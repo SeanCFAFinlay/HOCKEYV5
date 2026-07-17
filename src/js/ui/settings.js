@@ -5,6 +5,7 @@
  */
 
 import { setPostProcessingQuality, getComposer } from '../engine/postprocessing.js';
+import { icon } from './icons.js';
 import { resetAllProgress } from '../systems/storage.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -149,7 +150,7 @@ function _buildHeader() {
   const closeBtn = document.createElement('button');
   closeBtn.className = 'settings-close';
   closeBtn.setAttribute('aria-label', 'Close settings');
-  closeBtn.textContent = '✕';
+  closeBtn.innerHTML = icon('close');
   closeBtn.addEventListener('click', closeSettings);
 
   header.appendChild(title);
@@ -514,7 +515,7 @@ function _injectMenuButton() {
   const btn = document.createElement('button');
   btn.className = 'settings-btn menu-settings-btn';
   btn.setAttribute('aria-label', 'Settings');
-  btn.textContent = '\u2699';
+  btn.innerHTML = icon('gear');
   btn.addEventListener('click', openSettings);
 
   menuScreen.style.position = 'relative';
@@ -529,7 +530,7 @@ function _injectHUDButton() {
   const btn = document.createElement('button');
   btn.className = 'settings-btn';
   btn.setAttribute('aria-label', 'Settings');
-  btn.textContent = '\u2699';
+  btn.innerHTML = icon('gear');
   btn.addEventListener('click', openSettings);
   hudRight.appendChild(btn);
 }

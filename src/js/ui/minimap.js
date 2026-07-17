@@ -3,6 +3,7 @@
 
 import { getState } from '../engine/state.js';
 import { setCameraZoom, setCameraAngle } from '../engine/camera.js';
+import { icon } from './icons.js';
 import {
   drawTowerDot, drawEnemyDot, drawSpawnMarker, drawBaseMarker,
   drawGrid, drawObstacles
@@ -170,8 +171,8 @@ function _buildToggleButton(parent) {
   const btn = document.createElement('button');
   btn.id = 'minimapToggle';
   btn.type = 'button';
-  // A map, not the letter M — which named nothing and read as debug output.
-  btn.textContent = '🗺';
+  // A map icon, not the letter M — which named nothing and read as debug output.
+  btn.innerHTML = icon('map');
   // aria-label and aria-expanded are set by _applyCollapsed, which knows which
   // way the button currently points.
   parent.appendChild(btn);

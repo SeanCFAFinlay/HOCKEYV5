@@ -1,6 +1,8 @@
 // Tower info tooltips — SC-4.2
 // Show rich tower stats on hover (300ms) or long-press (400ms)
 
+import { icon } from './icons.js';
+
 const SHOW_DELAY_DESKTOP = 300;
 const SHOW_DELAY_MOBILE = 400;
 const TOOLTIP_WIDTH = 180;
@@ -90,7 +92,7 @@ export function buildTooltipContent(tower) {
 
   return `
     <div class="tooltip-arrow"></div>
-    <div class="tooltip-icon">${tower.icon}</div>
+    <div class="tooltip-icon">${icon(tower.icon)}</div>
     <div class="tooltip-header">
       <span class="tooltip-name">${tower.nm}</span>
       ${role ? `<span class="tooltip-role">${role}</span>` : ''}

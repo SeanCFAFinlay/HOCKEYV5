@@ -4,6 +4,7 @@ import { getState, setSelectedTower, subscribeToState, setRunning } from '../eng
 import { on, GameEvents } from '../engine/events.js';
 import { hideUpgrade } from './upgrade-sheet.js';
 import { resetGameSpeed } from './controls.js';
+import { icon } from './icons.js';
 import { createDefeatEffect } from '../systems/particles.js';
 import { getWaveThemeName, getWavePreview } from '../config/waves.js';
 import { initCurrencyFly } from './currency-fly.js';
@@ -307,23 +308,15 @@ function updateWavePreview() {
 }
 
 /**
- * Get enemy icon/emoji based on theme
+ * Get an enemy icon (SVG markup) based on theme and traits. The dominant trait
+ * wins: boss > fire > flying > base type. Returns inline SVG, not emoji.
  */
 function getEnemyIcon(enemy, theme) {
-  // Simple mapping - could be enhanced
-  if (theme === 'hockey') {
-    if (enemy.boss) return '🏒💀';
-    if (enemy.fire && enemy.flying) return '🔥🏒';
-    if (enemy.fire) return '🔥';
-    if (enemy.flying) return '🏒✈️';
-    return '🏒';
-  } else {
-    if (enemy.boss) return '⚽💀';
-    if (enemy.fire && enemy.flying) return '🔥⚽';
-    if (enemy.fire) return '🔥';
-    if (enemy.flying) return '⚽✈️';
-    return '⚽';
-  }
+  const base = theme === 'hockey' ? 'stick' : 'ball';
+  if (enemy.boss) return icon('crown');
+  if (enemy.fire) return icon('flame');
+  if (enemy.flying) return icon('wings');
+  return icon(base);
 }
 
 /**
@@ -378,7 +371,7 @@ function _buildTowerButtons(bar, themeData) {
     btn.className = 'tower-btn';
     btn.style.setProperty('--c', t.clr);
     btn.innerHTML = `
-      <div class="tower-btn-icon">${t.icon}</div>
+      <div class="tower-btn-icon">${icon(t.icon)}</div>
       <div class="tower-btn-name">${t.nm}</div>
       ${roleDisplay ? `<div class="tower-btn-role">${roleDisplay}</div>` : ''}
       <div class="tower-btn-cost">$${t.cost}</div>
@@ -443,9 +436,9 @@ export function getWaveTypeClass(entries) {
  * @returns {string}
  */
 export function getSpeedIndicator(speedClass) {
-  if (speedClass === 'slow') return '🐢';
-  if (speedClass === 'fast' || speedClass === 'very_fast') return '⚡';
-  return '🏃';
+  if (speedClass === 'slow') return 'turtle';
+  if (speedClass === 'fast' || speedClass === 'very_fast') return 'bolt';
+  return 'runner';
 }
 
 /**
@@ -456,11 +449,11 @@ export function getSpeedIndicator(speedClass) {
 function getAbilityBadges(entry) {
   const tags = new Set(entry.tags || []);
   const badges = [];
-  if (entry.boss || tags.has('boss')) badges.push('👑');
-  if (entry.flying || tags.has('air')) badges.push('🦅');
-  if (entry.armor || tags.has('armor')) badges.push('🛡️');
-  if (entry.fire || tags.has('fire')) badges.push('🔥');
-  return badges.join('');
+  if (entry.boss || tags.has('boss')) badges.push('crown');
+  if (entry.flying || tags.has('air')) badges.push('wings');
+  if (entry.armor || tags.has('armor')) badges.push('shield');
+  if (entry.fire || tags.has('fire')) badges.push('flame');
+  return badges.map(name => icon(name)).join('');
 }
 
 /**
@@ -514,7 +507,7 @@ export function buildEnhancedWavePreview() {
 
   // Render header
   if (headerEl) {
-    const skulls = '💀'.repeat(difficulty);
+    const skulls = icon('skull').repeat(difficulty);
     headerEl.innerHTML = `<span class="wp-label">NEXT WAVE</span><span class="wp-skulls">${skulls}</span>`;
   }
 
@@ -540,7 +533,7 @@ function computeAverageHpBaseline(WAVES, enemies) {
 }
 
 function buildEnemyRow(entry, maxHp) {
-  const speed = getSpeedIndicator(entry.speedClass);
+  const speed = icon(getSpeedIndicator(entry.speedClass));
   const badges = getAbilityBadges(entry);
   const hpPct = Math.max(8, Math.round((entry.hp / maxHp) * 100));
   return `<div class="wp-enemy-row">

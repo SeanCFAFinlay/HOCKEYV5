@@ -59,7 +59,7 @@ const hockey = withPackFields({
   id: 'hockey',
   name: 'Hockey Arena',
   shortName: 'Hockey',
-  icon: '🏒',
+  icon: 'stick',
   sortOrder: 10,
   description: 'Ice rink tower defense with fast puck pressure and armored skaters.',
   color: '#00d4ff',
@@ -68,7 +68,7 @@ const hockey = withPackFields({
   envColor: 0x0a1520,
   visuals: VISUAL_PROFILES.hockey,
   environmentSkin: { arena: 'rink', floor: 'ice', markerIcon: '🏒' },
-  enemySkin: { body: 'puck', icon: '🏒' },
+  enemySkin: { body: 'puck', icon: 'stick' },
   towerSkin: { family: 'hockey' },
   maps: enrichMaps('hockey', HOCKEY_MAPS, {
     recommendedTowers: ['t1', 't3', 't4'],
@@ -82,7 +82,7 @@ const soccer = withPackFields({
   id: 'soccer',
   name: 'Soccer Stadium',
   shortName: 'Soccer',
-  icon: '⚽',
+  icon: 'ball',
   sortOrder: 20,
   description: 'Grass pitch tower defense with split lanes and aerial ball pressure.',
   color: '#22c55e',
@@ -91,7 +91,7 @@ const soccer = withPackFields({
   envColor: 0x0a1a0a,
   visuals: VISUAL_PROFILES.soccer,
   environmentSkin: { arena: 'pitch', floor: 'grass', markerIcon: '⚽' },
-  enemySkin: { body: 'ball', icon: '⚽' },
+  enemySkin: { body: 'ball', icon: 'ball' },
   towerSkin: { family: 'soccer' },
   maps: enrichMaps('soccer', SOCCER_MAPS, {
     recommendedTowers: ['t1', 't2', 't6'],
@@ -105,7 +105,7 @@ const space = withPackFields({
   id: 'space',
   name: 'Orbital Outpost',
   shortName: 'Space',
-  icon: '🛰️',
+  icon: 'satellite',
   sortOrder: 30,
   status: 'stub-playable',
   description: 'Example future content pack using the shared engine and metadata model.',
@@ -115,7 +115,7 @@ const space = withPackFields({
   envColor: 0x090812,
   visuals: VISUAL_PROFILES.space,
   environmentSkin: { arena: 'outpost', floor: 'turf', markerIcon: '🛰️' },
-  enemySkin: { body: 'orb', icon: '🛰️' },
+  enemySkin: { body: 'orb', icon: 'satellite' },
   towerSkin: { family: 'generic' },
   maps: enrichMaps('space', SOCCER_MAPS.slice(0, 3).map((map, index) => ({
     ...map,
@@ -130,14 +130,14 @@ const space = withPackFields({
   }),
   towers: SOCCER_TOWERS.map(tower => {
     const spaceTowers = {
-      t1: { nm: 'Laser Emitter', icon: '🔷', clr: '#67e8f9' },
-      t2: { nm: 'Plasma Cannon', icon: '🟣', clr: '#c084fc' },
-      t3: { nm: 'Gravity Well', icon: '🌀', clr: '#7dd3fc' },
-      t4: { nm: 'Ion Snare', icon: '⚛️', clr: '#38bdf8' },
-      t5: { nm: 'Shield Node', icon: '🛡️', clr: '#93c5fd' },
-      t6: { nm: 'Arc Relay', icon: '⚡', clr: '#f0abfc' },
-      t7: { nm: 'Nova Flare', icon: '☄️', clr: '#ff5ca8' },
-      t8: { nm: 'Command Core', icon: '✦', clr: '#fbbf24' }
+      t1: { nm: 'Laser Emitter', icon: 'diamond', clr: '#67e8f9' },
+      t2: { nm: 'Plasma Cannon', icon: 'plasma', clr: '#c084fc' },
+      t3: { nm: 'Gravity Well', icon: 'spiral', clr: '#7dd3fc' },
+      t4: { nm: 'Ion Snare', icon: 'atom', clr: '#38bdf8' },
+      t5: { nm: 'Shield Node', icon: 'shield', clr: '#93c5fd' },
+      t6: { nm: 'Arc Relay', icon: 'bolt', clr: '#f0abfc' },
+      t7: { nm: 'Nova Flare', icon: 'comet', clr: '#ff5ca8' },
+      t8: { nm: 'Command Core', icon: 'sparkle', clr: '#fbbf24' }
     };
     return {
       ...tower,
