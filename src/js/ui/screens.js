@@ -244,6 +244,7 @@ export function exitGame() {
 export function replayGame() {
   const state = getState();
   const mapIdx = state.mapIndex;
+  const mode = state.gameMode || 'campaign';
 
   // Hide modals
   document.getElementById('winModal')?.classList.remove('show');
@@ -261,9 +262,10 @@ export function replayGame() {
 
   cleanupScene();
 
-  // Restart same map
+  // Restart the same map in the same mode. Without gameMode, this defaulted to
+  // 'campaign' and quietly turned an Endless or Sandbox run into a Campaign one.
   setTimeout(() => {
-    startGame(mapIdx);
+    startGame(mapIdx, mode);
   }, 100);
 }
 

@@ -95,6 +95,7 @@
   <link rel="stylesheet" href="css/tower-bar.css">
   <link rel="stylesheet" href="css/action-bar.css">
   <link rel="stylesheet" href="css/upgrade-sheet.css">
+  <link rel="stylesheet" href="css/pause-sheet.css">
   <link rel="stylesheet" href="css/modals.css">
   <link rel="stylesheet" href="css/camera-btns.css">
   <link rel="stylesheet" href="css/responsive.css">
@@ -140,7 +141,7 @@
 <div id="gameScreen" class="screen">
   <div class="hud">
     <div class="hud-left">
-      <button class="hud-menu" onclick="exitGame()">✕</button>
+      <button class="hud-menu" type="button" onclick="togglePauseMenu()" aria-label="Pause game">❚❚</button>
       <div class="hud-wave-group">
         <div class="hud-wave">🌊 <span id="waveNum">0</span>/<span id="waveMax">20</span></div>
         <div class="hud-wave-theme" id="waveTheme"></div>
@@ -184,6 +185,37 @@
       <button class="action-btn auto-btn" id="autoBtn" onclick="toggleAutoWave()">AUTO: OFF</button>
       <button class="action-btn start-btn" id="startBtn" onclick="startWave()">▶ START</button>
     </div>
+  </div>
+</div>
+
+<!-- Pause / overflow menu. Holds everything that does not earn a permanent place
+     on a phone HUD: the secondary stats, auto-wave, settings, restart, exit. -->
+<div class="pause-overlay" id="pauseOverlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden>
+  <div class="pause-sheet">
+    <h2 class="pause-title" id="pauseTitle">Paused</h2>
+    <p class="pause-wave" id="pauseWave">Wave 0/20</p>
+
+    <dl class="pause-stats">
+      <div><dt>Kills</dt><dd id="pauseKills">0</dd></div>
+      <div><dt>Score</dt><dd id="pauseScore">0</dd></div>
+      <div><dt>Enemies</dt><dd id="pauseEnemies">0</dd></div>
+    </dl>
+
+    <button class="pause-row" type="button" id="pauseAutoBtn" role="switch" aria-checked="false">
+      <span class="pause-row-label">
+        Auto-start waves
+        <small>Next wave begins on its own</small>
+      </span>
+      <span class="pause-switch" aria-hidden="true"></span>
+    </button>
+
+    <div class="pause-actions">
+      <button class="pause-btn" type="button" onclick="openSettings()">Settings</button>
+      <button class="pause-btn" type="button" id="pauseRestartBtn">Restart</button>
+      <button class="pause-btn danger" type="button" id="pauseExitBtn">Exit to menu</button>
+    </div>
+
+    <button class="pause-resume" type="button" id="pauseResumeBtn">▶ Resume</button>
   </div>
 </div>
 

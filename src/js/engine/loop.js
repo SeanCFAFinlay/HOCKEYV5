@@ -36,6 +36,11 @@ let frameId = null;
 // Hit-stop state (milliseconds remaining)
 let hitStopRemaining = 0;
 
+// Pause state. Deliberately not in engine/state.js: this is loop-local timing
+// control, exactly like hitStopRemaining above, and keeping it here means
+// pausing cannot perturb game state or fire state subscribers.
+let paused = false;
+
 function getOptionalPostProcessingExport(name) {
   if (!Object.prototype.hasOwnProperty.call(PostProcessing, name)) return null;
   const value = PostProcessing[name];
@@ -68,6 +73,36 @@ export function getHitStopRemaining() {
   return hitStopRemaining;
 }
 
+/** @returns {boolean} whether the simulation is currently frozen */
+export function isPaused() {
+  return paused;
+}
+
+/**
+ * Freeze or resume the simulation.
+ *
+ * The loop keeps running while paused — the scene still renders and the camera
+ * still responds, so a player can look around a frozen board. Only the fixed
+ * timestep updates and the wave/win checks are skipped. This is why pausing
+ * does not use stopGameLoop(), which would also freeze rendering and leave the
+ * canvas showing a stale frame.
+ *
+ * @param {boolean} next
+ */
+export function setPaused(next) {
+  paused = !!next;
+  // Drop any accumulated-but-unsimulated time. Without this the accumulator
+  // survives the pause and the first frame after resuming fast-forwards to
+  // catch up, which reads as a jolt.
+  if (paused) accumulator = 0;
+}
+
+/** @returns {boolean} the new paused state */
+export function togglePause() {
+  setPaused(!paused);
+  return paused;
+}
+
 /**
  * Main game loop with fixed timestep accumulator pattern
  * @param {number} currentTime - Current timestamp from RAF
@@ -87,6 +122,17 @@ export function gameLoop(currentTime) {
   // Clamp frame time to prevent death spiral
   const clampedFrameTime = Math.min(rawFrameTime, MAX_FRAME_TIME);
   updateAutoQuality(clampedFrameTime);
+
+  // Paused: keep drawing and keep the camera live, run no simulation. Placed
+  // after lastFrameTime is advanced above, so however long the pause lasts, the
+  // first frame after it sees a normal delta rather than the whole pause.
+  if (paused) {
+    updateCamera(clampedFrameTime);
+    renderFrame(state);
+    updatePerfOverlay(clampedFrameTime, 0);
+    frameId = requestAnimationFrame(gameLoop);
+    return;
+  }
 
   // Real elapsed ms for hit-stop decrement (unaffected by game speed)
   const realDeltaMs = clampedFrameTime * 1000;
@@ -204,7 +250,10 @@ function checkWaveCompletion() {
 
       const timer = setTimeout(() => {
         const currentState = getState();
-        if (currentState.running && !currentState.waveActive && shouldAutoStartNextWave(currentState)) {
+        // !paused: this timer is scheduled before a pause can happen and keeps
+        // ticking through it, so without the check the next wave would launch
+        // while the board is frozen.
+        if (currentState.running && !paused && !currentState.waveActive && shouldAutoStartNextWave(currentState)) {
           startWave();
         }
       }, delay);
@@ -232,6 +281,8 @@ export function startGameLoop() {
   accumulator = 0;
   gameTime = 0;
   lastFrameTime = performance.now();
+  // Without this, exiting while paused leaves the next game frozen on start.
+  paused = false;
 
   setRunning(true);
   setLastTime(lastFrameTime);

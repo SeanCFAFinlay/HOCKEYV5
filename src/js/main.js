@@ -22,6 +22,7 @@ import { initSettings, openSettings } from './ui/settings.js';
 // Import UI modules
 import { showScreen, showScreenWithAnimation, selectTheme, exitGame, replayGame as replayGameScreens } from './ui/screens.js';
 import { initModals, closeModal } from './ui/modals.js';
+import { initPauseSheet, togglePauseMenu, closePauseMenu } from './ui/pause-sheet.js';
 import { doUpgrade, hideUpgrade, sellTower, setTowerPriorityFromUI } from './ui/upgrade-sheet.js';
 import './ui/controls.js';
 
@@ -137,6 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize modal event listeners (win/lose handlers via game events)
   initModals();
+
+  // Pause / overflow menu. Restart and exit are injected rather than imported
+  // by the sheet itself, to keep ui/pause-sheet.js from depending on screens.js.
+  initPauseSheet({ onRestart: replayGameScreens, onExit: exitGame });
 
   // Initialize settings panel (loads settings, applies, injects buttons)
   try { initSettings(); } catch(e) { console.warn('Settings init failed:', e); }
@@ -290,6 +295,8 @@ Object.assign(appGlobal, {
   showScreenWithAnimation,
   selectTheme,
   exitGame,
+  togglePauseMenu,
+  closePauseMenu,
   replayGame: replayGameScreens,
   closeModal,
   doUpgrade,

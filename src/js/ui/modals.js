@@ -44,7 +44,8 @@ export function replayGame() {
   document.getElementById('winModal')?.classList.remove('show');
   document.getElementById('loseModal')?.classList.remove('show');
 
-  startGame(state.mapIndex);
+  // gameMode, or an Endless/Sandbox run silently replays as Campaign.
+  startGame(state.mapIndex, state.gameMode || 'campaign');
 }
 
 function _showWinModal(score, waveReached) {
