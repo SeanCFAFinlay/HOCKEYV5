@@ -269,17 +269,21 @@ export function createProjectile(tw, target, sx, sz) {
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
-  mesh.scale.multiplyScalar(1.7);
+  // Slightly larger core so the shot reads at a distance without becoming a blob.
+  mesh.scale.multiplyScalar(1.9);
 
-  // Enhanced glow effect with multiple layers
+  // Enhanced glow effect with multiple layers. Brighter than before (inner
+  // 0.65 / outer 0.32) so shots register as bright bolts against the lit ice
+  // and feed the bloom pass more; additive blending keeps them from darkening
+  // anything they pass over.
   const glowCol = trailColor || (mat && mat.color) || new THREE.Color(c);
 
   // Inner glow
-  const innerGlowGeo = new THREE.SphereGeometry(0.12, 12, 12);
+  const innerGlowGeo = new THREE.SphereGeometry(0.13, 12, 12);
   const innerGlowMat = new THREE.MeshBasicMaterial({
     color: glowCol,
     transparent: true,
-    opacity: 0.65,
+    opacity: 0.82,
     blending: THREE.AdditiveBlending,
     depthWrite: false
   });
@@ -288,11 +292,11 @@ export function createProjectile(tw, target, sx, sz) {
   mesh.add(innerGlow);
 
   // Outer glow
-  const outerGlowGeo = new THREE.SphereGeometry(0.24, 10, 10);
+  const outerGlowGeo = new THREE.SphereGeometry(0.26, 10, 10);
   const outerGlowMat = new THREE.MeshBasicMaterial({
     color: glowCol,
     transparent: true,
-    opacity: 0.32,
+    opacity: 0.42,
     blending: THREE.AdditiveBlending,
     depthWrite: false
   });

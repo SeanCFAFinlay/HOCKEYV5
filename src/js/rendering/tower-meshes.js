@@ -221,10 +221,14 @@ export function createTowerMesh(tower) {
   });
   const bodyMat = new THREE.MeshStandardMaterial({
     color,
-    metalness: theme === 'hockey' ? 0.22 : 0.45,
-    roughness: theme === 'hockey' ? 0.56 : 0.45,
+    // Glossier + a stronger self-glow in the tower's own colour, matching the
+    // enemy readability pass. Hockey was emissive 0.10 / roughness 0.56, which
+    // read as a flat matte lump against the brighter ice. Emissive still ramps a
+    // little with level so upgraded towers glow more.
+    metalness: theme === 'hockey' ? 0.3 : 0.5,
+    roughness: theme === 'hockey' ? 0.4 : 0.35,
     emissive: color,
-    emissiveIntensity: theme === 'hockey' ? 0.10 : 0.12
+    emissiveIntensity: (theme === 'hockey' ? 0.26 : 0.24) + lv * 0.03
   });
   const glowMat = new THREE.MeshBasicMaterial({
     color,
@@ -233,8 +237,10 @@ export function createTowerMesh(tower) {
   });
   const metalMat = new THREE.MeshStandardMaterial({
     color: visuals.towers.metal,
-    metalness: theme === 'space' ? 0.92 : (theme === 'hockey' ? 0.46 : 0.85),
-    roughness: theme === 'space' ? 0.12 : (theme === 'hockey' ? 0.42 : 0.18)
+    // Cleaner chrome so it actually reflects the new scene environment.
+    metalness: theme === 'space' ? 0.92 : (theme === 'hockey' ? 0.62 : 0.85),
+    roughness: theme === 'space' ? 0.12 : (theme === 'hockey' ? 0.28 : 0.18),
+    envMapIntensity: 0.9
   });
   const darkMat = mats.dark;
   const whiteMat = mats.white;
