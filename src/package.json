@@ -14,9 +14,12 @@
     "smoke": "npm run validate:config",
     "qa": "npm run validate && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "shots": "playwright test",
+    "shots:report": "playwright show-report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "vite": "^5.0.0",
     "vitest": "^4.1.5"
   }

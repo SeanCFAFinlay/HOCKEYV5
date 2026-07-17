@@ -37,3 +37,12 @@ audit-output/
 
 # Generated directory listing (`tree /f`), regenerated on demand
 project-tree.txt
+
+# Playwright visual harness output. The screenshots are artifacts for humans to
+# compare across a change (SHOT_LABEL=baseline vs =after), not pixel baselines,
+# so they are regenerated rather than tracked.
+src/tests/visual/screenshots/
+src/tests/visual/.output/
+src/playwright-report/
+src/blob-report/
+src/.playwright/
