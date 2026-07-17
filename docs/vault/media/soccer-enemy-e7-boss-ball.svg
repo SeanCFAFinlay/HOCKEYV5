@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Boss Ball — soccer enemy">
+  <title>Boss Ball — soccer enemy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#061407" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#061407"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <polygon points="172.18,41.14 164.64,17.68 157.1,41.14" fill="#ffcc00"/>
+    <polygon points="113.64,44.48 106.1,21.03 98.56,44.48" fill="#ffcc00"/>
+    <ellipse cx="132" cy="132" rx="83.78" ry="83.78" fill="#ffffff"/>
+    <polygon points="185.62,49.9 178.08,26.44 170.54,49.9" fill="#ffcc00"/>
+    <ellipse cx="127.3" cy="117.48" rx="104.72" ry="35.6" fill="none" stroke="#ffcc00" stroke-width="13.4"/>
+    <ellipse cx="88.55" cy="62.64" rx="18.43" ry="18.43" fill="dark"/>
+    <ellipse cx="154.21" cy="210.99" rx="18.43" ry="18.43" fill="dark"/>
+    <polygon points="90.89,55.32 83.35,31.86 75.81,55.32" fill="#ffcc00"/>
+    <polygon points="135.37,58.66 127.83,35.21 120.29,58.66" fill="#ffcc00"/>
+    <ellipse cx="53.17" cy="155.95" rx="18.43" ry="18.43" fill="dark"/>
+    <ellipse cx="150.97" cy="135.21" rx="18.43" ry="18.43" fill="dark"/>
+</svg>

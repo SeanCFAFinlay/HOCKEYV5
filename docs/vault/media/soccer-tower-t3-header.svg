@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Header — soccer tower">
+  <title>Header — soccer tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#061407" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#061407"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#102812"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#3b82f6" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#102812"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#3b82f6" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="157.4,159.97 134.03,125 93.98,146.81 110.68,185.42" fill="#3b82f6"/>
+    <polygon points="104.36,157.79 68.96,126.06 61.02,134.24 93.77,168.7" fill="#3b82f6"/>
+    <polygon points="146.29,168.7 179.04,134.24 171.1,126.06 135.7,157.79" fill="#3b82f6"/>
+    <ellipse cx="104.07" cy="144.8" rx="19" ry="19" fill="#cbd5e1"/>
+    <ellipse cx="96.09" cy="148.6" rx="22.8" ry="7.75" fill="none" stroke="#3b82f6" stroke-width="4.56" opacity="0.4"/>
+    <ellipse cx="96.09" cy="148.6" rx="38" ry="12.92" fill="none" stroke="#3b82f6" stroke-width="4.56" opacity="0.30000000000000004"/>
+    <ellipse cx="96.09" cy="148.6" rx="53.2" ry="18.09" fill="none" stroke="#3b82f6" stroke-width="4.56" opacity="0.2"/>
+</svg>

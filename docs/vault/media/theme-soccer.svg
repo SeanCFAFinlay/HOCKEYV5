@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 404 340" width="404" height="340" role="img" aria-label="Soccer Stadium palette">
+  <title>Soccer Stadium palette</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#061407" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="404" height="340" fill="#061407"/>
+  <rect width="404" height="340" fill="url(#bg)"/>
+  <text x="20" y="34" font-family="ui-sans-serif,system-ui" font-size="19" font-weight="600" fill="#22c55e">⚽ Soccer Stadium</text>
+  <rect x="20" y="56" width="108" height="52" rx="8" fill="#061407" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="20" y="124" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">background</text>
+  <text x="20" y="138" font-family="ui-monospace,monospace" font-size="11" fill="#061407">#061407</text>
+  <rect x="148" y="56" width="108" height="52" rx="8" fill="#228743" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="148" y="124" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">floor</text>
+  <text x="148" y="138" font-family="ui-monospace,monospace" font-size="11" fill="#228743">#228743</text>
+  <rect x="276" y="56" width="108" height="52" rx="8" fill="#f7f0c4" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="276" y="124" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">path</text>
+  <text x="276" y="138" font-family="ui-monospace,monospace" font-size="11" fill="#f7f0c4">#f7f0c4</text>
+  <rect x="20" y="148" width="108" height="52" rx="8" fill="#22c55e" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="20" y="216" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">accent</text>
+  <text x="20" y="230" font-family="ui-monospace,monospace" font-size="11" fill="#22c55e">#22c55e</text>
+  <rect x="148" y="148" width="108" height="52" rx="8" fill="#102812" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="148" y="216" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">tower base</text>
+  <text x="148" y="230" font-family="ui-monospace,monospace" font-size="11" fill="#102812">#102812</text>
+  <rect x="276" y="148" width="108" height="52" rx="8" fill="#d6d6d6" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="276" y="216" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">tower metal</text>
+  <text x="276" y="230" font-family="ui-monospace,monospace" font-size="11" fill="#d6d6d6">#d6d6d6</text>
+  <rect x="20" y="240" width="108" height="52" rx="8" fill="#22c55e" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="20" y="308" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">glow</text>
+  <text x="20" y="322" font-family="ui-monospace,monospace" font-size="11" fill="#22c55e">#22c55e</text>
+  <rect x="148" y="240" width="108" height="52" rx="8" fill="#ffb020" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="148" y="308" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">spawn</text>
+  <text x="148" y="322" font-family="ui-monospace,monospace" font-size="11" fill="#ffb020">#ffb020</text>
+  <rect x="276" y="240" width="108" height="52" rx="8" fill="#ffffff" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="276" y="308" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">base</text>
+  <text x="276" y="322" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff">#ffffff</text>
+</svg>

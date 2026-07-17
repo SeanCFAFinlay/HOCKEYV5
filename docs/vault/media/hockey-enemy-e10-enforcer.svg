@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Enforcer — hockey enemy">
+  <title>Enforcer — hockey enemy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#ff8080" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="132" rx="49.5" ry="49.5" fill="#bb2222"/>
+    <polygon points="177.79,136.95 190.17,132 177.79,127.05" fill="#ff8080"/>
+    <polygon points="159.18,94.82 161.08,81.63 150.61,89.87" fill="#ff8080"/>
+    <polygon points="113.39,89.87 102.92,81.63 104.82,94.82" fill="#ff8080"/>
+    <polygon points="86.21,127.05 73.83,132 86.21,136.95" fill="#ff8080"/>
+    <polygon points="104.82,169.18 102.92,182.37 113.39,174.13" fill="#ff8080"/>
+    <polygon points="150.61,174.13 161.08,182.37 159.18,169.18" fill="#ff8080"/>
+    <ellipse cx="131.53" cy="132.22" rx="49.5" ry="49.5" fill="none" stroke="#3a3a4a" stroke-width="5.94"/>
+    <ellipse cx="129.09" cy="133.39" rx="42.08" ry="42.08" fill="none" stroke="#222233" stroke-width="2.97"/>
+    <ellipse cx="128.88" cy="133.49" rx="24.75" ry="24.75" fill="#ff8080" opacity="0.85"/>
+    <ellipse cx="128.67" cy="133.58" rx="25.49" ry="25.49" fill="none" stroke="#ff8080" stroke-width="3.47" opacity="0.5"/>
+</svg>

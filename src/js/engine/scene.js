@@ -2,7 +2,7 @@
 // Improved lighting, materials, and visual effects
 
 import { getState, setThreeObjects, setCells, clearCells } from './state.js';
-import { updateCamera, initCameraState } from './camera.js';
+import { updateCamera, initCameraState, computeFitDistance } from './camera.js';
 import { attachHandlers } from './input.js';
 import { addObstacleVisuals } from '../rendering/obstacles.js';
 import { addSpawnAndPenVisuals } from '../rendering/markers.js';
@@ -181,9 +181,10 @@ export function init3D() {
 
   scene.fog = new THREE.FogExp2(visuals.map.fog || bgColor, (visuals.map.fogDensity || 0.007) * 0.55);
 
-  // Camera with good FOV
+  // Camera with good FOV. Distance is aspect-aware so the arena frames properly
+  // on a portrait phone as well as a widescreen monitor — see computeFitDistance.
   const camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 200);
-  const camDist = Math.max(COLS, ROWS) * 0.85;
+  const camDist = computeFitDistance(COLS, ROWS, w / h);
   const camHeight = camDist * 0.55;
 
   // High-performance renderer
@@ -252,8 +253,11 @@ export function init3D() {
   // Stadium SpotLights from corner poles (real illumination, not just decorative)
   const hw = COLS / 2;
   const hh = ROWS / 2;
+  // All four spots aim at the arena centre, so their intensities add up there.
+  // The default is deliberately conservative: a theme that forgets to set this
+  // should look flat, not blown out to white.
   const spotIntensity = quality.spotLights
-    ? (visuals.lighting.spotIntensity ?? (isHockey ? 8 : 18))
+    ? (visuals.lighting.spotIntensity ?? 3)
     : 0;
 
   // Cone variety: alternating wide/tight angles and warm/cool colors

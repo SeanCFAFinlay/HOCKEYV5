@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 160" width="220" height="160" role="img" aria-label="legend — space projectile">
+  <title>legend — space projectile</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#05040d" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="220" height="160" fill="#05040d"/>
+  <rect width="220" height="160" fill="url(#bg)"/>
+  <path d="M 40 80 L 118 80" stroke="#ffd700" stroke-width="10" stroke-linecap="round" opacity="0.28"/><path d="M 66 80 L 118 80" stroke="#ffd700" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+  <polygon points="150,52 158,74 181,74 162,88 169,110 150,96 131,110 138,88 119,74 142,74" fill="#ffd700"/>
+  <text x="110" y="140" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#ffd700" opacity="0.75">star · 12 u/s</text>
+</svg>

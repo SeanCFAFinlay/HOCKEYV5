@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Speed Skater — hockey enemy">
+  <title>Speed Skater — hockey enemy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#c8ffff" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="132" rx="32.37" ry="32.37" fill="#00ddee"/>
+    <polygon points="85.07,128.12 101.25,128.12 101.25,128.12 85.07,128.12" fill="#00ffff" opacity="0.432"/><polygon points="85.07,129.41 101.25,129.41 101.25,128.12 85.07,128.12" fill="#00ffff" opacity="0.6"/>
+    <polygon points="76,128.12 92.19,128.12 92.19,128.12 76,128.12" fill="#00ffff" opacity="0.36"/><polygon points="76,129.41 92.19,129.41 92.19,128.12 76,128.12" fill="#00ffff" opacity="0.5"/>
+    <polygon points="66.94,128.12 83.12,128.12 83.12,128.12 66.94,128.12" fill="#00ffff" opacity="0.288"/><polygon points="66.94,129.41 83.12,129.41 83.12,128.12 66.94,128.12" fill="#00ffff" opacity="0.39999999999999997"/>
+    <polygon points="57.88,128.12 74.06,128.12 74.06,128.12 57.88,128.12" fill="#00ffff" opacity="0.21599999999999994"/><polygon points="57.88,129.41 74.06,129.41 74.06,128.12 57.88,128.12" fill="#00ffff" opacity="0.29999999999999993"/>
+    <polygon points="48.81,128.12 65,128.12 65,128.12 48.81,128.12" fill="#00ffff" opacity="0.14399999999999996"/><polygon points="48.81,129.41 65,129.41 65,128.12 48.81,128.12" fill="#00ffff" opacity="0.19999999999999996"/>
+    <ellipse cx="131.53" cy="132.22" rx="32.37" ry="32.37" fill="none" stroke="#3a3a4a" stroke-width="3.88"/>
+    <ellipse cx="130.1" cy="132.91" rx="27.51" ry="27.51" fill="none" stroke="#222233" stroke-width="1.94"/>
+    <ellipse cx="129.96" cy="132.97" rx="16.18" ry="16.18" fill="#c8ffff" opacity="0.85"/>
+    <ellipse cx="129.82" cy="133.04" rx="16.67" ry="16.67" fill="none" stroke="#c8ffff" stroke-width="2.27" opacity="0.5"/>
+</svg>

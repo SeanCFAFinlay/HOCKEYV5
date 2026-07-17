@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Goalie — hockey tower">
+  <title>Goalie — hockey tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#071426"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#ffd700" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#071426"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#ffd700" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="90.77,106.8 157.27,106.8 173.23,99.2 106.73,99.2" fill="#ffd700" opacity="0.72"/><polygon points="90.77,163.8 157.27,163.8 157.27,106.8 90.77,106.8" fill="#ffd700"/>
+    <ellipse cx="132" cy="87.8" rx="20.9" ry="20.9" fill="#cbd5e1"/>
+    <polygon points="89.23,146.89 112.03,146.89 124,141.19 101.2,141.19" fill="#cbd5e1" opacity="0.72"/><polygon points="89.23,222.89 112.03,222.89 112.03,146.89 89.23,146.89" fill="#cbd5e1"/>
+    <polygon points="127.23,146.89 150.03,146.89 162,141.19 139.2,141.19" fill="#cbd5e1" opacity="0.72"/><polygon points="127.23,222.89 150.03,222.89 150.03,146.89 127.23,146.89" fill="#cbd5e1"/>
+    <polygon points="119.05,91.56 108.68,96.5 109.99,99.24 120.36,94.3" fill="#8fb8cc"/>
+    <polygon points="123.8,91.56 113.43,96.5 114.74,99.24 125.11,94.3" fill="#8fb8cc"/>
+    <polygon points="128.55,91.56 118.18,96.5 119.49,99.24 129.86,94.3" fill="#8fb8cc"/>
+    <polygon points="133.3,91.56 122.93,96.5 124.24,99.24 134.61,94.3" fill="#8fb8cc"/>
+    <polygon points="138.05,91.56 127.68,96.5 128.99,99.24 139.36,94.3" fill="#8fb8cc"/>
+    <polygon points="50.53,125.42 84.73,125.42 87.92,123.9 53.72,123.9" fill="#cbd5e1" opacity="0.72"/><polygon points="50.53,167.22 84.73,167.22 84.73,125.42 50.53,125.42" fill="#cbd5e1"/>
+    <ellipse cx="175.62" cy="136.06" rx="19" ry="19" fill="#ffd700"/>
+</svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Striker — soccer tower">
+  <title>Striker — soccer tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#061407" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#061407"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#102812"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#22c55e" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#102812"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#22c55e" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="126.3,217 124.4,160 109.2,160 107.3,217" fill="#cbd5e1"/>
+    <polygon points="158.6,169.5 154.8,112.5 109.2,112.5 105.4,169.5" fill="#22c55e"/>
+    <ellipse cx="132" cy="99.2" rx="15.2" ry="15.2" fill="#cbd5e1"/>
+    <polygon points="142.78,221.97 152.4,166.1 137.52,163.02 124.18,218.12" fill="#cbd5e1"/>
+    <polygon points="117.66,218.9 132.85,218.9 144.82,213.2 129.63,213.2" fill="#22c55e" opacity="0.72"/><polygon points="117.66,228.4 132.85,228.4 132.85,218.9 117.66,218.9" fill="#22c55e"/>
+    <ellipse cx="123.07" cy="220.8" rx="13.3" ry="13.3" fill="#cbd5e1"/>
+    <ellipse cx="110.25" cy="228.41" rx="3.8" ry="3.8" fill="#1a1a2a"/>
+    <ellipse cx="115.03" cy="210.25" rx="3.8" ry="3.8" fill="#1a1a2a"/>
+    <ellipse cx="121.75" cy="225.65" rx="3.8" ry="3.8" fill="#1a1a2a"/>
+</svg>

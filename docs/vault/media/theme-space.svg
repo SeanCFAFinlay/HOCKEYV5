@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 404 340" width="404" height="340" role="img" aria-label="Orbital Outpost palette">
+  <title>Orbital Outpost palette</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#05040d" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="404" height="340" fill="#05040d"/>
+  <rect width="404" height="340" fill="url(#bg)"/>
+  <text x="20" y="34" font-family="ui-sans-serif,system-ui" font-size="19" font-weight="600" fill="#c084fc">🛰️ Orbital Outpost</text>
+  <rect x="20" y="56" width="108" height="52" rx="8" fill="#05040d" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="20" y="124" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">background</text>
+  <text x="20" y="138" font-family="ui-monospace,monospace" font-size="11" fill="#05040d">#05040d</text>
+  <rect x="148" y="56" width="108" height="52" rx="8" fill="#30344f" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="148" y="124" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">floor</text>
+  <text x="148" y="138" font-family="ui-monospace,monospace" font-size="11" fill="#30344f">#30344f</text>
+  <rect x="276" y="56" width="108" height="52" rx="8" fill="#9d7cff" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="276" y="124" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">path</text>
+  <text x="276" y="138" font-family="ui-monospace,monospace" font-size="11" fill="#9d7cff">#9d7cff</text>
+  <rect x="20" y="148" width="108" height="52" rx="8" fill="#c084fc" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="20" y="216" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">accent</text>
+  <text x="20" y="230" font-family="ui-monospace,monospace" font-size="11" fill="#c084fc">#c084fc</text>
+  <rect x="148" y="148" width="108" height="52" rx="8" fill="#101827" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="148" y="216" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">tower base</text>
+  <text x="148" y="230" font-family="ui-monospace,monospace" font-size="11" fill="#101827">#101827</text>
+  <rect x="276" y="148" width="108" height="52" rx="8" fill="#8b9bb8" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="276" y="216" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">tower metal</text>
+  <text x="276" y="230" font-family="ui-monospace,monospace" font-size="11" fill="#8b9bb8">#8b9bb8</text>
+  <rect x="20" y="240" width="108" height="52" rx="8" fill="#c084fc" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="20" y="308" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">glow</text>
+  <text x="20" y="322" font-family="ui-monospace,monospace" font-size="11" fill="#c084fc">#c084fc</text>
+  <rect x="148" y="240" width="108" height="52" rx="8" fill="#ff3d81" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="148" y="308" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">spawn</text>
+  <text x="148" y="322" font-family="ui-monospace,monospace" font-size="11" fill="#ff3d81">#ff3d81</text>
+  <rect x="276" y="240" width="108" height="52" rx="8" fill="#67e8f9" stroke="#ffffff" stroke-opacity="0.16"/>
+  <text x="276" y="308" font-family="ui-monospace,monospace" font-size="11" fill="#ffffff" opacity="0.72">base</text>
+  <text x="276" y="322" font-family="ui-monospace,monospace" font-size="11" fill="#67e8f9">#67e8f9</text>
+</svg>

@@ -107,12 +107,12 @@ export function tapToGrid(tapX, tapY, canvasW, canvasH, cols, rows) {
 
 // ── DOM builders ───────────────────────────────────────────────────────────
 
+// Presentation lives in css/hud.css (and css/responsive.css) rather than inline
+// here, so the minimap can shrink on small screens like everything else. Only
+// `display` is still driven from JS — see setMinimapVisible.
 function _buildContainer() {
   const el = document.createElement('div');
   el.id = 'minimapContainer';
-  el.style.cssText = 'position:absolute;top:70px;right:12px;width:120px;' +
-    'background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);' +
-    'border-radius:8px;overflow:hidden;z-index:200;user-select:none';
   return el;
 }
 
@@ -121,7 +121,6 @@ function _buildCanvas(parent) {
   c.id = 'minimapCanvas';
   c.width  = CANVAS_SIZE;
   c.height = CANVAS_SIZE;
-  c.style.cssText = 'display:block;cursor:crosshair';
   parent.appendChild(c);
   return c;
 }
@@ -130,10 +129,7 @@ function _buildToggleButton(parent) {
   const btn = document.createElement('button');
   btn.id = 'minimapToggle';
   btn.textContent = 'M';
-  btn.style.cssText = 'position:absolute;bottom:2px;right:4px;' +
-    'background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);' +
-    'border-radius:4px;color:rgba(255,255,255,0.6);font-size:10px;' +
-    'padding:1px 4px;cursor:pointer;line-height:1.4;z-index:1';
+  btn.setAttribute('aria-label', 'Toggle minimap');
   parent.appendChild(btn);
   return btn;
 }

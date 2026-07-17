@@ -286,11 +286,38 @@ export function zoomOut() {
  */
 export function resetCam() {
   const state = getState();
-  const defaultDist = Math.max(state.COLS || 12, state.ROWS || 10) * 0.85;
+  const defaultDist = computeFitDistance(state.COLS, state.ROWS, state.camera?.aspect);
   const defaultHeight = defaultDist * 0.55;
   targetAngle = Math.PI / 4;
   targetDist = defaultDist;
   targetHeight = defaultHeight;
+}
+
+/**
+ * Camera distance that frames the whole arena for a given viewport aspect.
+ *
+ * Horizontal FOV falls away with the aspect ratio, so the distance that frames
+ * the rink nicely on a 16:9 monitor crops it badly on a portrait phone — the
+ * spawn ends up off the left edge. Pull back as the viewport narrows.
+ *
+ * The sqrt is empirical, not derived: fitting purely on horizontal FOV
+ * over-corrects, because at the default 45° azimuth the arena projects as a
+ * diamond and portrait has vertical room to spare. Tuned against the real
+ * render — ~15 at 16:9, ~25 on a 390x664 phone, where the full rink just fits.
+ *
+ * @param {number} cols
+ * @param {number} rows
+ * @param {number} aspect - viewport width / height
+ * @returns {number} camera distance
+ */
+export function computeFitDistance(cols, rows, aspect) {
+  const base = Math.max(cols || 12, rows || 10) * 0.85;
+  const REF_ASPECT = 1.6;
+  const a = aspect > 0 ? aspect : REF_ASPECT;
+  // Never come closer than the desktop framing, and cap the pull-back so a
+  // freak aspect can't push the arena to a speck.
+  const factor = Math.min(Math.max(Math.sqrt(REF_ASPECT / a), 1), 1.9);
+  return base * factor;
 }
 
 /**

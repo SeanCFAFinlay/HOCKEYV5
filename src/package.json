@@ -8,6 +8,7 @@
     "build": "node scripts/build.mjs",
     "preview": "vite preview",
     "serve": "npx serve .",
+    "vault": "node ../docs/vault/tools/generate-vault.mjs && node ../docs/vault/tools/generate-codebase.mjs",
     "validate:config": "node scripts/validate-configs.mjs",
     "validate": "npm run validate:config",
     "smoke": "npm run validate:config",

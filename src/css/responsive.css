@@ -494,3 +494,48 @@ button, .tower-btn, .menu-card, .map-card {
     filter: brightness(1.1);
   }
 }
+
+/* ── Phone: keep the HUD stat chips on a single row ───────────────────────── */
+/*
+ * #minimapContainer is pinned at top:70px, which assumes a one-row HUD —
+ * .hud-left is 69px tall. .hud-right defaults to `flex-wrap: wrap` with
+ * `max-width: 50%`, and on a 390px screen four chips need ~216px against the
+ * 195px that allows. They wrapped onto a second row and collided with the
+ * minimap. Shrink the chips instead of wrapping them.
+ */
+@media (max-width: 480px) {
+  .hud-right {
+    flex-wrap: nowrap;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .hud-stat {
+    padding: 5px 7px;
+    font-size: 0.7rem;
+    gap: 3px;
+    border-width: 1px;
+    white-space: nowrap;
+  }
+
+  /* 120px of a 390px screen is a lot of pitch to cover. */
+  #minimapContainer,
+  #minimapCanvas {
+    width: 88px;
+  }
+
+  #minimapCanvas {
+    height: 88px;
+  }
+
+  /*
+   * Eight towers never fit a phone's width, so the bar scrolls — but its
+   * scrollbar is hidden, leaving no sign that towers 6-8 exist. Fade the
+   * trailing edge so the row reads as continuing off-screen. Phone-only:
+   * on a desktop the bar fits and a fade would just look like a bug.
+   */
+  .tower-bar {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
+  }
+}

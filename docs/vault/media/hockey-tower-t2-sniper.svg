@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Sniper — hockey tower">
+  <title>Sniper — hockey tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="134.59,226.35 132.69,169.35 125.09,169.35 123.19,226.35" fill="#8fb8cc"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#071426"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#ef4444" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#071426"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#ef4444" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="160.5,230.3 158.6,173.3 151,173.3 149.1,230.3" fill="#8fb8cc"/>
+    <polygon points="103.79,155.25 132.29,155.25 160.22,141.95 131.72,141.95" fill="#ef4444" opacity="0.72"/><polygon points="103.79,178.05 132.29,178.05 132.29,155.25 103.79,155.25" fill="#ef4444"/>
+    <polygon points="127.15,132.15 115.18,137.85 120.89,149.85 132.86,144.15" fill="#1a1a2a"/>
+    <polygon points="118.01,234.25 116.11,177.25 108.51,177.25 106.61,234.25" fill="#8fb8cc"/>
+    <ellipse cx="117.64" cy="144.04" rx="5.7" ry="5.7" fill="#ff0000"/>
+    <polygon points="117.58,160.55 78.09,180.41 82.17,188.99 122.48,170.85" fill="#8fb8cc"/>
+    <polygon points="119.62,142.04 55.78,172.44 56.6,174.16 120.44,143.76" fill="#ff0000" opacity="0.6"/>
+</svg>

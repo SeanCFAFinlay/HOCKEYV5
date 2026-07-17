@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Hot Stick — hockey tower">
+  <title>Hot Stick — hockey tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="148.78,125.3 137.38,77.8 125.98,125.3" fill="#ff2200" opacity="0.9"/>
+    <polygon points="139.13,125.86 127.73,78.36 116.33,125.86" fill="#ff2200" opacity="0.9"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#071426"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#f97316" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#071426"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#f97316" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="173.8,217 166.2,160 97.8,160 90.2,217" fill="#1a1a2a"/>
+    <polygon points="151,159.05 143.4,130.55 120.6,130.55 113,159.05" fill="#8fb8cc"/>
+    <polygon points="151,126.75 139.6,79.25 128.2,126.75" fill="#ff2200" opacity="0.9"/>
+    <polygon points="147.2,126.75 132,60.25 116.8,126.75" fill="#ffaa00" opacity="0.7"/>
+    <polygon points="135.38,127.64 123.98,80.14 112.58,127.64" fill="#ff2200" opacity="0.9"/>
+    <polygon points="142.71,128.2 131.31,80.7 119.91,128.2" fill="#ff2200" opacity="0.9"/>
+    <polygon points="103.04,204.46 125.84,204.46 129.04,202.94 106.24,202.94" fill="#ff4400" opacity="0.72"/><polygon points="103.04,208.26 125.84,208.26 125.84,204.46 103.04,204.46" fill="#ff4400"/>
+    <polygon points="103.04,193.06 125.84,193.06 129.04,191.54 106.24,191.54" fill="#ff4400" opacity="0.72"/><polygon points="103.04,196.86 125.84,196.86 125.84,193.06 103.04,193.06" fill="#ff4400"/>
+    <polygon points="103.04,181.66 125.84,181.66 129.04,180.14 106.24,180.14" fill="#ff4400" opacity="0.72"/><polygon points="103.04,185.46 125.84,185.46 125.84,181.66 103.04,181.66" fill="#ff4400"/>
+    <polygon points="103.04,170.26 125.84,170.26 129.04,168.74 106.24,168.74" fill="#ff4400" opacity="0.72"/><polygon points="103.04,174.06 125.84,174.06 125.84,170.26 103.04,170.26" fill="#ff4400"/>
+</svg>

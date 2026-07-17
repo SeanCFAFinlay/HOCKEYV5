@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Captain — hockey tower">
+  <title>Captain — hockey tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="173.03,107.43 175.76,111.23 173.03,115.03 170.29,111.23" fill="#ffcc00"/>
+    <polygon points="125.53,74.52 128.26,78.32 125.53,82.12 122.79,78.32" fill="#ffcc00"/>
+    <polygon points="147.52,71.61 142.77,52.61 138.02,71.61" fill="#ffcc00"/>
+    <polygon points="128.21,72.71 123.46,53.71 118.71,72.71" fill="#ffcc00"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#071426"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#fbbf24" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#071426"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#fbbf24" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="84.79,192.3 151.29,192.3 179.22,179 112.72,179" fill="#1a1a2a" opacity="0.72"/><polygon points="84.79,220.8 151.29,220.8 151.29,192.3 84.79,192.3" fill="#1a1a2a"/>
+    <polygon points="151,183.75 143.4,136.25 120.6,136.25 113,183.75" fill="#ffcc00"/>
+    <polygon points="151,136.25 166.2,88.75 97.8,88.75 113,136.25" fill="#ffcc00"/>
+    <ellipse cx="90.2" cy="112.5" rx="3.88" ry="11.4" fill="none" stroke="#ffcc00" stroke-width="5.7"/>
+    <ellipse cx="173.8" cy="112.5" rx="3.88" ry="11.4" fill="none" stroke="#ffcc00" stroke-width="5.7"/>
+    <polygon points="151,85.9 154.8,74.5 109.2,74.5 113,85.9" fill="#ffcc00"/>
+    <polygon points="151.95,74.5 147.2,55.5 142.45,74.5" fill="#ffcc00"/>
+    <polygon points="132,47.9 137.47,55.5 132,63.1 126.53,55.5" fill="#ff0000"/>
+    <polygon points="179.5,99.2 182.24,103 179.5,106.8 176.76,103" fill="#ffcc00"/>
+    <polygon points="84.5,99.2 87.24,103 84.5,106.8 81.76,103" fill="#ffcc00"/>
+    <polygon points="120.7,76.29 115.95,57.29 111.2,76.29" fill="#ffcc00"/>
+    <polygon points="135.38,77.39 130.63,58.39 125.88,77.39" fill="#ffcc00"/>
+    <polygon points="138.47,90.97 141.21,94.77 138.47,98.57 135.74,94.77" fill="#ffcc00"/>
+    <polygon points="90.97,123.88 93.71,127.68 90.97,131.48 88.24,127.68" fill="#ffcc00"/>
+</svg>

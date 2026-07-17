@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Fire Drone — space enemy">
+  <title>Fire Drone — space enemy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#ffd1e3" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#05040d" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#05040d"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132.94" cy="131.55" rx="43.79" ry="43.79" fill="#ff6600" opacity="0.22"/>
+    <ellipse cx="132" cy="132" rx="38.08" ry="38.08" fill="#ff2200"/>
+    <ellipse cx="132" cy="132" rx="36.18" ry="12.3" fill="none" stroke="#ffd1e3" stroke-width="2.67" opacity="0.8"/>
+    <ellipse cx="132" cy="132" rx="43.03" ry="43.03" fill="none" stroke="#ffd1e3" stroke-width="2.67" opacity="0.8"/>
+</svg>

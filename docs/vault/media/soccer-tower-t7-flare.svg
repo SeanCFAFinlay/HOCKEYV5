@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Flare — soccer tower">
+  <title>Flare — soccer tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#061407" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#061407"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <ellipse cx="123.39" cy="64.49" rx="7.6" ry="7.6" fill="#555555" opacity="0.3"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#102812"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#ef4444" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#102812"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#ef4444" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="173.8,217 166.2,179 97.8,179 90.2,217" fill="#1a1a2a"/>
+    <polygon points="122.38,181.35 124.45,132.75 105.51,131.21 99.66,179.49" fill="#d6d6d6"/>
+    <polygon points="141.38,181.35 143.45,132.75 124.51,131.21 118.66,179.49" fill="#d6d6d6"/>
+    <polygon points="160.38,181.35 162.45,132.75 143.51,131.21 137.66,179.49" fill="#d6d6d6"/>
+    <ellipse cx="134.42" cy="49.87" rx="7.6" ry="7.6" fill="#555555" opacity="0.3"/>
+    <ellipse cx="121.1" cy="20.2" rx="7.6" ry="7.6" fill="#555555" opacity="0.3"/>
+    <ellipse cx="137.54" cy="35.81" rx="7.6" ry="7.6" fill="#555555" opacity="0.3"/>
+    <polygon points="116.61,138.15 109.01,109.65 101.41,138.15" fill="#ff2200" opacity="0.9"/>
+    <polygon points="114.71,128.65 109.01,81.15 103.31,128.65" fill="#ff6600" opacity="0.8"/>
+    <polygon points="112.81,119.15 109.01,52.65 105.21,119.15" fill="#ff2200" opacity="0.9"/>
+    <polygon points="135.61,138.15 128.01,109.65 120.41,138.15" fill="#ff2200" opacity="0.9"/>
+    <polygon points="133.71,128.65 128.01,81.15 122.31,128.65" fill="#ff6600" opacity="0.8"/>
+    <polygon points="131.81,119.15 128.01,52.65 124.21,119.15" fill="#ff2200" opacity="0.9"/>
+    <polygon points="154.61,138.15 147.01,109.65 139.41,138.15" fill="#ff2200" opacity="0.9"/>
+    <polygon points="152.71,128.65 147.01,81.15 141.31,128.65" fill="#ff6600" opacity="0.8"/>
+    <polygon points="150.81,119.15 147.01,52.65 143.21,119.15" fill="#ff2200" opacity="0.9"/>
+</svg>

@@ -3,7 +3,12 @@ import { isMobileDevice } from '../utils/device.js';
 export const QUALITY_TIERS = {
   low: {
     antialias: false,
-    maxPixelRatio: 1,
+    // Phones are DPR 2-3. Rendering at 1 makes a 390px buffer stretch across a
+    // 1170px screen, which reads as blurry — the single biggest hit to how the
+    // game looks on mobile. `low` already drops shadows, spotlights and all
+    // post-processing, so it can afford the extra fragments. This matches the
+    // intent already stated in utils/device.js getAdaptivePixelRatio().
+    maxPixelRatio: 1.5,
     shadows: false,
     shadowMapSize: 512,
     spotLights: false,

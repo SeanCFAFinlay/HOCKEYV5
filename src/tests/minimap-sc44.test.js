@@ -46,6 +46,7 @@ function makeCanvas(width = 120, height = 120) {
 
 function makeElement(tag = 'div', id = '') {
   const children = [];
+  const attrs = {};
   const el = {
     tag,
     id,
@@ -56,6 +57,9 @@ function makeElement(tag = 'div', id = '') {
     children,
     parentNode: null,
     _listeners: {},
+    _attrs: attrs,
+    setAttribute: vi.fn((k, v) => { attrs[k] = String(v); }),
+    getAttribute: vi.fn(k => (k in attrs ? attrs[k] : null)),
     querySelector: vi.fn((sel) => {
       if (sel === 'canvas') return el._canvas || null;
       return null;

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Free Kick — soccer tower">
+  <title>Free Kick — soccer tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#061407" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#061407"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#102812"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#fbbf24" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#102812"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#fbbf24" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="179.5,217 170,194.2 94,194.2 84.5,217" fill="#1a1a2a"/>
+    <ellipse cx="132" cy="169.5" rx="22.8" ry="22.8" fill="#cbd5e1"/>
+    <ellipse cx="122.19" cy="149.32" rx="6.65" ry="6.65" fill="#1a1a2a"/>
+    <ellipse cx="107.08" cy="168.9" rx="6.65" ry="6.65" fill="#1a1a2a"/>
+    <ellipse cx="117.09" cy="189.2" rx="6.65" ry="6.65" fill="#1a1a2a"/>
+    <ellipse cx="141.95" cy="162.63" rx="6.65" ry="6.65" fill="#1a1a2a"/>
+    <ellipse cx="137.46" cy="185.98" rx="6.65" ry="6.65" fill="#1a1a2a"/>
+    <ellipse cx="117.52" cy="168.07" rx="6.65" ry="6.65" fill="#1a1a2a"/>
+    <polygon points="96.28,142.9 103.88,142.9 135.8,127.7 128.2,127.7" fill="#d6d6d6" opacity="0.72"/><polygon points="96.28,150.5 103.88,150.5 103.88,142.9 96.28,142.9" fill="#d6d6d6"/>
+    <polygon points="99.43,145.33 51.55,168.13 52.85,170.87 100.73,148.07" fill="#ff0000" opacity="0.5"/>
+    <ellipse cx="52.2" cy="169.5" rx="17.1" ry="17.1" fill="none" stroke="#fbbf24" stroke-width="3.8"/>
+</svg>

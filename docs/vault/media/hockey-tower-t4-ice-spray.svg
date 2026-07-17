@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Ice Spray — hockey tower">
+  <title>Ice Spray — hockey tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="108.25,139.1 155.75,139.1 171.71,131.5 124.21,131.5" fill="#cbd5e1" opacity="0.72"/><polygon points="108.25,173.3 155.75,173.3 155.75,139.1 108.25,139.1" fill="#cbd5e1"/>
+    <polygon points="156.32,141 171.52,141 171.52,141 156.32,141" fill="#88ccff" opacity="0.72"/><polygon points="156.32,156.2 171.52,156.2 171.52,141 156.32,141" fill="#88ccff"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#071426"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#38bdf8" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#071426"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#38bdf8" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="74.05,174.25 150.05,174.25 189.95,155.25 113.95,155.25" fill="#38bdf8" opacity="0.72"/><polygon points="74.05,221.75 150.05,221.75 150.05,174.25 74.05,174.25" fill="#38bdf8"/>
+    <polygon points="125.83,160.9 97.9,174.2 114.23,208.5 142.16,195.2" fill="#38bdf8"/>
+    <polygon points="72.13,222.15 77.66,213.2 67.23,211.85" fill="#38bdf8"/>
+    <polygon points="87.33,222.15 92.86,213.2 82.43,211.85" fill="#38bdf8"/>
+    <polygon points="102.53,222.15 108.06,213.2 97.63,211.85" fill="#38bdf8"/>
+    <polygon points="117.73,222.15 123.26,213.2 112.83,211.85" fill="#38bdf8"/>
+    <polygon points="132.93,222.15 138.46,213.2 128.03,211.85" fill="#38bdf8"/>
+    <polygon points="101.08,174.31 104.5,179.06 101.08,183.81 97.66,179.06" fill="#38bdf8"/>
+    <polygon points="88.73,169.9 92.15,174.65 88.73,179.4 85.31,174.65" fill="#38bdf8"/>
+    <polygon points="112.13,159.43 115.55,164.18 112.13,168.93 108.71,164.18" fill="#38bdf8"/>
+    <polygon points="110.39,179.91 113.81,184.66 110.39,189.41 106.97,184.66" fill="#38bdf8"/>
+    <polygon points="68.95,171.47 72.37,176.22 68.95,180.97 65.53,176.22" fill="#38bdf8"/>
+    <polygon points="78.44,158.76 81.86,163.51 78.44,168.26 75.02,163.51" fill="#38bdf8"/>
+    <polygon points="110.75,181.54 114.17,186.29 110.75,191.04 107.33,186.29" fill="#38bdf8"/>
+    <polygon points="90.28,158.88 93.7,163.63 90.28,168.38 86.86,163.63" fill="#38bdf8"/>
+</svg>

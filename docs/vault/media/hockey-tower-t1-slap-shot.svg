@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Slap Shot — hockey tower">
+  <title>Slap Shot — hockey tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#071426"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#00d4ff" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#071426"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#00d4ff" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="166.2,212.25 160.5,145.75 103.5,145.75 97.8,212.25" fill="#00d4ff"/>
+    <ellipse cx="132" cy="131.5" rx="19" ry="19" fill="#cbd5e1"/>
+    <path d="M 111.1 127.7 A 20.9 20.9 0 0 1 152.9 127.7 Z" fill="#00d4ff"/>
+    <polygon points="195.7,220.52 151.3,115.52 144.3,118.48 188.7,223.48" fill="#1a1a2a"/>
+    <polygon points="177.11,210.54 215.11,210.54 219.89,208.26 181.89,208.26" fill="#1a1a2a" opacity="0.72"/><polygon points="177.11,218.14 215.11,218.14 215.11,210.54 177.11,210.54" fill="#1a1a2a"/>
+    <ellipse cx="197.7" cy="205.98" rx="11.4" ry="11.4" fill="#00d4ff"/>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Enforcer — hockey tower">
+  <title>Enforcer — hockey tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#071426"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#f97316" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#071426"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#f97316" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="179.5,213.2 170,137.2 94,137.2 84.5,213.2" fill="#f97316"/>
+    <polygon points="76.52,129.6 171.52,129.6 187.48,122 92.48,122" fill="#f97316" opacity="0.72"/><polygon points="76.52,152.4 171.52,152.4 171.52,129.6 76.52,129.6" fill="#f97316"/>
+    <ellipse cx="132" cy="106.8" rx="19" ry="19" fill="#cbd5e1"/>
+    <ellipse cx="57.52" cy="144.8" rx="19" ry="19" fill="#ff0000"/>
+    <ellipse cx="190.52" cy="144.8" rx="19" ry="19" fill="#ff0000"/>
+    <ellipse cx="192.04" cy="148.6" rx="9.69" ry="28.5" fill="none" stroke="#f97316" stroke-width="5.7" opacity="0.3"/>
+    <ellipse cx="192.04" cy="148.6" rx="14.86" ry="43.7" fill="none" stroke="#f97316" stroke-width="5.7" opacity="0.19999999999999998"/>
+    <ellipse cx="192.04" cy="148.6" rx="20.03" ry="58.9" fill="none" stroke="#f97316" stroke-width="5.7" opacity="0.09999999999999998"/>
+</svg>

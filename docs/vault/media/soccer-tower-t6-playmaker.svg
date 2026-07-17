@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Playmaker — soccer tower">
+  <title>Playmaker — soccer tower</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#061407" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#061407"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="236" rx="83.6" ry="25.08" fill="#000" opacity="0.34" filter="url(#soft)"/>
+    <polygon points="159.93,187.55 166.09,196.1 159.93,204.65 153.77,196.1" fill="#ffcc00"/>
+    <ellipse cx="125.53" cy="142.27" rx="11.4" ry="11.4" fill="#cbd5e1"/>
+    <ellipse cx="116.13" cy="135.35" rx="2.85" ry="2.85" fill="#1a1a2a"/>
+    <ellipse cx="129.18" cy="151.36" rx="2.85" ry="2.85" fill="#1a1a2a"/>
+    <polygon points="217.5,236 208,213.2 56,213.2 46.5,236" fill="#102812"/>
+    <ellipse cx="132" cy="232.2" rx="79.8" ry="27.13" fill="none" stroke="#06b6d4" stroke-width="4.56" opacity="0.4"/>
+    <polygon points="192.8,213.2 185.2,201.8 78.8,201.8 71.2,213.2" fill="#102812"/>
+    <ellipse cx="132" cy="208.45" rx="64.6" ry="21.96" fill="none" stroke="#06b6d4" stroke-width="6.84" opacity="0.9"/>
+    <ellipse cx="132" cy="201.8" rx="49.4" ry="16.8" fill="none" stroke="#333344" stroke-width="4.56"/>
+    <polygon points="179.5,216.05 170,187.55 94,187.55 84.5,216.05" fill="#1a1a2a"/>
+    <polygon points="151,184.7 151,165.7 113,165.7 113,184.7" fill="#d6d6d6"/>
+    <ellipse cx="132" cy="150.5" rx="47.5" ry="16.15" fill="none" stroke="#06b6d4" stroke-width="3.8" opacity="0.4"/>
+    <ellipse cx="132" cy="150.5" rx="47.5" ry="47.5" fill="none" stroke="#06b6d4" stroke-width="3.8" opacity="0.4"/>
+    <ellipse cx="179.5" cy="150.5" rx="11.4" ry="11.4" fill="#cbd5e1"/>
+    <polygon points="132,125.8 142.94,141 132,156.2 121.06,141" fill="#06b6d4"/>
+    <ellipse cx="170.1" cy="143.58" rx="2.85" ry="2.85" fill="#1a1a2a"/>
+    <ellipse cx="183.15" cy="159.59" rx="2.85" ry="2.85" fill="#1a1a2a"/>
+    <ellipse cx="90.97" cy="158.73" rx="11.4" ry="11.4" fill="#cbd5e1"/>
+    <ellipse cx="81.57" cy="151.81" rx="2.85" ry="2.85" fill="#1a1a2a"/>
+    <ellipse cx="94.63" cy="167.81" rx="2.85" ry="2.85" fill="#1a1a2a"/>
+</svg>

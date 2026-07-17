@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Fire Ball — soccer enemy">
+  <title>Fire Ball — soccer enemy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#ffdd66" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#061407" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#061407"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132.94" cy="131.55" rx="43.79" ry="43.79" fill="#ff6600" opacity="0.22"/>
+    <ellipse cx="132" cy="132" rx="38.08" ry="38.08" fill="#ff2200"/>
+    <ellipse cx="112.25" cy="100.47" rx="8.38" ry="8.38" fill="dark"/>
+    <ellipse cx="142.09" cy="167.91" rx="8.38" ry="8.38" fill="dark"/>
+    <ellipse cx="96.17" cy="142.89" rx="8.38" ry="8.38" fill="dark"/>
+    <ellipse cx="140.62" cy="133.46" rx="8.38" ry="8.38" fill="dark"/>
+</svg>

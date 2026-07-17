@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 160" width="220" height="160" role="img" aria-label="headButt — space projectile">
+  <title>headButt — space projectile</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#05040d" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="220" height="160" fill="#05040d"/>
+  <rect width="220" height="160" fill="url(#bg)"/>
+  <path d="M 40 80 L 118 80" stroke="#7dd3fc" stroke-width="10" stroke-linecap="round" opacity="0.28"/><path d="M 66 80 L 118 80" stroke="#7dd3fc" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+  <circle cx="150" cy="80" r="20" fill="none" stroke="#7dd3fc" stroke-width="8"/>
+  <text x="110" y="140" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#7dd3fc" opacity="0.75">ring · 8 u/s</text>
+</svg>

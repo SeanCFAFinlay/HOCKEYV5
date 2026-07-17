@@ -32,12 +32,15 @@ export const VISUAL_PROFILES = {
       hemiGround: 0x263955,
       hemiIntensity: 0.24,
       sun: 0xe5f7ff,
-      sunIntensity: 0.62,
+      sunIntensity: 0.55,
       rim: 0x1e88ff,
       rimIntensity: 0.22,
       accent: 0x00d4ff,
-      spotIntensity: 6,
-      exposure: 0.72
+      // Four spots all aim at rink centre, so their intensities stack there.
+      // Anything much above this clips the ice to white and destroys the
+      // markings — the rink is a large, bright, near-flat surface.
+      spotIntensity: 2.5,
+      exposure: 0.62
     },
     ui: { accent: '#00d4ff', dark: '#06111f' },
     projectiles: {
@@ -91,7 +94,10 @@ export const VISUAL_PROFILES = {
       rim: 0x37d957,
       rimIntensity: 0.28,
       accent: 0x22c55e,
-      exposure: 0.9
+      // Explicit, because the fallback in scene.js is 18 for non-hockey themes,
+      // which stacks four ways over the pitch centre and blows it out.
+      spotIntensity: 3.2,
+      exposure: 0.82
     },
     ui: { accent: '#22c55e', dark: '#061407' },
     projectiles: {
@@ -143,7 +149,8 @@ export const VISUAL_PROFILES = {
       rim: 0x67e8f9,
       rimIntensity: 0.52,
       accent: 0xc084fc,
-      exposure: 1.02
+      spotIntensity: 2.8,
+      exposure: 0.86
     },
     ui: { accent: '#c084fc', dark: '#05040d' },
     projectiles: {

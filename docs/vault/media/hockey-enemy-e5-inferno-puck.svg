@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Inferno Puck — hockey enemy">
+  <title>Inferno Puck — hockey enemy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#334466" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132.94" cy="131.55" rx="65.69" ry="65.69" fill="#ff6600" opacity="0.22"/>
+    <ellipse cx="132" cy="132" rx="57.12" ry="57.12" fill="#ff2200"/>
+    <ellipse cx="131.53" cy="132.22" rx="57.12" ry="57.12" fill="none" stroke="#3a3a4a" stroke-width="6.85"/>
+    <ellipse cx="128.64" cy="133.6" rx="48.55" ry="48.55" fill="none" stroke="#222233" stroke-width="3.43"/>
+    <ellipse cx="128.4" cy="133.71" rx="28.56" ry="28.56" fill="#334466" opacity="0.85"/>
+    <ellipse cx="128.16" cy="133.83" rx="29.42" ry="29.42" fill="none" stroke="#334466" stroke-width="4" opacity="0.5"/>
+    <polygon points="143.11,93.77 167.1,93.77 169.45,92.65 145.46,92.65" fill="#4a5c6e" opacity="0.72"/><polygon points="143.11,117.76 167.1,117.76 167.1,93.77 143.11,93.77" fill="#4a5c6e"/>
+    <polygon points="84.95,93.77 108.94,93.77 111.29,92.65 87.3,92.65" fill="#4a5c6e" opacity="0.72"/><polygon points="84.95,117.76 108.94,117.76 108.94,93.77 84.95,93.77" fill="#4a5c6e"/>
+    <polygon points="84.95,151.93 108.94,151.93 111.29,150.81 87.3,150.81" fill="#4a5c6e" opacity="0.72"/><polygon points="84.95,175.92 108.94,175.92 108.94,151.93 84.95,151.93" fill="#4a5c6e"/>
+    <polygon points="143.11,151.93 167.1,151.93 169.45,150.81 145.46,150.81" fill="#4a5c6e" opacity="0.72"/><polygon points="143.11,175.92 167.1,175.92 167.1,151.93 143.11,151.93" fill="#4a5c6e"/>
+</svg>

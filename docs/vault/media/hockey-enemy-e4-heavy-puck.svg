@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Heavy Puck — hockey enemy">
+  <title>Heavy Puck — hockey enemy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#bddcff" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="132" rx="53.31" ry="53.31" fill="#1a3f8f"/>
+    <ellipse cx="131.53" cy="132.22" rx="53.31" ry="53.31" fill="none" stroke="#3a3a4a" stroke-width="6.4"/>
+    <ellipse cx="128.87" cy="133.49" rx="45.32" ry="45.32" fill="none" stroke="#222233" stroke-width="3.2"/>
+    <ellipse cx="128.64" cy="133.6" rx="26.66" ry="26.66" fill="#bddcff" opacity="0.85"/>
+    <ellipse cx="128.42" cy="133.71" rx="27.46" ry="27.46" fill="none" stroke="#bddcff" stroke-width="3.73" opacity="0.5"/>
+    <polygon points="142.29,96.35 164.68,96.35 167.04,95.23 144.64,95.23" fill="#4a5c6e" opacity="0.72"/><polygon points="142.29,118.75 164.68,118.75 164.68,96.35 142.29,96.35" fill="#4a5c6e"/>
+    <polygon points="88.01,96.35 110.4,96.35 112.75,95.23 90.36,95.23" fill="#4a5c6e" opacity="0.72"/><polygon points="88.01,118.75 110.4,118.75 110.4,96.35 88.01,96.35" fill="#4a5c6e"/>
+    <polygon points="88.01,150.64 110.4,150.64 112.75,149.52 90.36,149.52" fill="#4a5c6e" opacity="0.72"/><polygon points="88.01,173.03 110.4,173.03 110.4,150.64 88.01,150.64" fill="#4a5c6e"/>
+    <polygon points="142.29,150.64 164.68,150.64 167.04,149.52 144.64,149.52" fill="#4a5c6e" opacity="0.72"/><polygon points="142.29,173.03 164.68,173.03 164.68,150.64 142.29,150.64" fill="#4a5c6e"/>
+</svg>

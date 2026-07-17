@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264" role="img" aria-label="Defenseman — hockey enemy">
+  <title>Defenseman — hockey enemy</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#bddcff" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#06111f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+  <rect width="264" height="264" fill="#06111f"/>
+  <rect width="264" height="264" fill="url(#bg)"/>
+  <ellipse cx="132" cy="132" rx="60.93" ry="60.93" fill="#1a3388"/>
+    <ellipse cx="131.53" cy="132.22" rx="60.93" ry="60.93" fill="none" stroke="#3a3a4a" stroke-width="7.31"/>
+    <ellipse cx="128.42" cy="133.71" rx="51.79" ry="51.79" fill="none" stroke="#222233" stroke-width="3.66"/>
+    <ellipse cx="128.16" cy="133.83" rx="30.46" ry="30.46" fill="#bddcff" opacity="0.85"/>
+    <ellipse cx="127.91" cy="133.95" rx="31.38" ry="31.38" fill="none" stroke="#bddcff" stroke-width="4.26" opacity="0.5"/>
+    <polygon points="143.93,91.18 169.52,91.18 171.87,90.06 146.28,90.06" fill="#4a5c6e" opacity="0.72"/><polygon points="143.93,116.77 169.52,116.77 169.52,91.18 143.93,91.18" fill="#4a5c6e"/>
+    <polygon points="81.89,91.18 107.48,91.18 109.83,90.06 84.24,90.06" fill="#4a5c6e" opacity="0.72"/><polygon points="81.89,116.77 107.48,116.77 107.48,91.18 81.89,91.18" fill="#4a5c6e"/>
+    <polygon points="81.89,153.22 107.48,153.22 109.83,152.1 84.24,152.1" fill="#4a5c6e" opacity="0.72"/><polygon points="81.89,178.81 107.48,178.81 107.48,153.22 81.89,153.22" fill="#4a5c6e"/>
+    <polygon points="143.93,153.22 169.52,153.22 171.87,152.1 146.28,152.1" fill="#4a5c6e" opacity="0.72"/><polygon points="143.93,178.81 169.52,178.81 169.52,153.22 143.93,153.22" fill="#4a5c6e"/>
+</svg>

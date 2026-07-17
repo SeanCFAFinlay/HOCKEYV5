@@ -1,7 +1,12 @@
 /**
  * Post-processing pipeline for bloom, vignette, FXAA, and dynamic screen effects.
  * Self-contained implementation using Three.js r128 globals (window.THREE).
- * Quality tiers: low (no PP), medium (bloom only), high (bloom + vignette + FXAA).
+ *
+ * Quality tiers (see TIER_CONFIG, the single source of truth):
+ *   low    — pipeline bypassed entirely, straight to screen
+ *   medium — bloom + vignette at 0.75x render scale
+ *   high   — bloom + vignette + FXAA at full scale
+ *   ultra  — as high, with stronger bloom
  *
  * SC-3.7 additions:
  *   setDangerVignette(active)           — red pulse vignette when lives ≤ 3
@@ -16,6 +21,30 @@
 let composer = null;
 let ppEnabled = false;
 let bloomStrength = 0.26;
+
+// The drawing-buffer size the composer would use at renderScale 1. Kept separate
+// from the composer's current size because render scale is applied relative to
+// THIS, not to whatever the buffer happens to be now — scaling off the current
+// size compounds every time the tier is re-applied.
+let baseWidth = 0;
+let baseHeight = 0;
+let renderScale = 1;
+
+/** Per-tier pipeline config. The single source of truth for what each tier does. */
+const TIER_CONFIG = {
+  low:    { pp: false, renderScale: 1,    bloom: null,                                vignette: false, fxaa: false },
+  medium: { pp: true,  renderScale: 0.75, bloom: { strength: 0.14, threshold: 0.94 }, vignette: true,  fxaa: false },
+  high:   { pp: true,  renderScale: 1,    bloom: { strength: 0.26, threshold: 0.92 }, vignette: true,  fxaa: true  },
+  ultra:  { pp: true,  renderScale: 1,    bloom: { strength: 0.32, threshold: 0.88 }, vignette: true,  fxaa: true  }
+};
+
+function _applyRenderScale() {
+  if (!composer || !baseWidth || !baseHeight) return;
+  composer.setSize(
+    Math.max(1, Math.floor(baseWidth * renderScale)),
+    Math.max(1, Math.floor(baseHeight * renderScale))
+  );
+}
 
 // SC-3.7 effect state
 const effectState = {
@@ -202,271 +231,6 @@ const ChromaticAberrationShader = {
       float b = texture2D(tDiffuse, vUv - offset).b;
       float a = texture2D(tDiffuse, vUv).a;
       gl_FragColor = vec4(r, g, b, a);
-    }
-  `
-};
-
-// ── Glow Effect Shader (SC-5.5 addition) ──────────────────────────────────────
-
-const GlowShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    glowColor: { value: [1.0, 0.8, 0.2] }, // Default gold/yellow
-    glowStrength: { value: 0.5 }
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform vec3 glowColor;
-    uniform float glowStrength;
-    varying vec2 vUv;
-
-    void main() {
-      vec4 color = texture2D(tDiffuse, vUv);
-      
-      // Create a subtle glow effect by increasing brightness
-      vec3 glow = glowColor * glowStrength * 0.5;
-      vec3 finalColor = color.rgb + glow;
-      
-      gl_FragColor = vec4(finalColor, color.a);
-    }
-  `
-};
-
-// ── SSAO Shader (SC-5.5 addition) ─────────────────────────────────────────────
-
-const SSAOShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    tNormalDepth: { value: null },
-    resolution: { value: new THREE.Vector2() },
-    cameraNear: { value: 0.1 },
-    cameraFar: { value: 100.0 },
-    kernelRadius: { value: 8.0 },
-    intensity: { value: 0.5 }
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform sampler2D tNormalDepth;
-    uniform vec2 resolution;
-    uniform float cameraNear;
-    uniform float cameraFar;
-    uniform float kernelRadius;
-    uniform float intensity;
-    varying vec2 vUv;
-
-    float readDepth(sampler2D depthSampler, vec2 coord) {
-      return texture2D(depthSampler, coord).x;
-    }
-
-    void main() {
-      vec4 color = texture2D(tDiffuse, vUv);
-      
-      // Simple ambient occlusion approximation
-      float depth = readDepth(tNormalDepth, vUv);
-      if (depth == 0.0) {
-        gl_FragColor = color;
-        return;
-      }
-      
-      // Apply subtle AO effect
-      float ao = 1.0 - (depth * intensity * 0.5);
-      vec3 finalColor = color.rgb * ao;
-      
-      gl_FragColor = vec4(finalColor, color.a);
-    }
-  `
-};
-
-// ── Motion Blur Shader (SC-6.0 addition) ──────────────────────────────────────
-
-const MotionBlurShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    tVelocity: { value: null },
-    intensity: { value: 0.5 }
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform sampler2D tVelocity;
-    uniform float intensity;
-    varying vec2 vUv;
-
-    void main() {
-      vec4 color = texture2D(tDiffuse, vUv);
-      vec2 velocity = texture2D(tVelocity, vUv).xy;
-      
-      // Sample along motion direction
-      vec4 blurred = vec4(0.0);
-      float totalWeight = 0.0;
-      int samples = 8;
-      
-      for (int i = 0; i < samples; i++) {
-        float t = float(i) / float(samples - 1);
-        vec2 samplePos = vUv - velocity * intensity * t;
-        vec4 sampleColor = texture2D(tDiffuse, samplePos);
-        float weight = 1.0 - abs(t - 0.5) * 2.0; // Center-weighted
-        blurred += sampleColor * weight;
-        totalWeight += weight;
-      }
-      
-      if (totalWeight > 0.0) {
-        blurred /= totalWeight;
-      }
-      
-      gl_FragColor = vec4(blurred.rgb, color.a);
-    }
-  `
-};
-
-// ── Screen Space Reflection Shader (SC-6.0 addition) ──────────────────────────
-
-const SSRShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    tNormalDepth: { value: null },
-    tPosition: { value: null },
-    resolution: { value: new THREE.Vector2() },
-    cameraNear: { value: 0.1 },
-    cameraFar: { value: 1.0 },
-    intensity: { value: 0.5 }
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform sampler2D tNormalDepth;
-    uniform sampler2D tPosition;
-    uniform vec2 resolution;
-    uniform float cameraNear;
-    uniform float cameraFar;
-    uniform float intensity;
-    varying vec2 vUv;
-
-    void main() {
-      vec4 color = texture2D(tDiffuse, vUv);
-      
-      // Get position and normal at current pixel
-      vec3 position = texture2D(tPosition, vUv).xyz;
-      vec3 normal = texture2D(tNormalDepth, vUv).xyz;
-      
-      if (length(normal) < 0.1 || length(position) < 0.1) {
-        gl_FragColor = color;
-        return;
-      }
-      
-      // Simple SSR approximation
-      vec3 viewDir = normalize(-position);
-      vec3 reflectDir = reflect(-viewDir, normal);
-      
-      // Sample in reflection direction
-      float stepSize = 0.02;
-      vec2 samplePos = vUv;
-      float maxSteps = 100.0;
-      float accumulatedIntensity = 0.0;
-      
-      for (float i = 0.0; i < maxSteps; i++) {
-        samplePos += reflectDir.xy * stepSize;
-        
-        if (samplePos.x < 0.0 || samplePos.x > 1.0 || 
-            samplePos.y < 0.0 || samplePos.y > 1.0) {
-          break;
-        }
-        
-        vec3 sampleNormal = texture2D(tNormalDepth, samplePos).xyz;
-        if (length(sampleNormal) > 0.1) {
-          accumulatedIntensity += intensity * 0.05;
-        }
-      }
-      
-      // Apply SSR effect
-      vec3 finalColor = color.rgb + accumulatedIntensity * 0.8;
-      gl_FragColor = vec4(finalColor, color.a);
-    }
-  `
-};
-
-// ── Depth of Field Shader (SC-6.0 addition) ───────────────────────────────────
-
-const DepthOfFieldShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    tDepth: { value: null },
-    focusDistance: { value: 1.0 },
-    focusRange: { value: 0.5 },
-    maxBlur: { value: 1.0 }
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform sampler2D tDepth;
-    uniform float focusDistance;
-    uniform float focusRange;
-    uniform float maxBlur;
-    varying vec2 vUv;
-
-    void main() {
-      vec4 color = texture2D(tDiffuse, vUv);
-      float depth = texture2D(tDepth, vUv).r;
-      
-      // Calculate blur amount based on distance from focus
-      float blurAmount = abs(depth - focusDistance) / focusRange;
-      blurAmount = clamp(blurAmount, 0.0, 1.0);
-      blurAmount *= maxBlur;
-      
-      // Simple box blur for depth of field effect
-      vec4 blurred = vec4(0.0);
-      float totalWeight = 0.0;
-      int samples = 5;
-      
-      for (int i = -samples; i <= samples; i++) {
-        float t = float(i) / float(samples);
-        vec2 samplePos = vUv + vec2(t * blurAmount, 0.0);
-        
-        if (samplePos.x >= 0.0 && samplePos.x <= 1.0) {
-          vec4 sampleColor = texture2D(tDiffuse, samplePos);
-          float weight = 1.0 - abs(t);
-          blurred += sampleColor * weight;
-          totalWeight += weight;
-        }
-      }
-      
-      if (totalWeight > 0.0) {
-        blurred /= totalWeight;
-      }
-      
-      gl_FragColor = vec4(blurred.rgb, color.a);
     }
   `
 };
@@ -771,206 +535,6 @@ function createChromaticAberrationPass(width, height) {
   };
 }
 
-// ── SC-5.5: Glow Pass ─────────────────────────────────────────────────────────
-
-function createGlowPass(width, height) {
-  const T = globalThis.THREE || window.THREE;
-
-  const uniforms = {
-    tDiffuse: { value: null },
-    glowColor: { value: new T.Vector3(1.0, 0.8, 0.2) }, // Gold/yellow
-    glowStrength: { value: 0.5 }
-  };
-
-  const material = new T.ShaderMaterial({
-    uniforms,
-    vertexShader:   GlowShader.vertexShader,
-    fragmentShader: GlowShader.fragmentShader
-  });
-
-  const sceneQ  = new T.Scene();
-  const cameraQ = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  const quad    = new T.Mesh(new T.PlaneGeometry(2, 2), material);
-  sceneQ.add(quad);
-
-  return {
-    name: 'GlowPass',
-    uniforms,
-    material,
-    enabled: false,
-
-    render(renderer, readTarget, writeTarget) {
-      if (!this.enabled) return;
-      uniforms.tDiffuse.value = readTarget.texture;
-      renderer.setRenderTarget(writeTarget);
-      renderer.clear();
-      renderer.render(sceneQ, cameraQ);
-    }
-  };
-}
-
-// ── SC-5.5: SSAO Pass ─────────────────────────────────────────────────────────
-
-function createSSAOPass(width, height) {
-  const T = globalThis.THREE || window.THREE;
-
-  const uniforms = {
-    tDiffuse: { value: null },
-    tNormalDepth: { value: null },
-    resolution: { value: new T.Vector2(width, height) },
-    cameraNear: { value: 0.1 },
-    cameraFar: { value: 100.0 },
-    kernelRadius: { value: 8.0 },
-    intensity: { value: 0.5 }
-  };
-
-  const material = new T.ShaderMaterial({
-    uniforms,
-    vertexShader:   SSAOShader.vertexShader,
-    fragmentShader: SSAOShader.fragmentShader
-  });
-
-  const sceneQ  = new T.Scene();
-  const cameraQ = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  const quad    = new T.Mesh(new T.PlaneGeometry(2, 2), material);
-  sceneQ.add(quad);
-
-  return {
-    name: 'SSAOPass',
-    uniforms,
-    material,
-    enabled: false,
-
-    render(renderer, readTarget, writeTarget) {
-      if (!this.enabled) return;
-      uniforms.tDiffuse.value = readTarget.texture;
-      renderer.setRenderTarget(writeTarget);
-      renderer.clear();
-      renderer.render(sceneQ, cameraQ);
-    }
-  };
-}
-
-// ── SC-6.0: Motion Blur Pass ──────────────────────────────────────────────────
-
-function createMotionBlurPass(width, height) {
-  const T = globalThis.THREE || window.THREE;
-
-  const uniforms = {
-    tDiffuse: { value: null },
-    tVelocity: { value: null },
-    intensity: { value: 0.5 }
-  };
-
-  const material = new T.ShaderMaterial({
-    uniforms,
-    vertexShader:   MotionBlurShader.vertexShader,
-    fragmentShader: MotionBlurShader.fragmentShader
-  });
-
-  const sceneQ  = new T.Scene();
-  const cameraQ = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  const quad    = new T.Mesh(new T.PlaneGeometry(2, 2), material);
-  sceneQ.add(quad);
-
-  return {
-    name: 'MotionBlurPass',
-    uniforms,
-    material,
-    enabled: false,
-
-    render(renderer, readTarget, writeTarget) {
-      if (!this.enabled) return;
-      uniforms.tDiffuse.value = readTarget.texture;
-      renderer.setRenderTarget(writeTarget);
-      renderer.clear();
-      renderer.render(sceneQ, cameraQ);
-    }
-  };
-}
-
-// ── SC-6.0: Screen Space Reflection Pass ──────────────────────────────────────
-
-function createSSRPass(width, height) {
-  const T = globalThis.THREE || window.THREE;
-
-  const uniforms = {
-    tDiffuse: { value: null },
-    tNormalDepth: { value: null },
-    tPosition: { value: null },
-    resolution: { value: new T.Vector2(width, height) },
-    cameraNear: { value: 0.1 },
-    cameraFar: { value: 1.0 },
-    intensity: { value: 0.5 }
-  };
-
-  const material = new T.ShaderMaterial({
-    uniforms,
-    vertexShader:   SSRShader.vertexShader,
-    fragmentShader: SSRShader.fragmentShader
-  });
-
-  const sceneQ  = new T.Scene();
-  const cameraQ = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  const quad    = new T.Mesh(new T.PlaneGeometry(2, 2), material);
-  sceneQ.add(quad);
-
-  return {
-    name: 'SSRPass',
-    uniforms,
-    material,
-    enabled: false,
-
-    render(renderer, readTarget, writeTarget) {
-      if (!this.enabled) return;
-      uniforms.tDiffuse.value = readTarget.texture;
-      renderer.setRenderTarget(writeTarget);
-      renderer.clear();
-      renderer.render(sceneQ, cameraQ);
-    }
-  };
-}
-
-// ── SC-6.0: Depth of Field Pass ───────────────────────────────────────────────
-
-function createDepthOfFieldPass(width, height) {
-  const T = globalThis.THREE || window.THREE;
-
-  const uniforms = {
-    tDiffuse: { value: null },
-    tDepth: { value: null },
-    focusDistance: { value: 1.0 },
-    focusRange: { value: 0.5 },
-    maxBlur: { value: 1.0 }
-  };
-
-  const material = new T.ShaderMaterial({
-    uniforms,
-    vertexShader:   DepthOfFieldShader.vertexShader,
-    fragmentShader: DepthOfFieldShader.fragmentShader
-  });
-
-  const sceneQ  = new T.Scene();
-  const cameraQ = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  const quad    = new T.Mesh(new T.PlaneGeometry(2, 2), material);
-  sceneQ.add(quad);
-
-  return {
-    name: 'DepthOfFieldPass',
-    uniforms,
-    material,
-    enabled: false,
-
-    render(renderer, readTarget, writeTarget) {
-      if (!this.enabled) return;
-      uniforms.tDiffuse.value = readTarget.texture;
-      renderer.setRenderTarget(writeTarget);
-      renderer.clear();
-      renderer.render(sceneQ, cameraQ);
-    }
-  };
-}
-
 // ── EffectComposer (ping-pong render targets) ─────────────────────────────────
 
 function createComposer(renderer, scene, camera, width, height) {
@@ -983,13 +547,26 @@ function createComposer(renderer, scene, camera, width, height) {
   const fxaaPass     = createFXAAPass(width, height);
   const flashPass    = createFlashPass(width, height);
   const chromaPass   = createChromaticAberrationPass(width, height);
-  const glowPass     = createGlowPass(width, height);
-  const ssaoPass     = createSSAOPass(width, height);
-  const motionBlurPass = createMotionBlurPass(width, height);
-  const ssrPass      = createSSRPass(width, height);
-  const dofPass      = createDepthOfFieldPass(width, height);
+  // Order matters: bloom wants the raw render; vignette and FXAA come last so
+  // they act on the final composite rather than being blurred by later passes.
+  //
+  // There were once SSAO / motion-blur / SSR / depth-of-field passes here. They
+  // sampled tNormalDepth / tVelocity / tPosition / tDepth — G-buffer textures
+  // that were never rendered or bound, so they read blank and produced garbage
+  // (DoF in particular smeared the whole frame across itself). Re-adding any of
+  // them requires a real depth+normal prepass first.
+  //
+  // A "glow" pass also lived here. It did `color.rgb + glowColor * strength`
+  // with no threshold — a flat gold constant added to every pixel, which lifted
+  // the arena's near-black to olive. Bloom is the pass that actually glows.
+  const passes = [renderPass, bloomPass, chromaPass, flashPass, vignettePass, fxaaPass];
 
-  const passes = [renderPass, bloomPass, vignettePass, chromaPass, flashPass, fxaaPass, glowPass, ssaoPass, motionBlurPass, ssrPass, dofPass];
+  // createFullscreenPass defaults to enabled. Flash and chromatic aberration are
+  // event-driven — triggerScreenFlash / triggerChromaticAberration switch them
+  // on and the update tick switches them back off. Left enabled they'd cost a
+  // full-screen pass every frame to composite nothing.
+  flashPass.enabled = false;
+  chromaPass.enabled = false;
 
   return {
     renderer,
@@ -1045,38 +622,13 @@ function createComposer(renderer, scene, camera, width, height) {
       rtA.setSize(w, h);
       rtB.setSize(w, h);
 
-      const fxaa = passes.find(p => p.name === 'FXAAPass');
-      if (fxaa && fxaa.uniforms.resolution) {
-        fxaa.uniforms.resolution.value.x = w;
-        fxaa.uniforms.resolution.value.y = h;
-      }
-      
-      // Update SSAO pass resolution
-      const ssao = passes.find(p => p.name === 'SSAOPass');
-      if (ssao && ssao.uniforms.resolution) {
-        ssao.uniforms.resolution.value.x = w;
-        ssao.uniforms.resolution.value.y = h;
-      }
-      
-      // Update Motion Blur pass resolution
-      const motionBlur = passes.find(p => p.name === 'MotionBlurPass');
-      if (motionBlur && motionBlur.uniforms.resolution) {
-        motionBlur.uniforms.resolution.value.x = w;
-        motionBlur.uniforms.resolution.value.y = h;
-      }
-      
-      // Update SSR pass resolution
-      const ssr = passes.find(p => p.name === 'SSRPass');
-      if (ssr && ssr.uniforms.resolution) {
-        ssr.uniforms.resolution.value.x = w;
-        ssr.uniforms.resolution.value.y = h;
-      }
-      
-      // Update DoF pass resolution
-      const dof = passes.find(p => p.name === 'DepthOfFieldPass');
-      if (dof && dof.uniforms.resolution) {
-        dof.uniforms.resolution.value.x = w;
-        dof.uniforms.resolution.value.y = h;
+      // Every pass carrying a resolution uniform needs it in sync with the
+      // drawing buffer, or its texel maths samples the wrong neighbours.
+      for (const pass of passes) {
+        if (pass.uniforms?.resolution) {
+          pass.uniforms.resolution.value.x = w;
+          pass.uniforms.resolution.value.y = h;
+        }
       }
     },
 
@@ -1102,8 +654,12 @@ export function initPostProcessing(renderer, scene, camera) {
   const width  = _size.x || 800;
   const height = _size.y || 600;
 
+  baseWidth  = width;
+  baseHeight = height;
+
   composer  = createComposer(renderer, scene, camera, width, height);
   ppEnabled = true;
+  _applyRenderScale();
 
   return composer;
 }
@@ -1116,7 +672,12 @@ export function initPostProcessing(renderer, scene, camera) {
  */
 export function resizePostProcessing(width, height) {
   if (!composer) return false;
-  composer.setSize(width, height);
+  // Record the new full-resolution base, then re-apply the tier's render scale
+  // on top of it. Passing the scaled size straight through would make the next
+  // tier change scale an already-scaled buffer.
+  baseWidth  = width;
+  baseHeight = height;
+  _applyRenderScale();
   return true;
 }
 
@@ -1125,77 +686,40 @@ export function resizePostProcessing(width, height) {
  * @param {'low'|'medium'|'high'|'ultra'} tier
  */
 export function setPostProcessingQuality(tier) {
-  // Always update ppEnabled flag even without a composer
-  if (tier === 'low') {
-    ppEnabled = false;
-  }
+  const cfg = TIER_CONFIG[tier] || TIER_CONFIG.high;
+
+  // ppEnabled is meaningful even before a composer exists — callers read it.
+  ppEnabled = cfg.pp;
+  if (cfg.bloom) bloomStrength = cfg.bloom.strength;
 
   if (!composer) return;
 
-  const bloomPass    = composer.passes.find(p => p.name === 'BloomPass');
-  const vignettePass = composer.passes.find(p => p.name === 'VignettePass');
-  const fxaaPass     = composer.passes.find(p => p.name === 'FXAAPass');
-  const glowPass     = composer.passes.find(p => p.name === 'GlowPass');
-  const ssaoPass     = composer.passes.find(p => p.name === 'SSAOPass');
-  const motionBlurPass = composer.passes.find(p => p.name === 'MotionBlurPass');
-  const ssrPass      = composer.passes.find(p => p.name === 'SSRPass');
-  const dofPass      = composer.passes.find(p => p.name === 'DepthOfFieldPass');
+  const pass = name => composer.passes.find(p => p.name === name);
 
-  switch (tier) {
-    case 'low':
-      ppEnabled = false;
-      // SC-5.5: resize render targets to 0.5x on low (direct render anyway)
-      if (composer._width && composer._height) {
-        composer.setSize(
-          Math.floor(composer._width * 0.5),
-          Math.floor(composer._height * 0.5)
-        );
-      }
-      break;
-
-    case 'medium':
-      ppEnabled  = true;
-      bloomStrength = 0.14;
-      if (bloomPass) {
-        bloomPass.enabled = true;
-        bloomPass.uniforms.strength.value = 0.14;
-        bloomPass.uniforms.threshold.value = 0.94;
-      }
-      if (vignettePass)   vignettePass.enabled  = false;
-      if (fxaaPass)       fxaaPass.enabled      = false;
-      if (glowPass)       glowPass.enabled      = false;
-      if (ssaoPass)       ssaoPass.enabled      = false;
-      if (motionBlurPass) motionBlurPass.enabled = false;
-      if (ssrPass)        ssrPass.enabled       = false;
-      if (dofPass)        dofPass.enabled       = false;
-      // SC-5.5: 0.75x resolution on medium
-      if (composer._width && composer._height) {
-        composer.setSize(
-          Math.floor(composer._width * 0.75),
-          Math.floor(composer._height * 0.75)
-        );
-      }
-      break;
-
-    case 'high':
-    case 'ultra':
-    default:
-      ppEnabled  = true;
-      bloomStrength = 0.26;
-      if (bloomPass) {
-        bloomPass.enabled = true;
-        bloomPass.uniforms.strength.value = 0.26;
-        bloomPass.uniforms.threshold.value = 0.92;
-      }
-      if (vignettePass)   vignettePass.enabled  = true;
-      if (fxaaPass)       fxaaPass.enabled      = true;
-      if (glowPass)       glowPass.enabled      = true;
-      if (ssaoPass)       ssaoPass.enabled      = true;
-      if (motionBlurPass) motionBlurPass.enabled = true;
-      if (ssrPass)        ssrPass.enabled       = true;
-      if (dofPass)        dofPass.enabled       = true;
-      break;
+  const bloomPass = pass('BloomPass');
+  if (bloomPass) {
+    bloomPass.enabled = !!cfg.bloom;
+    if (cfg.bloom) {
+      bloomPass.uniforms.strength.value  = cfg.bloom.strength;
+      bloomPass.uniforms.threshold.value = cfg.bloom.threshold;
+    }
   }
+
+  const vignettePass = pass('VignettePass');
+  if (vignettePass) vignettePass.enabled = cfg.vignette;
+
+  const fxaaPass = pass('FXAAPass');
+  if (fxaaPass) fxaaPass.enabled = cfg.fxaa;
+
+  // Event-driven passes stay off until something triggers them; the tier must
+  // not switch them on, or every frame pays for an effect nobody asked for.
+  const flashPass = pass('FlashPass');
+  if (flashPass) flashPass.enabled = false;
+  const chromaPass = pass('ChromaticAberrationPass');
+  if (chromaPass) chromaPass.enabled = false;
+
+  renderScale = cfg.renderScale;
+  _applyRenderScale();
 }
 
 /**
@@ -1357,95 +881,4 @@ function _updateChroma(dt) {
   }
 }
 
-// ── SC-5.5: New Graphics Enhancements ────────────────────────────────────────
 
-/**
- * Enable/disable glow effect on enemies/towers.
- * @param {boolean} active
- * @param {number} color - hex color (default 0xffd700)
- * @param {number} strength - glow intensity (default 0.5)
- */
-export function setGlowEffect(active, color = 0xffd700, strength = 0.5) {
-  if (!composer) return;
-
-  const gp = composer.passes.find(p => p.name === 'GlowPass');
-  if (!gp) return;
-
-  gp.enabled = active;
-  if (active) {
-    const T = globalThis.THREE || window.THREE;
-    const c = new T.Color(color);
-    gp.uniforms.glowColor.value.set(c.r, c.g, c.b);
-    gp.uniforms.glowStrength.value = strength;
-  }
-}
-
-/**
- * Set SSAO effect intensity.
- * @param {number} intensity - 0.0 to 1.0
- */
-export function setSSAOIntensity(intensity) {
-  if (!composer) return;
-
-  const sp = composer.passes.find(p => p.name === 'SSAOPass');
-  if (!sp) return;
-  
-  sp.uniforms.intensity.value = intensity;
-}
-
-// ── SC-6.0: New Advanced Graphics Enhancements ───────────────────────────────
-
-/**
- * Enable/disable motion blur effect.
- * @param {boolean} active
- * @param {number} intensity - 0.0 to 1.0 (default 0.5)
- */
-export function setMotionBlur(active, intensity = 0.5) {
-  if (!composer) return;
-
-  const mbp = composer.passes.find(p => p.name === 'MotionBlurPass');
-  if (!mbp) return;
-
-  mbp.enabled = active;
-  if (active) {
-    mbp.uniforms.intensity.value = intensity;
-  }
-}
-
-/**
- * Enable/disable screen space reflections.
- * @param {boolean} active
- * @param {number} intensity - 0.0 to 1.0 (default 0.5)
- */
-export function setScreenSpaceReflections(active, intensity = 0.5) {
-  if (!composer) return;
-
-  const srp = composer.passes.find(p => p.name === 'SSRPass');
-  if (!srp) return;
-
-  srp.enabled = active;
-  if (active) {
-    srp.uniforms.intensity.value = intensity;
-  }
-}
-
-/**
- * Set depth of field parameters.
- * @param {boolean} active
- * @param {number} focusDistance - 0.0 to 1.0 (default 1.0)
- * @param {number} focusRange - 0.0 to 1.0 (default 0.5)
- * @param {number} maxBlur - 0.0 to 1.0 (default 1.0)
- */
-export function setDepthOfField(active, focusDistance = 1.0, focusRange = 0.5, maxBlur = 1.0) {
-  if (!composer) return;
-
-  const dfp = composer.passes.find(p => p.name === 'DepthOfFieldPass');
-  if (!dfp) return;
-
-  dfp.enabled = active;
-  if (active) {
-    dfp.uniforms.focusDistance.value = focusDistance;
-    dfp.uniforms.focusRange.value = focusRange;
-    dfp.uniforms.maxBlur.value = maxBlur;
-  }
-}

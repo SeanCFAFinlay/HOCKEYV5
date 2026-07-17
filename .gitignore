@@ -33,3 +33,7 @@ npm-debug.log*
 .claude/
 .pilot/
 audit-output/
+.aider*
+
+# Generated directory listing (`tree /f`), regenerated on demand
+project-tree.txt
