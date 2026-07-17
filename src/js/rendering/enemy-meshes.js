@@ -887,6 +887,20 @@ export function createEnemyMesh(enemy) {
     }
   }
 
+  // Universal accent pip: a small additive glow riding on top of every enemy in
+  // its identity colour. Cheap, reads at the game's camera distance, and gives
+  // otherwise-simple bodies (pucks, flying orbs) a spark of life. Boss/fire
+  // enemies already carry their own glow, so skip them to avoid doubling up.
+  if (!enemy.boss && !enemy.fire) {
+    const accent = (visual && visual.accent) || (visual && visual.color) || 0xffffff;
+    const pip = new THREE.Mesh(
+      new THREE.SphereGeometry(sz * 0.16, 24, 24),
+      new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    pip.position.y = sz * 0.55;
+    group.add(pip);
+  }
+
   group.position.set(enemy.x, enemy.flying ? 1.2 : 0.2, enemy.z);
 
   return group;

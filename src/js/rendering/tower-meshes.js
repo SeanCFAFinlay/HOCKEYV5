@@ -99,6 +99,52 @@ function addBaseRivets(group, scale, mat) {
   }
 }
 
+/**
+ * Universal high-tech detail added to every tower on top of its per-type build.
+ * These read at the game's camera distance where fine geometry would not: a
+ * slowly rotating holographic ring, glowing vent segments set into the base rim,
+ * and a bright core spark. Kept cheap (shared-ish small geometry, additive
+ * glows) and driven through the existing animParts system so it animates with
+ * the rest of the tower.
+ *
+ * @param {THREE.Group} group
+ * @param {number} scale
+ * @param {THREE.Color} color - tower accent colour
+ */
+function addTowerDetail(group, scale, color) {
+  if (!group.userData.animParts) group.userData.animParts = [];
+
+  // Holographic ring hovering just above the base — the clearest "this is a
+  // built machine" cue at distance. Spins via the existing 'spin' anim type.
+  const holo = new THREE.Mesh(
+    new THREE.TorusGeometry(0.3 * scale, 0.008 * scale, 6, 40),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  holo.rotation.x = Math.PI / 2;
+  holo.position.y = 0.24;
+  group.add(holo);
+  group.userData.animParts.push({ mesh: holo, type: 'spin', speed: 0.6 });
+
+  // Glowing vent segments seated in the base rim, tinted by the tower colour.
+  const ventMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false });
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    const vent = new THREE.Mesh(new THREE.BoxGeometry(0.05 * scale, 0.012, 0.11 * scale), ventMat);
+    vent.position.set(Math.cos(a) * 0.34 * scale, 0.125, Math.sin(a) * 0.34 * scale);
+    vent.rotation.y = -a;
+    group.add(vent);
+  }
+
+  // Bright core spark low in the body, pulsing.
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(0.05 * scale, 24, 24),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  core.position.y = 0.26 * scale;
+  group.add(core);
+  group.userData.animParts.push({ mesh: core, type: 'pulse' });
+}
+
 // Shared enhanced materials
 let towerMaterials = null;
 
@@ -208,7 +254,10 @@ export function createTowerMesh(tower) {
   const hw = COLS / 2;
   const hh = ROWS / 2;
   const lv = tower.lv || 0;
-  const scale = 1 + lv * 0.08;
+  // Base 1.15 (was 1.0) for more visual presence at the camera distance. Only
+  // the tower's own geometry keys off `scale`; the range rings use tower.rng
+  // directly, so this stays purely cosmetic and never misstates range.
+  const scale = 1.15 + lv * 0.08;
   const mats = getTowerMaterials();
 
   // Enhanced materials with emissive glow based on tower color
@@ -336,6 +385,7 @@ export function createTowerMesh(tower) {
   }
 
   addUpgradeCollars(group, lv, scale, visuals.towers.levelGlow);
+  addTowerDetail(group, scale, color);
 
   // Range indicator - hidden by default and revealed for selected towers.
   const rangeOuter = createRangeRing(tower.rng - 0.1, tower.rng, color, 0.38);
