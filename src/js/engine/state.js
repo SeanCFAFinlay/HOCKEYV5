@@ -45,7 +45,6 @@ export const ActionTypes = {
   // UI state
   SET_SELECTED_TOWER: 'SET_SELECTED_TOWER',
   SET_SELECTED_PLACED: 'SET_SELECTED_PLACED',
-  SET_SELL_MODE: 'SET_SELL_MODE',
 
   // Game loop
   SET_RUNNING: 'SET_RUNNING',
@@ -125,7 +124,6 @@ const initialState = {
   // UI state
   selectedTower: null,
   selectedPlaced: null,
-  sellMode: false,
   waveActive: false,
 
   // Game loop state
@@ -394,11 +392,6 @@ export function dispatch(type, payload) {
       state.selectedPlaced = payload;
       break;
 
-    case ActionTypes.SET_SELL_MODE:
-      state.sellMode = payload;
-      emit(GameEvents.UI_SELL_MODE, { mode: payload });
-      break;
-
     // Game loop
     case ActionTypes.SET_RUNNING:
       state.running = payload;
@@ -462,7 +455,6 @@ export function dispatch(type, payload) {
       state.particles = [];
       state.selectedTower = null;
       state.selectedPlaced = null;
-      state.sellMode = false;
       state.waveActive = false;
       state.spawnsPending = 0;
       state.autoWave = true;
@@ -590,10 +582,6 @@ export function setSelectedTower(tower) {
 
 export function setSelectedPlaced(tower) {
   dispatch(ActionTypes.SET_SELECTED_PLACED, tower);
-}
-
-export function setSellMode(mode) {
-  dispatch(ActionTypes.SET_SELL_MODE, mode);
 }
 
 export function setWaveActive(active) {

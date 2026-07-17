@@ -11,7 +11,6 @@ import {
   setLives,
   setWave,
   setScore,
-  setGameSpeed,
   setWaves,
   setKills,
   setGameMode,
@@ -28,6 +27,7 @@ import { initCameraState } from '../engine/camera.js';
 import { setSpeedEffect } from '../engine/postprocessing.js';
 import { clearTargetingFeedback } from '../rendering/targeting-feedback.js';
 import { updateHUD, renderTowers, initHUD, resetHUD } from './hud.js';
+import { resetGameSpeed } from './controls.js';
 import { performFullCleanup } from '../engine/cleanup.js';
 import { getMapsWithProgress, getThemeProgress, getStarDisplay } from '../systems/progression.js';
 import { showScreenAnimated, cancelTransition } from './transitions.js';
@@ -154,8 +154,6 @@ export function startGame(idx, mode = 'campaign') {
   setWave(0);
   setScore(0);
   setKills(0);
-  setGameSpeed(1);
-  setSpeedEffect(1);
   setGameMode(mode);
   clearTargetingFeedback();
 
@@ -166,17 +164,9 @@ export function startGame(idx, mode = 'campaign') {
   resetGameTime();
   setAutoWave(true);
 
-  // Reset UI
-  const ab = document.getElementById('autoBtn');
-  if (ab) {
-    ab.textContent = 'AUTO: ON';
-    ab.classList.add('on');
-  }
-
-  // Reset speed buttons
-  document.querySelectorAll('.speed-btn').forEach(btn => {
-    btn.classList.toggle('active', +btn.dataset.speed === 1);
-  });
+  // Reset speed to 1x. Auto-wave state is shown by the pause sheet, which reads
+  // it fresh each time it opens, so there is no button to reset here.
+  resetGameSpeed();
 
   // Generate map and waves
   generateMap();

@@ -38,11 +38,9 @@ import { initSpeedButtons } from './ui/controls.js';
 // Import tower bar
 import { selectTowerType } from './ui/tower-bar.js';
 
-// Import tower system for sell toggle
-import { toggleSell } from './systems/towers.js';
-
-// Import wave system
-import { startWave, toggleAutoWave } from './systems/waves.js';
+// Import wave system. Auto-wave is toggled from the pause sheet, which imports
+// it directly, so it no longer needs a window global.
+import { startWave } from './systems/waves.js';
 
 // Import music system
 import { initMusic, setMusicState } from './engine/music.js';
@@ -288,9 +286,7 @@ Object.assign(appGlobal, {
   zoomOut,
   resetCam,
   selectTowerType,
-  toggleSell,
   startWave,
-  toggleAutoWave,
   showScreen,
   showScreenWithAnimation,
   selectTheme,

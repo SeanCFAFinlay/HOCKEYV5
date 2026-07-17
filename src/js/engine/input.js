@@ -175,43 +175,32 @@ function setupKeyboardShortcuts() {
         }
         break;
 
-      case 's':
-        // Toggle sell mode
+      case 'p':
+        // Pause / resume. Auto-wave lives in this menu now, which is why there
+        // is no longer an 'a' shortcut: toggling it from the keyboard changed
+        // how the game played with nothing on screen to show it had happened.
         e.preventDefault();
-        if (typeof window.toggleSell === 'function') {
-          window.toggleSell();
-        }
-        break;
-
-      case 'a':
-        // Toggle auto-wave
-        e.preventDefault();
-        if (typeof window.toggleAutoWave === 'function') {
-          window.toggleAutoWave();
+        if (typeof window.togglePauseMenu === 'function') {
+          window.togglePauseMenu();
         }
         break;
 
       case '1':
       case '2':
       case '3':
-        // Set game speed
+        // Set game speed. Speaks to ui/controls.js rather than synthesising a
+        // click on a button that no longer exists per-speed.
         e.preventDefault();
-        const speed = parseInt(e.key);
-        const speedBtns = document.querySelectorAll('.speed-btn');
-        speedBtns.forEach(btn => {
-          const btnSpeed = parseInt(btn.dataset.speed);
-          btn.classList.toggle('active', btnSpeed === speed);
-          if (btnSpeed === speed) btn.click();
+        import('../ui/controls.js').then(({ setGameSpeed }) => {
+          setGameSpeed(parseInt(e.key));
         });
         break;
 
       case 'escape':
-        // Deselect tower / cancel sell mode
+        // Deselect tower
         e.preventDefault();
-        import('./state.js').then(({ setSelectedTower, setSellMode }) => {
+        import('./state.js').then(({ setSelectedTower }) => {
           setSelectedTower(null);
-          setSellMode(false);
-          document.getElementById('sellBtn')?.classList.remove('active');
         });
         import('../ui/upgrade-sheet.js').then(({ hideUpgrade }) => {
           hideUpgrade();
@@ -236,10 +225,8 @@ function setupKeyboardShortcuts() {
         if (towerIndex >= 0 && state.themeData) {
           const tower = state.themeData.towers[towerIndex];
           if (tower && state.money >= tower.cost) {
-            import('./state.js').then(({ setSelectedTower, setSellMode }) => {
+            import('./state.js').then(({ setSelectedTower }) => {
               setSelectedTower(tower.id);
-              setSellMode(false);
-              document.getElementById('sellBtn')?.classList.remove('active');
             });
             import('../ui/upgrade-sheet.js').then(({ hideUpgrade }) => {
               hideUpgrade();

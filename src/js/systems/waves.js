@@ -43,7 +43,6 @@ export function startWave() {
   playSound('waveStart');
   setPathPreviewVisible(false, true); // Fade lines during wave
   updateRunStats({ wavesStarted: currentWave });
-  updateHUD();
 
   // Visual effect - spawn portal pulse
   createSpawnPulse();
@@ -72,6 +71,13 @@ export function startWave() {
 
   setSpawnsPending(totalSpawns);
   spawnTimer = 0;
+
+  // After setSpawnsPending, not before. The HUD's enemy counter renders
+  // `enemies.length + spawnsPending`, and the loop only calls updateHUD() on
+  // wave completion — everything else is event-driven. Updating here while
+  // spawnsPending was still 0 left the counter reading 0 for the whole spawn
+  // phase, until the first kill or leak happened to refresh it.
+  updateHUD();
 }
 
 /**
@@ -121,16 +127,19 @@ export function checkWaveCompletion() {
 /**
  * Toggle auto-wave mode
  */
+/**
+ * Toggle auto-wave.
+ *
+ * State only — the pause sheet owns the switch and syncs itself. This used to
+ * reach out and repaint an #autoBtn in the action bar, which is a systems
+ * module knowing about a specific button.
+ *
+ * @returns {boolean} the new auto-wave state
+ */
 export function toggleAutoWave() {
-  const state = getState();
-  const newAutoWave = !state.autoWave;
+  const newAutoWave = !getState().autoWave;
   setAutoWave(newAutoWave);
-
-  const b = document.getElementById('autoBtn');
-  if (b) {
-    b.textContent = newAutoWave ? 'AUTO: ON' : 'AUTO: OFF';
-    b.classList.toggle('on', newAutoWave);
-  }
+  return newAutoWave;
 }
 
 /**

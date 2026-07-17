@@ -53,84 +53,40 @@
   opacity: 0.85;
 }
 
-.speed-btns {
-  display: flex;
-  gap: var(--space-xs);
-  flex-shrink: 0;
-}
-
+/* One cycling speed button. 56px wide, not the old 40: it is now the only
+   control competing with START, so there is room to clear the 44px touch
+   guideline on both axes. */
 .speed-btn {
-  width: 40px;
-  min-width: 40px;
+  flex: none;
+  width: 56px;
+  min-width: 56px;
   background: rgba(255, 255, 255, 0.08);
   border: 1.5px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--r-sm);
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.72);
   font-weight: 700;
   font-family: var(--font-game);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   cursor: pointer;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--t-fast);
-  will-change: transform;
 }
 
-.speed-btn:hover:not(.active) {
+.speed-btn:hover {
   background: rgba(255, 255, 255, 0.13);
-  color: rgba(255, 255, 255, 0.8);
+  color: #fff;
 }
 
-.speed-btn:active {
-  transform: scale(0.92);
-}
-
-.speed-btn.active {
+/* Lit whenever the game is running faster than normal — the state that matters
+   is "not 1x", which the old three-button row could only show by elimination. */
+.speed-btn.boosted {
   background: rgba(0, 212, 255, 0.22);
   color: var(--ice);
-  border-color: rgba(0,212,255,0.6);
+  border-color: rgba(0, 212, 255, 0.6);
   box-shadow: 0 0 12px var(--ice-glow);
 }
 
-.sell-btn {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--red);
-  border: 1.5px solid rgba(239, 68, 68, 0.4);
-}
-
-.sell-btn:hover:not(.active) {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.6);
-}
-
-.sell-btn.active {
-  background: var(--red);
-  color: #fff;
-  box-shadow: 0 0 20px var(--red-glow);
-}
-
-.auto-btn {
-  background: rgba(0, 0, 0, 0.65);
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
-  color: rgba(255,255,255,0.75);
-}
-
-.auto-btn:hover:not(.on) {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.auto-btn.on {
-  background: rgba(6, 46, 24, 0.88);
-  border-color: rgba(34, 197, 94, 0.85);
-  box-shadow: 0 0 18px rgba(34, 197, 94, 0.48);
-  color: #6ee78f;
-}
-
 .start-btn {
-  flex: 2;
+  flex: 1;
   background: linear-gradient(135deg, var(--grass), var(--grass-dim));
   color: #fff;
   border: 1.5px solid rgba(34, 197, 94, 0.5);

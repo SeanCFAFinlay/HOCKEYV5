@@ -175,15 +175,11 @@
 
   <div class="bottom-ui">
     <div class="tower-bar" id="towerBar"></div>
+    <!-- Two controls, not six. Speed cycles; SELL moved into the tower sheet
+         and AUTO into the pause menu, leaving START the one primary action. -->
     <div class="action-bar">
-      <div class="speed-btns">
-        <button class="action-btn speed-btn active" data-speed="1">1×</button>
-        <button class="action-btn speed-btn" data-speed="2">2×</button>
-        <button class="action-btn speed-btn" data-speed="3">3×</button>
-      </div>
-      <button class="action-btn sell-btn" id="sellBtn" onclick="toggleSell()">SELL</button>
-      <button class="action-btn auto-btn" id="autoBtn" onclick="toggleAutoWave()">AUTO: OFF</button>
-      <button class="action-btn start-btn" id="startBtn" onclick="startWave()">▶ START</button>
+      <button class="action-btn speed-btn" id="speedBtn" type="button" data-speed="1">1×</button>
+      <button class="action-btn start-btn" id="startBtn" type="button" onclick="startWave()">▶ START</button>
     </div>
   </div>
 </div>

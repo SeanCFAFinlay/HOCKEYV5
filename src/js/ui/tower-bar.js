@@ -2,7 +2,7 @@
 // Most tower bar functionality is in hud.js
 // This file can be extended for additional tower bar features
 
-import { getState, setSelectedTower, setSellMode } from '../engine/state.js';
+import { getState, setSelectedTower } from '../engine/state.js';
 import { renderTowers } from './hud.js';
 import { hideUpgrade } from './upgrade-sheet.js';
 
@@ -14,8 +14,6 @@ export function selectTowerType(towerId) {
   if (!td || money < td.cost) return;
 
   setSelectedTower(selectedTower === towerId ? null : towerId);
-  setSellMode(false);
-  document.getElementById('sellBtn').classList.remove('active');
   hideUpgrade();
   renderTowers();
 }

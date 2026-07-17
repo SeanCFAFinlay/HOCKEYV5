@@ -1,8 +1,9 @@
 // HUD updates and tower bar rendering
 
-import { getState, setSelectedTower, setSellMode, subscribeToState, setRunning } from '../engine/state.js';
+import { getState, setSelectedTower, subscribeToState, setRunning } from '../engine/state.js';
 import { on, GameEvents } from '../engine/events.js';
 import { hideUpgrade } from './upgrade-sheet.js';
+import { resetGameSpeed } from './controls.js';
 import { createDefeatEffect } from '../systems/particles.js';
 import { getWaveThemeName, getWavePreview } from '../config/waves.js';
 import { initCurrencyFly } from './currency-fly.js';
@@ -51,9 +52,7 @@ function cacheDOMElements() {
     enemyCount: document.getElementById('enemyCount'),
     enemyCounter: document.getElementById('enemyCounter'),
     startBtn: document.getElementById('startBtn'),
-    autoBtn: document.getElementById('autoBtn'),
     towerBar: document.getElementById('towerBar'),
-    sellBtn: document.getElementById('sellBtn'),
     wavePreview: document.getElementById('wavePreview')
   };
 }
@@ -234,12 +233,9 @@ export function updateHUD() {
     domCache.enemyCount.textContent = remaining;
   }
 
-  // Update wave button
+  // Update wave button. Auto-wave now shows in the pause sheet, which syncs
+  // itself each time it opens.
   if (domCache.startBtn) domCache.startBtn.disabled = state.waveActive;
-  if (domCache.autoBtn) {
-    domCache.autoBtn.textContent = state.autoWave ? 'AUTO: ON' : 'AUTO: OFF';
-    domCache.autoBtn.classList.toggle('on', state.autoWave);
-  }
 
   // Update lives warning
   if (domCache.livesStat && state.mapData) {
@@ -395,9 +391,6 @@ function _buildTowerButtons(bar, themeData) {
       const selected = s.selectedTower === t.id;
       if (affordable) {
         setSelectedTower(selected ? null : t.id);
-        setSellMode(false);
-        const sellBtn = document.getElementById('sellBtn');
-        if (sellBtn) sellBtn.classList.remove('active');
         hideUpgrade();
         renderTowers();
       }
@@ -684,21 +677,8 @@ export function resetHUD() {
   // Hide wave preview on reset
   if (domCache.wavePreview) domCache.wavePreview.style.display = 'none';
 
-  // Reset sell button
-  if (domCache.sellBtn) domCache.sellBtn.classList.remove('active');
-
-  // Reset auto button
-  const autoBtn = document.getElementById('autoBtn');
-  if (autoBtn) {
-    const autoWave = getState().autoWave;
-    autoBtn.textContent = autoWave ? 'AUTO: ON' : 'AUTO: OFF';
-    autoBtn.classList.toggle('on', autoWave);
-  }
-
-  // Reset speed buttons
-  document.querySelectorAll('.speed-btn').forEach(btn => {
-    btn.classList.toggle('active', +btn.dataset.speed === 1);
-  });
+  // Reset speed back to 1x
+  resetGameSpeed();
 
   // Reset wave theme
   if (domCache.waveTheme) {

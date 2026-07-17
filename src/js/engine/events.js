@@ -124,6 +124,5 @@ export const GameEvents = {
 
   // UI events
   UI_UPDATE: 'ui:update',
-  UI_TOWER_SELECT: 'ui:tower_select',
-  UI_SELL_MODE: 'ui:sell_mode'
+  UI_TOWER_SELECT: 'ui:tower_select'
 };

@@ -1,7 +1,7 @@
 // Tower placement, targeting, and shooting
 // Uses delta-time based cooldowns, not wall clock
 
-import { getState, addTower, removeTower, setSelectedTower, setSellMode, addMoney, dispatch, ActionTypes } from '../engine/state.js';
+import { getState, addTower, removeTower, setSelectedTower, addMoney, dispatch, ActionTypes } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { onNavChanged, findPathGrid } from './pathfinding.js';
 import { createTowerMesh, flashTowerEmissive } from '../rendering/tower-meshes.js';
@@ -61,7 +61,7 @@ export function wouldBlockPath(col, row) {
  */
 export function handleCellTap(x, y) {
   const state = getState();
-  const { grid, themeData, selectedTower, sellMode, money, scene, COLS, ROWS } = state;
+  const { grid, themeData, selectedTower, money, scene, COLS, ROWS } = state;
 
   // Validate grid position
   assertValidGridPos(x, y, COLS, ROWS);
@@ -70,42 +70,9 @@ export function handleCellTap(x, y) {
   const cell = grid[y][x];
   if (!cell) return;
 
-  // Sell mode
-  if (sellMode && cell.tower) {
-    const td = themeData.towers.find(t => t.id === cell.tower.type);
-    let val = Math.floor(td.cost * 0.6);
-
-    for (let i = 0; i < cell.tower.lv; i++) {
-      val += Math.floor(td.up[i] * 0.6);
-    }
-
-    addMoney(val);
-
-    if (cell.tower.mesh) {
-      scene.remove(cell.tower.mesh);
-    }
-    if (cell.tower.rangeMesh) {
-      scene.remove(cell.tower.rangeMesh);
-    }
-
-    emit(GameEvents.TOWER_SELL, { tower: cell.tower, value: val });
-    {
-      const hw = state.COLS / 2;
-      const hh = state.ROWS / 2;
-      playSoundAt('towerSell', cell.tower.x - hw + 0.5, cell.tower.y - hh + 0.5);
-    }
-    removeTower(cell.tower);
-    cell.tower = null;
-    onNavChanged();
-    hideUpgrade();
-    
-    // Auto-disable sell mode after selling
-    setSellMode(false);
-    document.getElementById('sellBtn').classList.remove('active');
-    
-    updateHUD();
-    return;
-  }
+  // Selling is not a mode here any more: tapping a placed tower opens its sheet,
+  // which owns the sell action (ui/upgrade-sheet.js sellTower). This used to
+  // carry a duplicate of that same sell logic behind a global sellMode flag.
 
   // Show upgrade for existing tower
   if (cell.tower) {
@@ -305,20 +272,6 @@ function findTarget(tower, enemies, tx, tz) {
 }
 
 /**
- * Toggle sell mode
- */
-export function toggleSell() {
-  const state = getState();
-  const newMode = !state.sellMode;
-
-  setSellMode(newMode);
-  setSelectedTower(null);
-  document.getElementById('sellBtn').classList.toggle('active', newMode);
-  hideUpgrade();
-  renderTowers();
-}
-
-/**
  * Cycle tower targeting priority
  * @param {Object} tower - Tower to update
  */
@@ -366,5 +319,3 @@ export function getPriorityName(priority) {
     default: return 'First';
   }
 }
-
-// window.toggleSell exposed in main.js
