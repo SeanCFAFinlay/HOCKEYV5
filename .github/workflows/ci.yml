@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  verify:
+    name: Validate, test, build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: src/package-lock.json
+
+      # `npm ci` rather than `npm install` on purpose: it fails loudly when the
+      # manifest and the lockfile drift apart, which is what this job exists to
+      # catch. Never relax this to `npm install` to make a red build go green.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate content packs
+        run: npm run validate
+
+      - name: Run tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
