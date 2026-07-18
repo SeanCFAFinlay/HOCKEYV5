@@ -24,6 +24,7 @@ import { showScreen, showScreenWithAnimation, selectTheme, exitGame, replayGame 
 import { initModals, closeModal } from './ui/modals.js';
 import { initPauseSheet, togglePauseMenu, closePauseMenu } from './ui/pause-sheet.js';
 import { initIcons, icon } from './ui/icons.js';
+import { phLogo, applyBrandFavicon } from './ui/brand.js';
 import { doUpgrade, hideUpgrade, sellTower, setTowerPriorityFromUI } from './ui/upgrade-sheet.js';
 import './ui/controls.js';
 
@@ -108,6 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
   // Fill static [data-icon] placeholders (HUD, menu logo, modals) with SVG.
   initIcons();
+
+  // PH Interactive Studios branding: the mark on the splash + menu, and the
+  // browser-tab favicon. (Vector recreation of the studio logo — swap for the
+  // real PNG in ui/brand.js when it's on disk.)
+  document.querySelectorAll('[data-brand]').forEach(el => { el.innerHTML = phLogo({ size: 96 }); });
+  document.querySelectorAll('[data-brand-small]').forEach(el => { el.innerHTML = phLogo({ size: 40 }); });
+  try { applyBrandFavicon(); } catch (e) { /* favicon is non-critical */ }
 
   // Validate all config data on startup
   const configValid = runValidation(THEMES, false);
