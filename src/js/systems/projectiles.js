@@ -269,26 +269,27 @@ export function createProjectile(tw, target, sx, sz) {
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
-  // Bigger core so shots read as substantial projectiles at the camera distance,
-  // not specks (was 1.9).
-  mesh.scale.multiplyScalar(2.6);
+  // Big core so a shot reads as a substantial bolt crossing the rink, not a
+  // speck that vanishes between fire and impact (was 2.6). The towers are large
+  // now, so the projectile has to be large to keep up.
+  mesh.scale.multiplyScalar(3.6);
 
-  // Three-layer additive glow so every shot registers as a bright bolt against
-  // the lit ice and feeds the bloom pass; additive blending keeps them from
-  // darkening anything they cross. Larger and brighter than before.
+  // Three-layer additive glow — a bright orb that stays visible while it travels
+  // and feeds the bloom pass. Additive blending keeps it from darkening anything
+  // it crosses.
   const glowCol = trailColor || (mat && mat.color) || new THREE.Color(c);
 
-  // Inner glow — hot core.
+  // Inner glow — white-hot core.
   const innerGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.16, 14, 14),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })
+    new THREE.SphereGeometry(0.26, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   innerGlow.renderOrder = 999;
   mesh.add(innerGlow);
 
   // Mid glow — the projectile's colour.
   const midGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 12, 12),
+    new THREE.SphereGeometry(0.44, 16, 16),
     new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   midGlow.renderOrder = 998;
@@ -296,8 +297,8 @@ export function createProjectile(tw, target, sx, sz) {
 
   // Outer halo.
   const outerGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.38, 12, 12),
-    new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false })
+    new THREE.SphereGeometry(0.72, 16, 16),
+    new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   outerGlow.renderOrder = 997;
   mesh.add(outerGlow);
@@ -309,6 +310,12 @@ export function createProjectile(tw, target, sx, sz) {
   if (tw.baseGlow) {
     tw.firingFlash = 1.0;
   }
+
+  // Slow every shot to ~65% so it's actually trackable in flight. Projectiles
+  // were fast enough to cross the rink between frames, so they read only as a
+  // muzzle flash. Still fast enough to land on moving enemies; combined with the
+  // larger glow above, shots now read as visible bolts.
+  const VISIBLE_SPEED = 0.65;
 
   const projectile = {
     mesh,
@@ -324,7 +331,7 @@ export function createProjectile(tw, target, sx, sz) {
     vz: 0,
     vy: 0,
     t: 0,
-    speed,
+    speed: speed * VISIBLE_SPEED,
     trailColor,
     trailKind: profile.trail,
     impactKind: profile.impact,

@@ -67,7 +67,7 @@ export function attachTrail(projectile, color) {
 
   const line = _pool.pop();
   _setMaterialColor(line.material, color);
-  line.material.opacity = 0.6;
+  line.material.opacity = 0.9;
   line.visible = true;
 
   // Seed all points at projectile's current position
@@ -141,9 +141,13 @@ function _createTrailLine() {
 
   const mat = new THREE.LineBasicMaterial({
     color: 0xffffff,
-    opacity: 0.6,
+    opacity: 0.9,
     transparent: true,
-    depthWrite: false
+    depthWrite: false,
+    // Additive so the streak glows against the bright ice instead of washing
+    // into it. (THREE.Line is 1px regardless of linewidth, so brightness is the
+    // only lever here — the projectile's own comet tail carries the thickness.)
+    blending: THREE.AdditiveBlending
   });
 
   const line = new THREE.Line(geo, mat);
