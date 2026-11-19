@@ -56,6 +56,37 @@ const PATHS = {
   // ── Theme / brand ────────────────────────────────────────────────────────
   satellite: '<rect class="ln" x="10" y="10" width="4" height="4" rx="1" transform="rotate(45 12 12)"/><path class="ln" d="m6 6 3 3M15 15l3 3M5 11 3 9l2-2 2 2M13 19l2 2 2-2-2-2"/><path class="ln" d="M15 9a3 3 0 0 1 0 4"/>',
 
+  // ── Kitchen Nightmare ────────────────────────────────────────────────────
+  toaster: '<rect class="ln" x="3" y="9" width="18" height="10" rx="3"/><path class="ln" d="M7 9V6h4v3M13 9V5h4v4M17 13v3M5 21h2M17 21h2"/>',
+  grinder: '<path class="ln" d="M9 21h6l-1-7c2-1 2-4 0-5l1-3H9l1 3c-2 1-2 4 0 5l-1 7Z"/><path class="ln" d="M12 6V3M12 3h4"/>',
+  whisk: '<path class="ln" d="M12 3v7"/><path class="ln" d="M12 10c-4 2-4 8 0 11 4-3 4-9 0-11Z"/><path class="ln" d="M12 10c-1.5 3-1.5 8 0 11M12 10c1.5 3 1.5 8 0 11"/>',
+  spray: '<path class="ln" d="M8 21h8v-9l-2-3h-4l-2 3v9Z"/><path class="ln" d="M10 9V5h5l2-1M10 6H7l-1 3"/><path class="ln" d="M19 3l1.5-.5M19.5 5.5 21 6M19 8l1.5.8"/>',
+  pan: '<circle class="ln" cx="9" cy="14" r="6"/><path class="ln" d="M14 10l7-6"/><circle class="fl" cx="9" cy="14" r="2"/>',
+  microwave: '<rect class="ln" x="2.5" y="6" width="19" height="12" rx="2"/><rect class="ln" x="5" y="8.5" width="9" height="7" rx="1"/><path class="ln" d="M17.5 9v.01M17.5 12v.01M17.5 15v.01M6 20h2M16 20h2"/>',
+  torch: '<path class="ln" d="M5 21h6v-8l-1-2H6l-1 2v8Z"/><path class="ln" d="M8 11V8h4l3-2"/><path class="fl" d="M16 6c2-1 3-3 2.5-4.5 1.8 1 3 3.5 1 5.5-1 1-2.6.6-3.500-1Z"/>',
+  pot: '<path class="ln" d="M4 10h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-6Z"/><path class="ln" d="M3 10h18M2 13h2M20 13h2M10 7h4M12 7V4"/><path class="ln" d="M9 3c0 1 1 1 1 2M14 2c0 1 1 1 1 2"/>',
+  bug: '<ellipse class="ln" cx="12" cy="14" rx="4.5" ry="6"/><circle class="ln" cx="12" cy="6.500" r="2.2"/><path class="ln" d="M7.500 11 4 9M7.500 14H3.500M8 17.500l-3 2M16.500 11 20 9M16.500 14h4M16 17.500l3 2M10.500 4.500 9 2.500M13.500 4.500 15 2.500"/>',
+
+  // ── Kaiju Mini-Golf ──────────────────────────────────────────────────────
+  golfflag: '<path class="ln" d="M8 21V3"/><path class="fl" d="M8 3l10 3.500L8 10Z"/><ellipse class="ln" cx="11" cy="20" rx="7" ry="2"/>',
+  windmill: '<path class="ln" d="M9 21l1.500-9h3L15 21Z"/><circle class="fl" cx="12" cy="9" r="1.300"/><path class="ln" d="M12 9 5 4l1.800-1.500L12 9ZM12 9l7-5-1.800-1.500L12 9ZM12 9l-7 5 1.800 1.500L12 9ZM12 9l7 5-1.800 1.500L12 9Z"/>',
+  clown: '<circle class="ln" cx="12" cy="12" r="8"/><circle class="fl" cx="12" cy="12.500" r="1.800"/><path class="ln" d="M7.500 15c2.500 3 6.500 3 9 0"/><path class="ln" d="M8.500 9v.01M15.500 9v.01"/><path class="ln" d="M4 9 2 7M20 9l2-2"/>',
+  loop: '<circle class="ln" cx="12" cy="10" r="6"/><path class="ln" d="M2 20h7c5 0 7-4 7-8M22 20h-6"/>',
+  volcano: '<path class="ln" d="M3 21 9 9h6l6 12Z"/><path class="fl" d="M9 9c1-2 0-3 1.500-5 .500 1.500 1.500 1.500 1.500 3 1-1 1-2.500 2.500-3-.500 2 1 3 .500 5Z"/><path class="ln" d="M11 9l-1 5M14 9l1 4"/>',
+  putter: '<path class="ln" d="M16 3 9 17"/><path class="ln" d="M9 17H4v3h6l-1-3Z"/><circle class="ln" cx="18" cy="18" r="2.500"/>',
+  cannon: '<path class="ln" d="M4 12 16 6l3 5-12 6Z"/><circle class="ln" cx="8" cy="18" r="3"/><path class="ln" d="M19 5l2-1M20 8h2"/>',
+  monster: '<path class="ln" d="M6 21v-8a6 6 0 0 1 12 0v8l-2-2-2 2-2-2-2 2-2-2-2 2Z"/><path class="ln" d="M9.500 12v.01M14.500 12v.01"/><path class="ln" d="M7 8 5 4l3.500 2M17 8l2-4-3.500 2"/><path class="ln" d="M10 16l2 1.500 2-1.500"/>',
+
+  // ── Haunted Bowling Alley ────────────────────────────────────────────────
+  pin: '<path class="ln" d="M10 3h4c1 2-1 4-1 6 3 3 3 8 1 12h-4c-2-4-2-9 1-12 0-2-2-4-1-6Z"/><path class="ln" d="M10.500 8h3"/>',
+  jukebox: '<path class="ln" d="M5 21V10a7 7 0 0 1 14 0v11Z"/><path class="ln" d="M8 21v-9a4 4 0 0 1 8 0v9M5 17h14"/><circle class="fl" cx="12" cy="12.500" r="1.400"/>',
+  cheese: '<path class="ln" d="M3 17 19 6l2 11Z"/><path class="ln" d="M3 17v3h18v-3"/><circle class="ln" cx="13" cy="14" r="1.300"/><circle class="ln" cx="17" cy="12" r="1"/>',
+  disco: '<circle class="ln" cx="12" cy="13" r="7"/><path class="ln" d="M12 6V2M5 13h14M6.500 9h11M6.500 17h11M9 6.700c-1.500 4-1.500 9 0 12.600M15 6.700c1.500 4 1.500 9 0 12.600"/><path class="ln" d="M20 4l1-1M3 5 2 4"/>',
+  claw: '<path class="ln" d="M12 2v6"/><rect class="ln" x="9" y="8" width="6" height="3" rx="1"/><path class="ln" d="M10 11c-3 2-4 5-3 9l2-2M14 11c3 2 4 5 3 9l-2-2M12 11v8"/>',
+  ghost: '<path class="ln" d="M5 21V11a7 7 0 0 1 14 0v10l-2.300-2-2.300 2-2.400-2-2.400 2-2.300-2Z"/><path class="fl" d="M9.500 9.500a1.200 1.600 0 1 0 .01 0ZM14.500 9.500a1.200 1.600 0 1 0 .01 0Z"/><path class="ln" d="M10.500 15c1 .800 2 .800 3 0"/>',
+  bowlball: '<circle class="ln" cx="12" cy="12" r="8.500"/><circle class="fl" cx="10" cy="8.500" r="1.100"/><circle class="fl" cx="13.800" cy="8" r="1.100"/><circle class="fl" cx="12.500" cy="11.500" r="1.100"/>',
+  shoe: '<path class="ln" d="M3 17v-6l4-1 3 3 8 2a3 3 0 0 1 3 3v1H3v-2Z"/><path class="ln" d="M3 15h18M9 12l1.500-1.500M11.500 13.500 13 12"/>',
+
   trophy: '<path class="ln" d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path class="ln" d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M10 14v3M14 14v3M8 20h8M9 17h6"/>',
 
   // ── Controls ─────────────────────────────────────────────────────────────

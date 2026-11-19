@@ -2,7 +2,8 @@
 // Improved lighting, materials, and visual effects
 
 import { getState, setThreeObjects, setCells, clearCells } from './state.js';
-import { updateCamera, initCameraState, computeFitDistance } from './camera.js';
+import { updateCamera, initCameraState, computeDefaultView } from './camera.js';
+import { getThemeKit } from '../themes/index.js';
 import { attachHandlers } from './input.js';
 import { addObstacleVisuals } from '../rendering/obstacles.js';
 import { addSpawnAndPenVisuals } from '../rendering/markers.js';
@@ -183,9 +184,10 @@ export function init3D() {
 
   // Camera with good FOV. Distance is aspect-aware so the arena frames properly
   // on a portrait phone as well as a widescreen monitor — see computeFitDistance.
-  const camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 200);
-  const camDist = computeFitDistance(COLS, ROWS, w / h);
-  const camHeight = camDist * 0.55;
+  const camera = new THREE.PerspectiveCamera(55, w / h, 0.4, 200);   // near 0.4: nothing gets that close, and depth precision is 4x better
+  const defaultView = computeDefaultView(COLS, ROWS, w / h, 55);
+  const camDist = defaultView.dist;
+  const camHeight = defaultView.height;
 
   // High-performance renderer
   const renderer = new THREE.WebGLRenderer({
@@ -234,12 +236,20 @@ export function init3D() {
   sun.shadow.mapSize.height = shadowMapSize;
   sun.shadow.camera.near = 1;
   sun.shadow.camera.far = 90;
-  sun.shadow.camera.left   = -COLS * 1.3;
-  sun.shadow.camera.right  =  COLS * 1.3;
-  sun.shadow.camera.top    =  ROWS * 1.3;
-  sun.shadow.camera.bottom = -ROWS * 1.3;
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.02;
+  // Fitted to the playfield (plus a margin for tall towers leaning out of it).
+  // It used to span 2.6x the board each way, spending most of the shadow map
+  // on empty floor; the same map now gives roughly 3x the detail where it shows.
+  sun.shadow.camera.left   = -COLS * 0.75;
+  sun.shadow.camera.right  =  COLS * 0.75;
+  sun.shadow.camera.top    =  ROWS * 0.9;
+  sun.shadow.camera.bottom = -ROWS * 0.9;
+  // Bias has to grow as the map shrinks. One shadow texel covers
+  // (frustum width / map size) of floor; when that is wider than the normal
+  // offset, the floor shadows itself in dark bands. A fixed 0.02 was right for
+  // the 2048 map and striped the whole rink on the 1024 one.
+  const shadowTexel = (COLS * 1.5) / shadowMapSize;
+  sun.shadow.bias = -0.0004 * (2048 / shadowMapSize);
+  sun.shadow.normalBias = Math.max(0.02, shadowTexel * 1.6);
   scene.add(sun);
 
   // Rim/fill light – adds depth from opposite side (gentle)
@@ -271,17 +281,6 @@ export function init3D() {
     [ hw + 3, 9,  hh + 3]
   ];
 
-  // Pick 2 spotlights closest to camera default position for shadow casting
-  const camDefaultZ = ROWS * 0.85 * 0.5;
-  const sortedByDist = spotPositions
-    .map(([x, , z], i) => {
-      const dx = x;
-      const dz = z - camDefaultZ;
-      return { i, dist: Math.sqrt(dx * dx + dz * dz) };
-    })
-    .sort((a, b) => a.dist - b.dist);
-  const shadowSpotIndices = new Set([sortedByDist[0].i, sortedByDist[1].i]);
-
   sceneSpotlights = [];
   spotBaseIntensities = [];
 
@@ -291,14 +290,11 @@ export function init3D() {
       spot.position.set(x, y, z);
       spot.target.position.set(0, 0, 0);
 
-      // Enable shadows on the 2 closest spots when on high quality
-      if (getQualityName() === 'high' && shadowSpotIndices.has(i)) {
-        spot.castShadow = true;
-        spot.shadow.mapSize.width  = 512;
-        spot.shadow.mapSize.height = 512;
-      } else {
-        spot.castShadow = false;
-      }
+      // The sun is the only shadow caster. Two of these spots used to cast as
+      // well, which meant every shadow-casting mesh was drawn three extra times
+      // a frame — about 60% of all draw calls — for two faint, blurry 512px
+      // shadows layered under the sun's.
+      spot.castShadow = false;
 
       sceneSpotlights.push(spot);
       spotBaseIntensities.push(spotIntensity);
@@ -306,12 +302,9 @@ export function init3D() {
       scene.add(spot.target);
     }
 
-    // Subtle point light glow at fixture position (reduced intensity)
-    if (quality.pointLights) {
-      const pt = new THREE.PointLight(spotColors[i], isHockey ? 0.10 : 0.20, 12);
-      pt.position.set(x, y, z);
-      scene.add(pt);
-    }
+    // (A point light used to sit at each fixture too. At 9 units up with a
+    // 12-unit range it reached nothing but the top of its own pole, while every
+    // lit pixel in the scene still paid to evaluate it.)
   });
 
   // Subtle colored accent lights (reduced for color preservation)
@@ -348,6 +341,7 @@ export function init3D() {
   const stateRef = getState();
   stateRef.camDist = camDist;
   stateRef.camHeight = camHeight;
+  stateRef.camDefaultAngle = defaultView.angle;
   updateCamera();
 
   // Build arena based on theme
@@ -944,8 +938,13 @@ function buildOrbitalPlatform() {
   panelCanvas.width = 512;
   panelCanvas.height = 512;
   const ctx = panelCanvas.getContext('2d');
+  const kit = getThemeKit(state.theme);
   ctx.fillStyle = visuals.map.floor.base;
   ctx.fillRect(0, 0, 512, 512);
+  if (kit?.paintFloor) {
+    // The theme draws its own seamless 512px floor tile.
+    kit.paintFloor(ctx, 512, visuals);
+  } else {
   ctx.strokeStyle = visuals.map.floor.line;
   ctx.lineWidth = 3;
   for (let i = 0; i <= 8; i++) {
@@ -964,11 +963,13 @@ function buildOrbitalPlatform() {
     const y = Math.random() * 512;
     ctx.strokeRect(x, y, 22 + Math.random() * 50, 8 + Math.random() * 30);
   }
+  }
 
   const panelTexture = new THREE.CanvasTexture(panelCanvas);
   panelTexture.wrapS = THREE.RepeatWrapping;
   panelTexture.wrapT = THREE.RepeatWrapping;
-  panelTexture.repeat.set(COLS / 6, ROWS / 6);
+  const tile = kit?.floorTileSize || 6;   // grid cells covered by one texture tile
+  panelTexture.repeat.set((COLS + 4) / tile, (ROWS + 4) / tile);
   panelTexture.anisotropy = getQualityTier().anisotropy;
 
   const floor = new THREE.Mesh(
@@ -978,8 +979,8 @@ function buildOrbitalPlatform() {
       map: panelTexture,
       roughness: visuals.map.floor.roughness,
       metalness: visuals.map.floor.metalness,
-      emissive: 0x130b2e,
-      emissiveIntensity: 0.18
+      emissive: visuals.map.floor.emissive ?? 0x130b2e,
+      emissiveIntensity: visuals.map.floor.emissiveIntensity ?? 0.18
     })
   );
   floor.rotation.x = -Math.PI / 2;
@@ -987,9 +988,9 @@ function buildOrbitalPlatform() {
   scene.add(floor);
 
   const edgeMat = new THREE.MeshStandardMaterial({
-    color: 0x111827,
-    roughness: 0.34,
-    metalness: 0.75,
+    color: visuals.map.rail?.color ?? 0x111827,
+    roughness: visuals.map.rail?.roughness ?? 0.34,
+    metalness: visuals.map.rail?.metalness ?? 0.75,
     emissive: visuals.map.path.emissive,
     emissiveIntensity: 0.18
   });
@@ -1010,6 +1011,20 @@ function buildOrbitalPlatform() {
   addSpawnAndPenVisuals(hw, hh);
   buildCells(hw, hh);
   buildLights(hw, hh);
+
+  // Theme scenery outside the play area (a giant fridge, a volcano, pin decks...).
+  if (kit?.buildSurround) {
+    try {
+      // Tall scenery hides when the camera swings round behind it, the same
+      // way the floodlight towers do (see engine/camera.js).
+      const scenery = kit.buildSurround(scene, hw, hh, visuals) || [];
+      state.cameraOccluders = state.cameraOccluders || [];
+      for (const obj of scenery) {
+        obj.userData.anchor = { x: obj.position.x, z: obj.position.z };
+        state.cameraOccluders.push(obj);
+      }
+    } catch (e) { console.warn('Theme scenery failed:', e); }
+  }
 
   // SC-2.6: Placement grid overlay
   buildPlacementGrid(scene, COLS, ROWS);
@@ -1095,6 +1110,34 @@ export function updateAmbientParticles(dt) {
   ambientParticles.geometry.attributes.position.needsUpdate = true;
 }
 
+/**
+ * Slide the picture so the board sits in the middle of the space the HUD and
+ * the dock leave free, instead of the middle of the whole screen, where its
+ * near edge ends up underneath the tower bar. The camera itself does not move;
+ * this only shifts the projection, so picking and labels stay in step.
+ */
+function applyViewOffset(camera, w, h) {
+  if (typeof camera.setViewOffset !== 'function') return;
+  const dockRect = document.querySelector('.bottom-ui')?.getBoundingClientRect?.();
+  const hudRect = document.querySelector('.hud-left')?.getBoundingClientRect?.();
+  const bottom = dockRect && dockRect.height > 20 ? Math.max(0, window.innerHeight - dockRect.top) : 0;
+  const top = hudRect ? Math.max(0, hudRect.bottom) : 0;
+  const limit = h * 0.14;
+  const shift = Math.round(Math.max(-limit, Math.min(limit, (bottom - top) / 2)));
+  if (shift) camera.setViewOffset(w, h, 0, shift, w, h);
+  else camera.clearViewOffset();
+}
+
+/** Re-centre the picture after the dock changes size (see applyViewOffset). */
+export function updateViewOffset() {
+  const { camera, renderer } = getState();
+  if (!camera || !renderer) return;
+  const wrap = document.querySelector('.canvas-wrap');
+  const w = wrap?.clientWidth || window.innerWidth;
+  const h = wrap?.clientHeight || window.innerHeight;
+  if (w > 0 && h > 0) applyViewOffset(camera, w, h);
+}
+
 export function onResize() {
   const state = getState();
   const { camera, renderer } = state;
@@ -1112,6 +1155,7 @@ export function onResize() {
 
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  applyViewOffset(camera, w, h);
   renderer.setSize(w, h);
   applyRendererQuality(renderer);
   resizePostProcessing(w, h);

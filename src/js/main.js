@@ -36,6 +36,9 @@ import { zoomIn, zoomOut, resetCam, shakeCamera, cameraVictoryOrbit, cameraDefea
 
 // Import control initializers
 import { initSpeedButtons } from './ui/controls.js';
+import { updateViewOffset } from './engine/scene.js';
+import { initBuildStrip } from './ui/build-strip.js';
+import { initStartButton } from './ui/start-button.js';
 
 // Import tower bar
 import { selectTowerType } from './ui/tower-bar.js';
@@ -62,10 +65,13 @@ function updateBottomUIClearance() {
   const bottomUI = document.querySelector('.bottom-ui');
   const rect = bottomUI?.getBoundingClientRect();
   const compactBottomUI = window.matchMedia('(max-height: 500px) and (orientation: landscape)').matches;
-  const fallbackHeight = compactBottomUI ? 112 : 176;
-  const measuredHeight = rect && rect.height > 20 ? rect.height : fallbackHeight;
+  const fallbackHeight = compactBottomUI ? 76 : 176;
+  // Measured from the dock's top edge to the bottom of the screen, not just its
+  // height: on a desktop the dock floats a little above the bottom.
+  const measuredHeight = rect && rect.height > 20 ? window.innerHeight - rect.top : fallbackHeight;
   const clearance = Math.ceil(measuredHeight + 8);
   document.documentElement.style.setProperty('--bottom-ui-clearance', `${clearance}px`);
+  updateViewOffset();
 }
 
 function scheduleBottomUIClearanceUpdate() {
@@ -137,12 +143,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize ambient soundscape
   try { initAmbient(); } catch(e) { console.warn('Ambient init failed:', e); }
+  import('./ui/settings.js').then(m => m.applyAudioSettings()).catch(() => {});
 
   // Set up input handlers
   setupInputHandlers();
 
   // Initialize speed buttons
   initSpeedButtons();
+  try { initBuildStrip(); initStartButton(); } catch(e) { console.warn('Control init failed:', e); }
   initPerfOverlay();
   try { initMinimap(); } catch(e) { console.warn('Minimap init failed:', e); }
 

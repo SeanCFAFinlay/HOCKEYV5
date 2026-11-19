@@ -181,6 +181,10 @@ export function updateTowers(dt, gameTime) {
     const target = findTarget(tw, enemies, tx, tz);
     tw.currentTarget = target;
 
+    // Track the target continuously, not only on the frame a shot leaves. The
+    // turret eases toward this angle in rendering/animations.js.
+    if (target) tw.aimAngle = Math.atan2(target.x - tx, target.z - tz);
+
     // Skip firing if still on cooldown.
     if (tw.cooldown > 0) continue;
 
@@ -198,10 +202,9 @@ export function updateTowers(dt, gameTime) {
       // Set cooldown based on fire rate
       tw.cooldown = 1 / tw.rate;
 
-      // Rotate tower to face target
-      if (tw.mesh) {
-        const angle = Math.atan2(target.x - tx, target.z - tz);
-        tw.mesh.rotation.y = angle;
+      // Towers without a separate turret (none today) still snap to face.
+      if (tw.mesh && !tw.turret) {
+        tw.mesh.rotation.y = tw.aimAngle;
       }
     }
   }

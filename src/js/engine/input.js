@@ -36,6 +36,27 @@ let lastTouchCell = null;
 // Preview mesh for tower placement - enhanced components
 let previewGroup = null;
 let previewCell = null;
+// The build strip (ui/build-strip.js) mirrors the preview: which tile is in
+// hand, whether it can be built on, and whether it came from a touch.
+let previewFromTouch = false;
+let previewListener = null;
+
+/** Register the one listener told whenever the placement preview changes. */
+export function setPreviewListener(fn) {
+  previewListener = typeof fn === 'function' ? fn : null;
+}
+
+function notifyPreview(info) {
+  if (previewListener) previewListener(info);
+}
+
+/** Build on the previewed tile (the build strip's Build button). */
+export function confirmPreview() {
+  if (!previewCell) return;
+  const { x, y } = previewCell;
+  handleCellTap(x, y);
+  hidePreview();
+}
 let previewAnimTime = 0;
 
 // Block-prevention state
@@ -279,6 +300,7 @@ function isTouchOverUI(e) {
     if (el.closest('.hud') ||
         el.closest('.bottom-ui') ||
         el.closest('.cam-btns') ||
+        el.closest('.build-strip') ||
         el.closest('.upgrade-sheet') ||
         el.closest('.modal-overlay')) {
       return true;
@@ -569,6 +591,9 @@ function handleTap(e) {
     if (isTouch && state.selectedTower) {
       const sameCell = previewCell?.x === cell.x && previewCell?.y === cell.y;
       if (!sameCell) {
+        // First tap previews; the build strip then offers Build, and a second
+        // tap on the same tile also confirms.
+        previewFromTouch = true;
         showPreview(cell.x, cell.y, true);
         return;
       }
@@ -596,6 +621,7 @@ function updatePreview(e) {
     const gridCell = grid[cell.y]?.[cell.x];
 
     if (previewCell?.x !== cell.x || previewCell?.y !== cell.y) {
+      previewFromTouch = false;
       showPreview(cell.x, cell.y, true);
     }
   } else {
@@ -636,7 +662,7 @@ function showPreview(x, y, showInvalid = false) {
   previewIsBlocking = blocking;
 
   // Remove old preview
-  hidePreview();
+  hidePreview(true);
 
   // Create preview group
   previewGroup = new THREE.Group();
@@ -724,6 +750,12 @@ function showPreview(x, y, showInvalid = false) {
   scene.add(previewGroup);
   previewCell = { x, y };
   previewAnimTime = 0;
+  notifyPreview({
+    x, y,
+    valid: validPlacement,
+    reason: !validCell ? 'occupied' : !affordable ? 'money' : blocking ? 'blocked' : null,
+    touch: previewFromTouch
+  });
 }
 
 /**
@@ -752,8 +784,9 @@ function addXIndicator(group) {
 /**
  * Hide placement preview
  */
-function hidePreview() {
+function hidePreview(silent = false) {
   const state = getState();
+  const hadPreview = !!previewCell;
 
   if (previewGroup && state.scene) {
     // Dispose all geometries in the group
@@ -772,6 +805,7 @@ function hidePreview() {
   }
 
   previewCell = null;
+  if (hadPreview && !silent) notifyPreview(null);
 }
 
 /**

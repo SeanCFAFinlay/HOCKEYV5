@@ -212,6 +212,10 @@ function updateCinematic(dt) {
  * Update camera position with smooth interpolation
  * @param {number} dt - Delta time
  */
+// Scenery nearer to the camera than this fraction of the camera's own distance
+// from the arena centre is hidden.
+const OCCLUDER_CLEARANCE = 0.8;
+
 export function updateCamera(dt = 0.016) {
   const state = getState();
   const { camera, camAngle, camDist, camHeight } = state;
@@ -229,9 +233,16 @@ export function updateCamera(dt = 0.016) {
   const angleLerpFactor = 1 - Math.exp(-ANGLE_LERP_SPEED * dt);
 
   // Interpolate camera values
-  const newAngle = lerp(camAngle, targetAngle, angleLerpFactor);
-  const newHeight = lerp(camHeight, targetHeight, lerpFactor);
-  const newDist = lerp(camDist, targetDist, lerpFactor);
+  // An exponential ease never actually arrives, so the camera would creep by
+  // fractions of a millimetre forever (visibly shimmering fine detail, and still
+  // moving while paused). Once it is within a hair of the target, land on it.
+  const settle = (current, target, factor) => {
+    const next = lerp(current, target, factor);
+    return Math.abs(target - next) < 1e-3 ? target : next;
+  };
+  const newAngle = settle(camAngle, targetAngle, angleLerpFactor);
+  const newHeight = settle(camHeight, targetHeight, lerpFactor);
+  const newDist = settle(camDist, targetDist, lerpFactor);
 
   // Update state (using direct state update for performance)
   state.camAngle = newAngle;
@@ -263,6 +274,21 @@ export function updateCamera(dt = 0.016) {
 
   // Apply lookAt — boss track pans to boss, otherwise look at origin
   camera.lookAt(bossLookX, 0, bossLookZ);
+
+  // Tall scenery on the camera's side of the arena (the corner floodlight
+  // towers) stands between the camera and the board, so it is hidden. "On the
+  // camera's side" scales with how far back the camera is: a phone in portrait
+  // frames the rink from much further away than a desktop does.
+  const occluders = state.cameraOccluders;
+  if (occluders) {
+    const clearSq = (x * x + z * z) * OCCLUDER_CLEARANCE * OCCLUDER_CLEARANCE;
+    for (const obj of occluders) {
+      const anchor = obj.userData.anchor;
+      const ox = anchor.x - x;
+      const oz = anchor.z - z;
+      obj.visible = ox * ox + oz * oz > clearSq;
+    }
+  }
 }
 
 /**
@@ -286,11 +312,11 @@ export function zoomOut() {
  */
 export function resetCam() {
   const state = getState();
-  const defaultDist = computeFitDistance(state.COLS, state.ROWS, state.camera?.aspect);
-  const defaultHeight = defaultDist * 0.55;
-  targetAngle = Math.PI / 4;
-  targetDist = defaultDist;
-  targetHeight = defaultHeight;
+  const view = computeDefaultView(state.COLS, state.ROWS, state.camera?.aspect, state.camera?.fov);
+  state.camDefaultAngle = view.angle;
+  targetAngle = view.angle;
+  targetDist = view.dist;
+  targetHeight = view.height;
 }
 
 /**
@@ -318,6 +344,39 @@ export function computeFitDistance(cols, rows, aspect) {
   // freak aspect can't push the arena to a speck.
   const factor = Math.min(Math.max(Math.sqrt(REF_ASPECT / a), 1), 1.9);
   return base * factor;
+}
+
+/**
+ * The default camera for a viewport: angle, distance and height.
+ *
+ * Landscape keeps the three-quarter view. A portrait phone gets a different
+ * one: seen corner-on, the rink is a wide diamond that has to shrink to fit a
+ * narrow screen, leaving the top third of the display empty. Looking down the
+ * rink's long axis from higher up stands it upright instead — it fills the
+ * width, enemies come down the screen toward the goal, and it is far larger.
+ *
+ * @param {number} cols
+ * @param {number} rows
+ * @param {number} aspect - viewport width / height
+ * @param {number} [fovDeg=55] - vertical field of view
+ * @returns {{angle: number, dist: number, height: number}}
+ */
+export function computeDefaultView(cols, rows, aspect, fovDeg = 55) {
+  const c = cols || 12;
+  const r = rows || 10;
+  if (!(aspect > 0) || aspect >= 0.8) {
+    const dist = computeFitDistance(c, r, aspect);
+    return { angle: Math.PI / 4, dist, height: dist * 0.55 };
+  }
+
+  // How far the camera must be from the rink's near edge for its full width
+  // (plus the boards) to fit across the screen.
+  const halfWidthTan = Math.tan((fovDeg * Math.PI / 180) / 2) * aspect;
+  const needed = (r / 2 + 1.7) / halfWidthTan;
+  const STEEPNESS = 1.35;   // height per unit of distance: a high, near top-down view
+  let dist = 8;
+  while (dist < 40 && Math.hypot(dist - c / 2, dist * STEEPNESS) < needed) dist += 0.25;
+  return { angle: Math.PI / 2, dist, height: Math.min(dist * STEEPNESS, 34) };
 }
 
 /**
@@ -427,7 +486,7 @@ export function triggerCameraShake(intensity = 0.05, durationMs = 150) {
 export function initCameraState() {
   const state = getState();
 
-  targetAngle = Math.PI / 4;
+  targetAngle = state.camDefaultAngle ?? Math.PI / 4;
   // Use map-calculated values from init3D if available, otherwise sensible defaults
   targetDist = state.camDist || 14;
   targetHeight = state.camHeight || 8;

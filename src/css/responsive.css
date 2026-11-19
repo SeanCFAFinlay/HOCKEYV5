@@ -1,4 +1,10 @@
-/* Mobile-First Responsive Design */
+/* Responsive rules for the HUD and shared behaviour.
+ *
+ * The menu, the arena picker, the tower bar, the dock and the camera buttons
+ * each carry their own breakpoints in their own files (screens.css,
+ * tower-bar.css, action-bar.css, camera-btns.css). This file holds what is
+ * left: the top HUD, the upgrade sheet width, touch feedback and animations.
+ */
 
 /* Touch-friendly defaults - ensure minimum 44x44px touch targets */
 button, .tower-btn, .menu-card, .map-card {
@@ -14,124 +20,12 @@ button, .tower-btn, .menu-card, .map-card {
   user-select: none;
 }
 
-/* Very small phones (up to 320px) - extra tight layout */
-@media (max-width: 320px) {
-  .logo-icons {
-    font-size: 2.2rem;
-  }
-
-  .logo h1 {
-    font-size: 1.2rem;
-  }
-
-  .menu-card {
-    padding: 14px;
-    gap: 10px;
-  }
-
-  .menu-card-icon {
-    font-size: 2rem;
-  }
-
-  .menu-card h3 {
-    font-size: 1rem;
-  }
-
-  .tower-btn {
-    width: 54px;
-    padding: 5px 2px;
-  }
-
-  .tower-btn-icon {
-    font-size: 1.1rem;
-  }
-
-  .tower-btn-name {
-    font-size: 0.48rem;
-  }
-
-  .tower-btn-cost {
-    font-size: 0.65rem;
-  }
-
+/* Small phones (up to 375px) */
+@media (max-width: 375px) {
   .hud-stat {
     padding: 5px 7px;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     gap: 4px;
-  }
-
-  .hud-wave {
-    padding: 5px 8px;
-    font-size: 0.7rem;
-  }
-
-  .action-btn {
-    padding: 9px 3px;
-    font-size: 0.65rem;
-  }
-
-  .speed-btn {
-    width: 28px;
-    font-size: 0.7rem;
-  }
-}
-
-/* Small phones (320px - 375px) */
-@media (max-width: 375px) {
-  .logo-icons {
-    font-size: 2.5rem;
-  }
-
-  .logo h1 {
-    font-size: 1.4rem;
-  }
-
-  .menu-card {
-    padding: 16px;
-    gap: 12px;
-  }
-
-  .menu-card-icon {
-    font-size: 2.2rem;
-  }
-
-  .menu-card h3 {
-    font-size: 1.1rem;
-  }
-
-  .map-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .tower-btn {
-    width: 58px;
-    padding: 6px 3px;
-  }
-
-  .tower-btn-icon {
-    font-size: 1.2rem;
-  }
-
-  .tower-btn-name {
-    font-size: 0.5rem;
-  }
-
-  .tower-btn-role {
-    display: none;
-  }
-
-  .tower-btn-cost {
-    font-size: 0.7rem;
-  }
-
-  .hud-stat {
-    padding: 5px 6px;
-    font-size: 0.7rem;
-  }
-
-  .hud-stat.kills {
-    display: none;
   }
 
   .hud-wave {
@@ -143,66 +37,14 @@ button, .tower-btn, .menu-card, .map-card {
     font-size: 0.6rem;
   }
 
-  .hud-center {
-    display: none;
-  }
-
-  .action-btn {
-    padding: 10px 4px;
-    font-size: 0.7rem;
-  }
-
-  .speed-btn {
-    width: 32px;
-    font-size: 0.75rem;
-  }
-
-  .cam-btns {
-    right: 8px;
-    gap: 6px;
-  }
-
-  .cam-btn {
-    width: 38px;
-    height: 38px;
-    font-size: 1.1rem;
-  }
-
   .upgrade-role {
     font-size: 0.55rem;
     padding: 2px 6px;
   }
 }
 
-/* Standard phones (376px - 430px) - optimized for common sizes like iPhone 12/13/14 */
+/* Standard phones (376px - 430px) */
 @media (min-width: 376px) and (max-width: 430px) {
-  .tower-btn {
-    width: 66px;
-    padding: 8px 5px;
-  }
-
-  .tower-btn-icon {
-    font-size: 1.45rem;
-  }
-
-  .tower-btn-name {
-    font-size: 0.58rem;
-  }
-
-  .tower-btn-cost {
-    font-size: 0.78rem;
-  }
-
-  .action-btn {
-    padding: 12px 6px;
-    font-size: 0.78rem;
-  }
-
-  .speed-btn {
-    width: 38px;
-    font-size: 0.8rem;
-  }
-
   .hud-stat {
     padding: 8px 11px;
     font-size: 0.82rem;
@@ -212,107 +54,18 @@ button, .tower-btn, .menu-card, .map-card {
     padding: 8px 12px;
     font-size: 0.82rem;
   }
-
-  .cam-btn {
-    width: 46px;
-    height: 46px;
-    font-size: 1.35rem;
-  }
 }
 
-/* Larger phones (431px - 480px) */
-@media (min-width: 431px) and (max-width: 480px) {
-  .tower-btn {
-    width: 64px;
-  }
-
-  .tower-btn-icon {
-    font-size: 1.4rem;
-  }
-}
-
-/* Large phones / Small tablets (481px - 768px) */
+/* Large phones / small tablets (481px - 768px) */
 @media (min-width: 481px) and (max-width: 768px) {
-  .tower-btn {
-    width: 72px;
-    padding: 10px 6px;
-  }
-
-  .tower-btn-icon {
-    font-size: 1.6rem;
-  }
-
-  .tower-btn-name {
-    font-size: 0.65rem;
-  }
-
-  .action-btn {
-    padding: 14px 8px;
-    font-size: 0.85rem;
-  }
-
   .hud-stat {
     padding: 10px 14px;
     font-size: 0.9rem;
   }
-
-  .cam-btn {
-    width: 48px;
-    height: 48px;
-    font-size: 1.4rem;
-  }
 }
 
-/* Tablets (769px+) */
+/* Tablets and desktop (769px+) */
 @media (min-width: 769px) {
-  .menu-cards {
-    flex-direction: row;
-    max-width: 700px;
-  }
-
-  .menu-card {
-    flex: 1;
-    flex-direction: column;
-    text-align: center;
-    padding: 28px;
-  }
-
-  .menu-card-arrow {
-    display: none;
-  }
-
-  .map-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-
-  .tower-btn {
-    width: 85px;
-    padding: 12px 8px;
-  }
-
-  .tower-btn-icon {
-    font-size: 2rem;
-  }
-
-  .tower-btn-name {
-    font-size: 0.75rem;
-  }
-
-  .tower-btn-cost {
-    font-size: 0.9rem;
-  }
-
-  .action-btn {
-    padding: 16px 12px;
-    font-size: 0.95rem;
-  }
-
-  .speed-btn {
-    width: 50px;
-    font-size: 0.95rem;
-  }
-
   .upgrade-sheet {
     width: min(320px, calc(100vw - 24px));
   }
@@ -325,7 +78,7 @@ button, .tower-btn, .menu-card, .map-card {
 /* Landscape on phones */
 @media (max-height: 500px) and (orientation: landscape) {
   :root {
-    --bottom-ui-clearance: 112px;
+    --bottom-ui-clearance: 76px;
   }
 
   .hud {
@@ -349,58 +102,10 @@ button, .tower-btn, .menu-card, .map-card {
     display: none;
   }
 
-  .bottom-ui {
-    padding-bottom: 4px;
-  }
-
-  .tower-bar {
-    padding: 6px 10px;
-  }
-
-  .tower-btn {
-    width: 55px;
-    padding: 5px 3px;
-  }
-
-  .tower-btn-icon {
-    font-size: 1.1rem;
-  }
-
-  .tower-btn-name,
-  .tower-btn-role {
-    display: none;
-  }
-
-  .action-bar {
-    padding: 0 10px 6px;
-    gap: 4px;
-  }
-
-  .action-btn {
-    padding: 8px 4px;
-    font-size: 0.7rem;
-  }
-
-  .speed-btn {
-    width: 30px;
-  }
-
-  /* Move camera buttons higher to avoid bottom UI in landscape */
-  .cam-btns {
-    top: 35%;
-    gap: 4px;
-  }
-
-  .cam-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-  }
-  
   /* Reduce upgrade sheet height in landscape */
   .upgrade-sheet {
     width: min(320px, calc(100vw - 24px));
-    max-height: calc(100vh - var(--bottom-ui-clearance, 112px) - var(--safe-top) - 16px);
+    max-height: calc(100vh - var(--bottom-ui-clearance, 76px) - var(--safe-top) - 16px);
     overflow-y: auto;
   }
 }
@@ -412,22 +117,12 @@ button, .tower-btn, .menu-card, .map-card {
     padding-left: calc(12px + env(safe-area-inset-left));
     padding-right: calc(12px + env(safe-area-inset-right));
   }
-
-  .bottom-ui {
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-
-  .cam-btns {
-    right: calc(12px + env(safe-area-inset-right));
-  }
 }
 
 /* Animations */
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 10px var(--c); }
-  50% { box-shadow: 0 0 25px var(--c), 0 0 40px var(--c); }
+  50% { box-shadow: 0 0 22px var(--c), 0 0 34px color-mix(in srgb, var(--c) 60%, transparent); }
 }
 
 .tower-btn.selected {
@@ -453,11 +148,8 @@ button, .tower-btn, .menu-card, .map-card {
 }
 
 /* Touch feedback */
-.tower-btn:active:not(.disabled),
 .action-btn:active:not(:disabled),
 .cam-btn:active,
-.menu-card:active,
-.map-card:active,
 .modal-btn:active,
 .upgrade-btn:active:not(:disabled),
 .back-btn:active,
@@ -466,30 +158,16 @@ button, .tower-btn, .menu-card, .map-card {
   transition: transform 0.1s ease;
 }
 
+.tower-btn:active:not(.disabled):not(.selected) {
+  transform: scale(0.96);
+}
+
 /* Hover effects for desktop only */
 @media (hover: hover) and (pointer: fine) {
-  .tower-btn:hover:not(.disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  .menu-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-  }
-
-  .cam-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  .action-btn:hover:not(:disabled) {
-    filter: brightness(1.1);
-  }
-  
   .modal-btn:hover {
     filter: brightness(1.15);
   }
-  
+
   .upgrade-btn:hover:not(:disabled) {
     filter: brightness(1.1);
   }
@@ -502,15 +180,9 @@ button, .tower-btn, .menu-card, .map-card {
  *
  * Money and lives are the two numbers a player reads constantly while deciding
  * what to place, so they earn a permanent slot. Kills and score are read at the
- * end of a run, not during one; the enemy count duplicates what the board
- * already shows; and the settings gear is a once-a-session control sitting in
- * prime real estate.
- *
- * This also removes the wrapping problem the chips used to have. #minimapContainer
- * is pinned at top:70px, which assumes a one-row HUD (.hud-left is 69px tall),
- * but .hud-right is `flex-wrap: wrap; max-width: 50%` — on a 390px screen that
- * gave 195px to fit ~216px of chips, so they wrapped onto a second row and
- * collided with the minimap. Two chips fit without being shrunk to fine print.
+ * end of a run, not during one; the enemy count now shows on the START button
+ * while a wave runs; and the settings gear is a once-a-session control sitting
+ * in prime real estate.
  */
 @media (max-width: 480px) {
   .hud-stat.kills,
@@ -534,16 +206,5 @@ button, .tower-btn, .menu-card, .map-card {
 
   #minimapCanvas {
     height: 88px;
-  }
-
-  /*
-   * Eight towers never fit a phone's width, so the bar scrolls — but its
-   * scrollbar is hidden, leaving no sign that towers 6-8 exist. Fade the
-   * trailing edge so the row reads as continuing off-screen. Phone-only:
-   * on a desktop the bar fits and a fade would just look like a bug.
-   */
-  .tower-bar {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
   }
 }

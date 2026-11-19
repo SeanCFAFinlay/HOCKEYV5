@@ -124,6 +124,25 @@ export function updateAnimations(dt) {
       }
     }
 
+    // Turret: ease onto the target, and kick back when a shot leaves.
+    const turret = tw.turret;
+    if (turret) {
+      if (tw.aimAngle != null) {
+        // Shortest way round, so it never spins 350° to turn 10°.
+        const delta = Math.atan2(Math.sin(tw.aimAngle - turret.rotation.y), Math.cos(tw.aimAngle - turret.rotation.y));
+        turret.rotation.y += delta * Math.min(1, dt * 14);
+      }
+      if (tw.recoil > 0) {
+        tw.recoil = Math.max(0, tw.recoil - dt * 6);
+        const kick = tw.recoil * tw.recoil;
+        const facing = turret.rotation.y;
+        turret.position.x = -Math.sin(facing) * 0.1 * kick;
+        turret.position.z = -Math.cos(facing) * 0.1 * kick;
+        turret.scale.set(1 + 0.07 * kick, 1 - 0.11 * kick, 1 + 0.07 * kick);
+        if (tw.bodyMat) tw.bodyMat.emissiveIntensity = (tw.bodyEmissive || 0.25) + kick * 0.75;
+      }
+    }
+
     if (!tw.animParts) return;
 
     tw.animParts.forEach(part => {

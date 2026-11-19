@@ -318,6 +318,14 @@
 .upgrade-btns {
   display: flex;
   gap: 8px;
+  /* Pinned to the bottom of the sheet: on a short screen the sheet scrolls, and
+     Sell/Upgrade — the reason it was opened — used to be the part cut off. */
+  position: sticky;
+  bottom: -12px;
+  margin: 0 -12px -12px;
+  padding: 10px 12px 12px;
+  background: linear-gradient(to bottom, rgba(10, 12, 22, 0), rgba(10, 12, 22, 0.98) 28%);
+  z-index: 1;
 }
 
 .upgrade-btn {

@@ -188,9 +188,9 @@ function _updateActive(entry) {
   }
 
   // Newest point = current projectile position
-  pos[0] = projectile.x;
-  pos[1] = projectile.y;
-  pos[2] = projectile.z;
+  pos[0] = projectile.rx ?? projectile.x;
+  pos[1] = projectile.ry ?? projectile.y;
+  pos[2] = projectile.rz ?? projectile.z;
 
   line.geometry.attributes.position.needsUpdate = true;
 }

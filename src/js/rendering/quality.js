@@ -19,7 +19,8 @@ export const QUALITY_TIERS = {
   },
   medium: {
     antialias: true,
-    maxPixelRatio: 1.35,
+    // Was 1.35 — lower than `low`, so stepping up a tier made the picture softer.
+    maxPixelRatio: 1.5,
     shadows: true,
     shadowMapSize: 1024,
     spotLights: false,
@@ -51,10 +52,26 @@ export function getQualityTier() {
   if (requested && QUALITY_TIERS[requested]) {
     activeTier = requested;
   } else {
-    activeTier = isMobileDevice() ? 'low' : 'high';
+    activeTier = isMobileDevice() ? mobileTier() : 'high';
   }
 
   return QUALITY_TIERS[activeTier];
+}
+
+/**
+ * Pick a tier for a phone or tablet from what the device reports, not from the
+ * fact that it is one. Every phone used to get `low` (no shadows), which made
+ * a current flagship look the same as a five-year-old budget handset.
+ *
+ * `medium` needs at least six CPU cores and, where the browser reports it
+ * (Chrome does, Safari does not), 4 GB of memory. If the guess is too generous
+ * the frame-time monitor in engine/auto-quality.js steps it back down.
+ */
+function mobileTier() {
+  const cores = navigator.hardwareConcurrency || 0;
+  const memory = navigator.deviceMemory;   // undefined on Safari
+  const capable = cores >= 6 && (memory === undefined || memory >= 4);
+  return capable ? 'medium' : 'low';
 }
 
 export function getQualityName() {

@@ -1,5 +1,7 @@
 // SC-5.1: Audio Engine — Web Audio API sound manager
 
+import { installSynthSounds } from './synth.js';
+
 const POOL_MAX = 8;
 const MAX_DISTANCE = 30;
 const CROSSFADE_MS = 2000;
@@ -25,7 +27,20 @@ let currentMusicName = null;
 export function initAudio() {
   ctx = new AudioContext();
   masterGain = ctx.createGain();
-  masterGain.connect(ctx.destination);
+  // A limiter on the way out: a late wave can fire a dozen sounds in one frame,
+  // and without it they sum past full scale and crackle.
+  if (typeof ctx.createDynamicsCompressor === 'function') {
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -10;
+    limiter.knee.value = 8;
+    limiter.ratio.value = 12;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.15;
+    masterGain.connect(limiter);
+    limiter.connect(ctx.destination);
+  } else {
+    masterGain.connect(ctx.destination);
+  }
 
   // Reset category volumes to defaults
   categoryVolumes.sfx = 1;
@@ -39,7 +54,19 @@ export function initAudio() {
     categoryGains[cat] = g;
   }
 
+  // Every sound is synthesised up front (see synth.js); nothing is downloaded.
+  try {
+    installSynthSounds(ctx, (name, buffer) => { soundBuffers[name] = buffer; });
+  } catch (err) {
+    console.warn('[Audio] Synth sounds unavailable:', err);
+  }
+
   _wireUserGesture();
+}
+
+/** True once a sound of this name has a buffer ready to play. */
+export function hasSound(name) {
+  return !!_getBuffer(name);
 }
 
 function _wireUserGesture() {
@@ -128,7 +155,25 @@ export function playSound(name, options = {}) {
     // Silently skip — buffer may not be loaded yet
     return;
   }
-  _playBuffer(name, buffer, categoryGains.sfx, options);
+  const bus = categoryGains[options.category] || categoryGains.sfx;
+  _playBuffer(name, buffer, _withVolume(bus, options.volume), options);
+}
+
+/** Stop every playing instance of a sound (used for ambient loops). */
+export function stopSound(name) {
+  const pool = soundPools[name];
+  if (!pool) return;
+  for (const source of pool.splice(0)) {
+    try { source.stop(); } catch (_) { /* already ended */ }
+  }
+}
+
+function _withVolume(destination, volume) {
+  if (volume === undefined || volume === 1) return destination;
+  const gain = ctx.createGain();
+  gain.gain.value = volume;
+  gain.connect(destination);
+  return gain;
 }
 
 export function playSoundAt(name, worldX, worldZ, options = {}) {
@@ -136,7 +181,7 @@ export function playSoundAt(name, worldX, worldZ, options = {}) {
   const buffer = _getBuffer(name);
   if (!buffer) return;
 
-  const volume = _distanceVolume(worldX, worldZ);
+  const volume = _distanceVolume(worldX, worldZ) * (options.volume ?? 1);
   if (volume <= 0) return;
 
   const spatialGain = ctx.createGain();
@@ -164,6 +209,7 @@ function _playBuffer(name, buffer, destinationNode, options = {}) {
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.loop = options.loop ?? false;
+  if (options.rate && source.playbackRate) source.playbackRate.value = options.rate;
   source.connect(destinationNode);
   source.start(options.when ?? 0);
   pool.push(source);

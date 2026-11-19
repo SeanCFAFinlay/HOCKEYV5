@@ -40,22 +40,54 @@ export function renderThemeCards() {
   const packs = Object.values(THEMES).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   container.innerHTML = '';
 
-  packs.forEach(pack => {
+  let totalStars = 0;
+  let totalCleared = 0;
+  let totalArenas = 0;
+
+  packs.forEach((pack, i) => {
+    const progress = getThemeProgress(pack.id, pack.maps.length);
+    totalStars += progress.stars;
+    totalCleared += progress.completedMaps;
+    totalArenas += progress.totalMaps;
+
     const card = document.createElement('button');
     card.type = 'button';
     card.className = `menu-card ${pack.id}`;
     card.style.setProperty('--c', pack.color);
+    card.style.setProperty('--i', i);
     card.onclick = () => selectTheme(pack.id);
     card.innerHTML = `
-      <div class="menu-card-icon">${icon(pack.icon)}</div>
-      <div><h3>${pack.name}</h3><p>${pack.description}</p></div>
-      <div class="menu-card-arrow">›</div>
+      <span class="menu-card-ghost">${icon(pack.icon)}</span>
+      <span class="menu-card-art">${icon(pack.icon)}</span>
+      <span class="menu-card-body">
+        <span class="menu-card-name">${pack.name}</span>
+        <span class="menu-card-desc">${pack.description}</span>
+        <span class="menu-card-meta">
+          <span class="menu-card-bar"><i style="width:${progress.percentComplete}%"></i></span>
+          <span>${progress.completedMaps}/${progress.totalMaps} arenas</span>
+          ${progress.stars > 0 ? `<span class="menu-card-stars">★ ${progress.stars}</span>` : ''}
+        </span>
+      </span>
+      <span class="menu-card-arrow">›</span>
     `;
     container.appendChild(card);
   });
+
+  const summary = document.getElementById('menuProgress');
+  if (summary) {
+    summary.textContent = totalCleared > 0 ? `${totalCleared}/${totalArenas} cleared · ★ ${totalStars}` : `${packs.length} worlds`;
+  }
+}
+
+/** 'OPEN_CENTER' -> 'Open center' */
+function readable(tag) {
+  const words = String(tag || '').replace(/[_-]+/g, ' ').trim().toLowerCase();
+  return words ? words[0].toUpperCase() + words.slice(1) : '';
 }
 
 export function showScreen(id) {
+  // Progress may have changed since the menu was last drawn.
+  if (id === 'menuScreen') renderThemeCards();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
@@ -76,6 +108,12 @@ export function selectTheme(t) {
 
   document.getElementById('mapTitle').innerHTML = `${icon(themeData.icon)} <span>${themeData.name}</span>`;
   document.getElementById('mapTitle').style.color = themeData.color;
+  const mapProgress = document.getElementById('mapProgress');
+  if (mapProgress) {
+    mapProgress.innerHTML =
+      `<span>${themeProgressData.completedMaps}/${themeProgressData.totalMaps} cleared</span>` +
+      `<span><b>★ ${themeProgressData.stars}</b>/${themeProgressData.maxStars}</span>`;
+  }
 
   const grid = document.getElementById('mapGrid');
   grid.innerHTML = '';
@@ -87,27 +125,32 @@ export function selectTheme(t) {
     card.className = 'map-card' + (isLocked ? ' locked' : '') + (m.completed ? ' completed' : '');
     card.style.setProperty('--c', themeData.color);
 
-    // Show earned stars (0-3) or difficulty stars if not played
-    const starDisplay = m.stars > 0
-      ? getStarDisplay(m.stars, 3)
-      : [1, 2, 3, 4, 5].map(n => `<span class="${n <= m.diff ? 'diff' : ''}">☆</span>`).join('');
-
-    // Best score display with fallback to highscore system
-    let bestScoreHTML = '';
-    if (m.bestScore > 0) {
-      bestScoreHTML = `<div class="map-best-score">Best: ${m.bestScore.toLocaleString()}</div>`;
-    }
+    // Difficulty is five pips; the stars are what the player has earned (of 3).
+    const diffPips = [1, 2, 3, 4, 5].map(n => `<i class="${n <= m.diff ? 'on' : ''}"></i>`).join('');
+    const layoutName = readable(m.metadata?.layoutType || m.layout);
+    const bestScore = m.bestScore > 0
+      ? `<span class="map-best-score">Best ${m.bestScore.toLocaleString()}</span>`
+      : '';
+    const blurb = isLocked
+      ? 'Clear the arena before this one to unlock it.'
+      : (m.description || readable(m.metadata?.pressureType));
 
     card.innerHTML = `
-      <div class="map-card-icon">${icon(isLocked ? 'lock' : themeData.icon)}</div>
-      <div class="map-card-name">${m.name}</div>
-      <div class="map-card-info">${m.waves} Waves • ${m.cols}×${m.rows}</div>
-      <div class="map-card-meta">${m.metadata?.layoutType || m.layout} • ${m.metadata?.pressureType || 'mixed'}</div>
-      <div class="map-stars${m.stars > 0 ? ' earned' : ''}">${starDisplay}</div>
-      ${bestScoreHTML}
+      <div class="map-card-num">${isLocked ? icon('lock') : String(i + 1).padStart(2, '0')}</div>
+      <div class="map-card-main">
+        <div class="map-card-name">${m.name}</div>
+        <div class="map-card-info">
+          <span>${m.waves} waves</span>
+          <span class="map-diff" title="Difficulty ${m.diff} of 5">${diffPips}</span>
+          ${layoutName ? `<span>${layoutName}</span>` : ''}
+          ${bestScore}
+        </div>
+        ${blurb ? `<div class="map-card-desc">${blurb}</div>` : ''}
+      </div>
+      <div class="map-stars${m.stars > 0 ? ' earned' : ''}" title="${m.stars} of 3 stars">${getStarDisplay(m.stars || 0, 3)}</div>
       ${!isLocked ? `
         <div class="map-card-modes">
-          <button type="button" data-mode="campaign">Play</button>
+          <button type="button" data-mode="campaign">▶ Play</button>
           <button type="button" data-mode="endless">Endless</button>
           <button type="button" data-mode="sandbox">Sandbox</button>
         </div>

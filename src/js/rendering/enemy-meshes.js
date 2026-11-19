@@ -3,6 +3,9 @@
 import { getState } from '../engine/state.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
 import { getQualityName } from '../rendering/quality.js';
+import { bakeStaticMeshes } from './geo-utils.js';
+import { addRoleSilhouette } from './enemy-silhouettes.js';
+import { getThemeKit } from '../themes/index.js';
 
 // Mesh pool for recycling
 const meshPool = [];
@@ -135,8 +138,13 @@ export function createEnemyMesh(enemy) {
   const group = new THREE.Group();
   const isHockey = theme === 'hockey';
   const isSpace = theme === 'space';
-  const sz = (enemy.sz || 1) * 0.34;
+  // 0.42 (was 0.34): enemies were the smallest things on the board and hard to
+  // tell apart at the game camera. Cosmetic only — hits are resolved on position.
+  const sz = (enemy.sz || 1) * 0.42;
   const mats = getSharedMaterials();
+  // Plug-in themes model each enemy as its own creature.
+  const kit = getThemeKit(theme);
+  const customBody = typeof kit?.buildEnemy === 'function';
   const roleKey = enemy.slot || enemy.role?.toLowerCase() || 'swarm';
   const visual = visuals.enemies[roleKey] || visuals.enemies[enemy.role?.toLowerCase()] || visuals.enemies.swarm;
 
@@ -466,6 +474,8 @@ export function createEnemyMesh(enemy) {
       group.add(particles);
       enemy.particleSystem = particles;
     }
+  } else if (customBody) {
+    kit.buildEnemy(group, enemy, sz, { bodyMat, visual, color: visual?.color, accent: visual?.accent });
   } else {
     // SOCCER BALL - Enhanced with better geometry and shine
     const ballBody = new THREE.Mesh(new THREE.SphereGeometry(sz, 32, 32), bodyMat);
@@ -483,7 +493,7 @@ export function createEnemyMesh(enemy) {
       const pentagonPositions = [
         [0, 1, 0], [0, -1, 0], 
         [1, 0, 0], [-1, 0, 0],
-        [0, 0, 1], [0, 0, -1]
+        [0, 0, -1]   // no patch on the front: that is where the face goes
       ];
       for (let i = 0; i < pentagonPositions.length; i++) {
         const pos = pentagonPositions[i];
@@ -512,7 +522,7 @@ export function createEnemyMesh(enemy) {
   }
 
   // Armor plates - enhanced with metallic sheen (metalness >= 0.8)
-  if (enemy.armor > 0 && !enemy.boss) {
+  if (enemy.armor > 0 && !enemy.boss && !customBody) {
     const plateCount = Math.min(4 + enemy.armor, 8);
 
     // Override armor material with higher metalness for sheen effect
@@ -650,6 +660,13 @@ export function createEnemyMesh(enemy) {
   hpShine.position.z = -sz * 0.02;
   hpShine.rotation.x = -Math.PI / 2;
   group.add(hpShine);
+
+  // An undamaged enemy shows no health bar: a full bar over every enemy is
+  // clutter (and five draw calls each). It appears on the first hit; a boss
+  // always shows one. See updateHealthBar in systems/enemies.js.
+  enemy.hpParts = [hpBorder, hpBg, hpBar, hpDamageFlash, hpShine];
+  enemy.hpShown = !!enemy.boss;
+  enemy.hpParts.forEach(part => { part.visible = enemy.hpShown; });
 
   // Store reference for HP color changes
   enemy.hpMats = mats;
@@ -891,7 +908,7 @@ export function createEnemyMesh(enemy) {
   // its identity colour. Cheap, reads at the game's camera distance, and gives
   // otherwise-simple bodies (pucks, flying orbs) a spark of life. Boss/fire
   // enemies already carry their own glow, so skip them to avoid doubling up.
-  if (!enemy.boss && !enemy.fire) {
+  if (!enemy.boss && !enemy.fire && !customBody) {
     const accent = (visual && visual.accent) || (visual && visual.color) || 0xffffff;
     const pip = new THREE.Mesh(
       new THREE.SphereGeometry(sz * 0.16, 24, 24),
@@ -900,6 +917,42 @@ export function createEnemyMesh(enemy) {
     pip.position.y = sz * 0.55;
     group.add(pip);
   }
+
+  // Role silhouette + face (wings, horns, ram, helmet…). The orbital drones keep
+  // their ring language instead of a face.
+  if (!isSpace && !customBody) {
+    const silhouetteColor = enemy.fire ? 0xff7a1a : ((visual && (visual.accent || visual.color)) || 0x7dd3fc);
+    addRoleSilhouette(group, enemy, sz, isHockey ? 'disc' : 'ball', silhouetteColor);
+  }
+
+  // Collapse the parts nothing animates into one mesh per material. An enemy
+  // was ~45 draw calls, and a late wave has dozens on screen. Everything the
+  // game holds a reference to (HP bar, flames, rings, status effects…) is
+  // stored on the enemy object, so those are found there and left alone.
+  const live = new Set();
+  const keep = (value) => {
+    if (!value || typeof value !== 'object') return;
+    if (value.isObject3D) live.add(value);
+    else if (value.mesh?.isObject3D) live.add(value.mesh);
+  };
+  for (const value of Object.values(enemy)) {
+    if (Array.isArray(value)) value.forEach(keep);
+    else keep(value);
+  }
+  bakeStaticMeshes(group, live);
+
+  // Everything above is built around the body's centre, but the game places a
+  // ground enemy's origin 0.2 above the floor — less than the body's radius, so
+  // every enemy was half-buried and showed only a dome. Lift the parts so the
+  // body stands on the floor; the origin the game moves stays where it was.
+  // (Parts animated with absolute heights all live inside the status-effect
+  // groups, so shifting the top-level children is safe.)
+  const lift = enemy.flying ? 0 : Math.max(0, sz * 1.02 - 0.18 / (group.scale.x || 1));
+  if (lift > 0) {
+    for (const child of group.children) child.position.y += lift;
+  }
+  // Height (in the group's own units) that clears the body, for the label.
+  group.userData.topY = lift + sz * 1.75;
 
   group.position.set(enemy.x, enemy.flying ? 1.2 : 0.2, enemy.z);
 

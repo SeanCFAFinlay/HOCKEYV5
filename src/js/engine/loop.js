@@ -121,7 +121,9 @@ export function gameLoop(currentTime) {
 
   // Clamp frame time to prevent death spiral
   const clampedFrameTime = Math.min(rawFrameTime, MAX_FRAME_TIME);
-  updateAutoQuality(clampedFrameTime);
+  // Not while paused: a pause must not change how the game looks, and a
+  // paused frame is not representative of play anyway.
+  if (!paused) updateAutoQuality(clampedFrameTime);
 
   // Paused: keep drawing and keep the camera live, run no simulation. Placed
   // after lastFrameTime is advanced above, so however long the pause lasts, the

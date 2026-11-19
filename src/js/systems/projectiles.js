@@ -1,9 +1,10 @@
-// Projectile creation and movement with enhanced visuals
+// Projectile creation and movement
 
-import { getState, removeProjectile } from '../engine/state.js';
+import { getState } from '../engine/state.js';
 import { handleHit } from './damage.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
 import { attachTrail, removeTrail } from '../rendering/trails.js';
+import { createProjectileMesh } from '../rendering/projectile-meshes.js';
 
 // Trail particle pool for reuse
 const trailPool = [];
@@ -58,264 +59,61 @@ function disposeObject(obj) {
   });
 }
 
+// Every shot is slowed to ~65% of its nominal speed so it is trackable in
+// flight rather than reading only as a muzzle flash.
+const VISIBLE_SPEED = 0.65;
+
+// Height a shot leaves the tower at. Sliding shots start on the playfield.
+const MUZZLE_Y = 0.75;
+const SLIDE_Y = 0.16;
+
+// Flight styles that should feel near-instant.
+const FLIGHT_SPEED = { tracer: 1.9, bolt: 1.6 };
+
+// The ribbon trail is enough for these; a dotted particle trail just adds noise.
+const NO_PARTICLE_TRAIL = new Set(['tracer', 'bolt', 'ring']);
+const MAX_TRAIL_DOTS = 5;
+
+/**
+ * Fire a projectile from a tower at a target.
+ *
+ * What the shot looks like and how it travels both come from the theme's
+ * visual profile (config/visual-profiles.js -> projectiles): `mesh` picks the
+ * shape, `flight` picks the motion. Hit detection stays a straight homing line
+ * for every flight style — arcs, curves and wobble are applied to the rendered
+ * mesh only, so changing how a projectile looks can never change game balance.
+ */
 export function createProjectile(tw, target, sx, sz) {
   const state = getState();
-  const { theme, themeData, scene } = state;
+  const { themeData, scene } = state;
   const visuals = getVisualProfile(themeData);
 
   const td = themeData.towers.find(t => t.id === tw.type);
-  const idx = themeData.towers.indexOf(td);
-  const isHockey = theme === 'hockey';
   const profile = visuals.projectiles[td.projectile] || Object.values(visuals.projectiles)[0];
+  const color = profile.color ?? new THREE.Color(td.clr).getHex();
+  const flight = profile.flight || 'orb';
+  tw.fireVoice = flight;   // picks the fire sound (config/sounds.js)
+  const size = profile.size || 1;
 
-  let geo, mat;
-  let speed = 8.5;
-  let trailColor = null;
-  const c = new THREE.Color(td.clr);
+  // Leave from the front of the tower rather than its centre.
+  const ddx = target.x - sx;
+  const ddz = target.z - sz;
+  const flat = Math.sqrt(ddx * ddx + ddz * ddz) || 1;
+  const dirX = ddx / flat;
+  const dirZ = ddz / flat;
+  const lead = Math.min(0.32, flat * 0.4);
+  const startX = sx + dirX * lead;
+  const startZ = sz + dirZ * lead;
+  const startY = flight === 'slide' ? SLIDE_Y : MUZZLE_Y;
 
-  // Theme-specific projectile shapes with enhanced visuals
-  if (theme === 'space') {
-    ({ geo, mat } = createProfileProjectile(profile, c));
-    trailColor = profile.color || c;
-    speed = profile.speed || 12;
-  } else if (isHockey) {
-    switch (idx) {
-      case 0: // Slap Shot - glowing puck projectile
-        geo = new THREE.CylinderGeometry(0.08, 0.08, 0.025, 20);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0x111111,
-          metalness: 0.9,
-          roughness: 0.2,
-          emissive: 0x00d4ff,
-          emissiveIntensity: 0.6
-        });
-        trailColor = 0x00d4ff;
-        speed = 10.0;
-        break;
-      case 1: // Sniper - tracer round
-        geo = new THREE.CylinderGeometry(0.02, 0.04, 0.15, 8);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0xffaa00,
-          metalness: 0.8,
-          roughness: 0.2,
-          emissive: 0xff6600,
-          emissiveIntensity: 0.8
-        });
-        trailColor = 0xff6600;
-        speed = 12;
-        break;
-      case 2: // Enforcer - hammer/fist impact wave
-        geo = new THREE.BoxGeometry(0.12, 0.12, 0.06);
-        mat = new THREE.MeshStandardMaterial({ 
-          color: 0xffaa44, 
-          metalness: 0.6,
-          roughness: 0.3,
-          emissive: 0xff6600,
-          emissiveIntensity: 0.5
-        });
-        trailColor = 0xff8844;
-        speed = 7.5;
-        break;
-      case 3: // Ice Spray - spinning ice shard
-        geo = new THREE.OctahedronGeometry(0.09, 0);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0xaaffff,
-          metalness: 0.4,
-          roughness: 0.1,
-          emissive: 0x66ddff,
-          emissiveIntensity: 0.7,
-          transparent: true,
-          opacity: 0.9
-        });
-        trailColor = 0x99eeff;
-        speed = 9.0;
-        break;
-      case 4: // Goalie - glove save missile
-        geo = new THREE.SphereGeometry(0.1, 16, 16);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0xffd700,
-          metalness: 0.6,
-          roughness: 0.2,
-          emissive: 0xffaa00,
-          emissiveIntensity: 0.6
-        });
-        trailColor = 0xffdd44;
-        speed = 8.5;
-        break;
-      case 5: // Power Play - electric bolt
-        geo = new THREE.CylinderGeometry(0.02, 0.04, 0.22, 6);
-        mat = new THREE.MeshBasicMaterial({ 
-          color: 0xffff00,
-          transparent: true,
-          opacity: 0.95
-        });
-        trailColor = 0xdddd00;
-        speed = 16;
-        break;
-      case 6: // Hot Stick - blazing fireball
-        geo = new THREE.SphereGeometry(0.09, 16, 16);
-        mat = new THREE.MeshBasicMaterial({ 
-          color: 0xff3300,
-          transparent: true,
-          opacity: 0.9
-        });
-        trailColor = 0xff4400;
-        speed = 11.0;
-        break;
-      case 7: // Captain - power star
-        geo = new THREE.OctahedronGeometry(0.11, 1);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0xffd700,
-          metalness: 0.95,
-          roughness: 0.05,
-          emissive: 0xffbb00,
-          emissiveIntensity: 0.8
-        });
-        trailColor = 0xffd700;
-        speed = 11.0;
-        break;
-      default:
-        geo = new THREE.SphereGeometry(0.06, 10, 10);
-        mat = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.4, roughness: 0.4, metalness: 0.1 });
-        trailColor = c;
-    }
-  } else {
-    switch (idx) {
-      case 0: // Striker - mini ball
-        geo = new THREE.SphereGeometry(0.06, 16, 16);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          metalness: 0.1,
-          roughness: 0.5,
-          emissive: 0x22aa22,
-          emissiveIntensity: 0.3
-        });
-        trailColor = 0x22c55e;
-        speed = 9.0;
-        break;
-      case 1: // Free Kick - curved shot
-        geo = new THREE.CylinderGeometry(0.02, 0.04, 0.2, 8);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0x88eeff,
-          metalness: 0.5,
-          roughness: 0.2,
-          emissive: 0x44aaff,
-          emissiveIntensity: 0.7
-        });
-        trailColor = 0x88eeff;
-        speed = 11.0;
-        break;
-      case 2: // Header - shockwave
-        geo = new THREE.TorusGeometry(0.06, 0.025, 8, 16);
-        mat = new THREE.MeshBasicMaterial({ color: 0x22dddd, transparent: true, opacity: 0.8 });
-        trailColor = 0x22dddd;
-        speed = 8.0;
-        break;
-      case 3: // Tackle - slide tackle wave
-        geo = new THREE.ConeGeometry(0.06, 0.12, 8);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0x8b6914,
-          metalness: 0.3,
-          roughness: 0.7,
-          emissive: 0x443300,
-          emissiveIntensity: 0.3
-        });
-        trailColor = 0xaa8833;
-        speed = 8.5;
-        break;
-      case 4: // Keeper - diving save
-        geo = new THREE.SphereGeometry(0.09, 12, 12);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0x88eeff,
-          metalness: 0.4,
-          roughness: 0.3,
-          emissive: 0x44aaff,
-          emissiveIntensity: 0.5,
-          transparent: true,
-          opacity: 0.85
-        });
-        trailColor = 0x88eeff;
-        break;
-      case 5: // Playmaker - pass beam
-        geo = new THREE.CylinderGeometry(0.015, 0.015, 0.15, 6);
-        mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        trailColor = 0xffffff;
-        speed = 12;
-        break;
-      case 6: // Flare - firework
-        geo = new THREE.OctahedronGeometry(0.06, 0);
-        mat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
-        trailColor = 0xff6644;
-        speed = 9.0;
-        break;
-      case 7: // Legend - golden trophy shot
-        geo = new THREE.OctahedronGeometry(0.08, 1);
-        mat = new THREE.MeshStandardMaterial({
-          color: 0xffd700,
-          metalness: 0.95,
-          roughness: 0.05,
-          emissive: 0xffaa00,
-          emissiveIntensity: 0.7
-        });
-        trailColor = 0xffd700;
-        speed = 11.0;
-        break;
-      default:
-        geo = new THREE.SphereGeometry(0.06, 10, 10);
-        mat = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.3 });
-        trailColor = c;
-    }
-  }
-
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.castShadow = true;
-  // Big core so a shot reads as a substantial bolt crossing the rink, not a
-  // speck that vanishes between fire and impact (was 2.6). The towers are large
-  // now, so the projectile has to be large to keep up.
-  mesh.scale.multiplyScalar(3.6);
-
-  // Three-layer additive glow — a bright orb that stays visible while it travels
-  // and feeds the bloom pass. Additive blending keeps it from darkening anything
-  // it crosses.
-  const glowCol = trailColor || (mat && mat.color) || new THREE.Color(c);
-
-  // Inner glow — white-hot core.
-  const innerGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.26, 16, 16),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  innerGlow.renderOrder = 999;
-  mesh.add(innerGlow);
-
-  // Mid glow — the projectile's colour.
-  const midGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.44, 16, 16),
-    new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  midGlow.renderOrder = 998;
-  mesh.add(midGlow);
-
-  // Outer halo.
-  const outerGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.72, 16, 16),
-    new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  outerGlow.renderOrder = 997;
-  mesh.add(outerGlow);
-
-  mesh.position.set(sx, 0.45, sz);
+  const mesh = createProjectileMesh(profile.mesh, color, size);
+  mesh.position.set(startX, startY, startZ);
   scene.add(mesh);
 
-  // Trigger tower firing flash
-  if (tw.baseGlow) {
-    tw.firingFlash = 1.0;
-  }
-
-  // Slow every shot to ~65% so it's actually trackable in flight. Projectiles
-  // were fast enough to cross the rink between frames, so they read only as a
-  // muzzle flash. Still fast enough to land on moving enemies; combined with the
-  // larger glow above, shots now read as visible bolts.
-  const VISIBLE_SPEED = 0.65;
+  // Tower reaction: glow flash, recoil kick, and turn the turret onto the target.
+  if (tw.baseGlow) tw.firingFlash = 1.0;
+  tw.recoil = 1;
+  tw.aimAngle = Math.atan2(ddx, ddz);
 
   const projectile = {
     mesh,
@@ -324,15 +122,27 @@ export function createProjectile(tw, target, sx, sz) {
     tx: target.x,
     ty: (target.y != null ? target.y : (target.flying ? 1.2 : 0.2)),
     tz: target.z,
-    x: sx,
-    z: sz,
-    y: 0.45,
-    vx: 0,
-    vz: 0,
-    vy: 0,
+    x: startX,
+    z: startZ,
+    y: startY,
+    // Rendered position: logical position plus the flight-style offset.
+    rx: startX,
+    ry: startY,
+    rz: startZ,
     t: 0,
-    speed: speed * VISIBLE_SPEED,
-    trailColor,
+    speed: (profile.speed || 9) * VISIBLE_SPEED * (FLIGHT_SPEED[flight] || 1),
+    flight,
+    meshKind: profile.mesh,
+    size,
+    // Longest distance-to-target seen, used to derive flight progress 0..1.
+    d0: 0,
+    // Unit vector perpendicular to the launch direction, for curving shots.
+    perpX: dirZ,
+    perpZ: -dirX,
+    side: Math.random() < 0.5 ? -1 : 1,
+    seed: Math.random() * 10,
+    arc: 0.9 + flat * 0.28,
+    trailColor: color,
     trailKind: profile.trail,
     impactKind: profile.impact,
     curve: profile.curve || 0,
@@ -341,48 +151,120 @@ export function createProjectile(tw, target, sx, sz) {
     trailTimer: 0
   };
 
-  // SC-3.3: Attach ribbon trail
-  if (trailColor != null) {
-    attachTrail(projectile, trailColor);
-  }
+  attachTrail(projectile, color);
+  placeProjectileMesh(projectile, flat);
 
   return projectile;
 }
 
-function createProfileProjectile(profile, fallbackColor) {
-  const color = profile?.color || fallbackColor;
-  const meshType = profile?.mesh || 'sphere';
-  let geo;
-  let mat;
+/**
+ * Position, orient and scale a projectile's mesh for its flight style.
+ * @param {object} p - projectile
+ * @param {number} remaining - distance left to the target
+ */
+function placeProjectileMesh(p, remaining) {
+  const m = p.mesh;
+  if (!m) return;
 
-  switch (meshType) {
-    case 'laser':
-      geo = new THREE.CylinderGeometry(0.018, 0.035, 0.55, 8);
-      mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.96, blending: THREE.AdditiveBlending });
+  if (remaining > p.d0) p.d0 = remaining;
+  const prog = p.d0 > 0 ? Math.min(1, Math.max(0, 1 - remaining / p.d0)) : 1;
+  // 0 at launch and at impact, 1 at mid-flight.
+  const env = 4 * prog * (1 - prog);
+  const t = p.t;
+
+  let x = p.x;
+  let y = p.y;
+  let z = p.z;
+  let scale = p.size;
+  let orient = true;
+  let roll = 0;
+
+  switch (p.flight) {
+    case 'slide':
+      // Skims the surface. A puck spins flat; anything else slides nose-first.
+      if (p.meshKind === 'puck') {
+        orient = false;
+        m.rotation.set(0, t * 16, 0);
+      }
       break;
-    case 'plasma':
-      geo = new THREE.SphereGeometry(0.1, 16, 12);
-      mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending });
+
+    case 'tracer':
       break;
-    case 'ring':
-      geo = new THREE.TorusGeometry(0.09, 0.025, 8, 22);
-      mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.86, blending: THREE.AdditiveBlending });
+
+    case 'lob':
+      // Thrown high, tumbling end over end, landing on the target.
+      y += p.arc * env;
+      orient = false;
+      m.rotation.set(t * 11, Math.atan2(p.tx - p.x, p.tz - p.z), 0, 'YXZ');
       break;
+
+    case 'spray':
+      roll = t * 9;
+      break;
+
+    case 'punch':
+      // Winds up, swells mid-flight, lands heavy.
+      scale *= 0.8 + env * 0.5;
+      break;
+
     case 'bolt':
-    case 'beam':
-      geo = new THREE.CylinderGeometry(0.025, 0.045, 0.24, 6);
-      mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending });
+      // Flickers between orientations so it crackles instead of flying like a stick.
+      roll = Math.floor(t * 28 + p.seed) * 1.9;
+      scale *= 0.9 + Math.abs(Math.sin(t * 40 + p.seed)) * 0.3;
       break;
-    case 'star':
-      geo = new THREE.OctahedronGeometry(0.11, 1);
-      mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.9, roughness: 0.08, metalness: 0.8 });
+
+    case 'flame': {
+      const wobble = Math.sin(t * 26 + p.seed) * 0.06;
+      x += p.perpX * wobble;
+      z += p.perpZ * wobble;
+      y += Math.cos(t * 21 + p.seed) * 0.04;
+      // Starts as a spark and blooms as it travels.
+      scale *= 0.65 + prog * 0.75;
       break;
-    default:
-      geo = new THREE.SphereGeometry(0.08, 14, 12);
-      mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.25, metalness: 0.3 });
+    }
+
+    case 'heavy':
+      // Slow, weighty and unmistakable: rises slightly and turns broadside.
+      y += 0.32 * env;
+      orient = false;
+      m.rotation.set(0, t * 7, 0);
+      scale *= 1 + Math.sin(t * 10) * 0.08;
+      break;
+
+    case 'curve': {
+      // Bends away from the straight line and back onto the target.
+      const bow = p.curve * env * p.side * 0.6;
+      x += p.perpX * bow;
+      z += p.perpZ * bow;
+      y += 0.3 * env;
+      orient = false;
+      m.rotation.set(t * 10, t * 13, 0);
+      break;
+    }
+
+    case 'ring':
+      // An expanding shockwave travelling face-on.
+      scale *= 0.7 + prog * 1.4;
+      break;
+
+    default: // 'orb'
+      orient = false;
+      scale *= 1 + Math.sin(t * 18) * 0.12;
   }
 
-  return { geo, mat };
+  m.position.set(x, y, z);
+  if (orient) {
+    m.lookAt(p.tx, p.ty + (y - p.y), p.tz);
+    if (roll) m.rotateZ(roll);
+  }
+  m.scale.setScalar(scale);
+
+  const halo = m.userData.halo;
+  if (halo) halo.scale.setScalar(m.userData.haloRadius * (1 + Math.sin(t * 15) * 0.15));
+
+  p.rx = x;
+  p.ry = y;
+  p.rz = z;
 }
 
 export function updateProjectiles(dt) {
@@ -407,68 +289,44 @@ export function updateProjectiles(dt) {
 
     if (dist <= move) {
       handleHit(p);
-      if (p.mesh) {
-        scene.remove(p.mesh);
-        disposeObject(p.mesh);
-      }
-      // Clean up trail particles
+      // Geometry and materials are shared across shots: remove, never dispose.
+      if (p.mesh) scene.remove(p.mesh);
       if (p.trail) {
-        p.trail.forEach(t => returnTrailParticle(t, scene));
+        p.trail.forEach(dot => returnTrailParticle(dot, scene));
       }
       // SC-3.3: Begin ribbon trail fade
       removeTrail(p);
       projectiles.splice(i, 1);
-    } else {
-      // Spawn trail particles
-      if (p.trailColor && p.trail) {
-        p.trailTimer += dt;
-        if (p.trailTimer >= 0.03) {
-          p.trailTimer = 0;
-          const particle = getTrailParticle(p.trailColor, p.trailKind);
-          particle.position.set(p.x, p.y, p.z);
-          if (p.trailKind === 'spin' || p.trailKind === 'curve') {
-            particle.position.x += Math.sin(p.t * 12) * 0.08;
-            particle.position.z += Math.cos(p.t * 12) * 0.08;
-          }
-          scene.add(particle);
-          p.trail.push(particle);
+      continue;
+    }
 
-          // Limit trail length
-          if (p.trail.length > 8) {
-            const old = p.trail.shift();
-            returnTrailParticle(old, scene);
-          }
-        }
+    p.x += (dx / dist) * move;
+    p.y += (dy / dist) * move;
+    p.z += (dz / dist) * move;
+    p.t += dt;
 
-        // Fade trail particles
-        p.trail.forEach((t, idx) => {
-          const fade = (idx + 1) / p.trail.length;
-          t.material.opacity = 0.5 * fade;
-          t.scale.setScalar(0.5 + 0.5 * fade);
-        });
-      }
+    placeProjectileMesh(p, dist - move);
 
-      const curveOffset = p.curve ? Math.sin(p.t * 7) * p.curve * 0.015 : 0;
-      p.x += (dx / dist) * move + curveOffset * dz;
-      p.y += (dy / dist) * move;
-      p.z += (dz / dist) * move - curveOffset * dx;
-
-      if (p.mesh) {
-        p.mesh.position.set(p.x, p.y, p.z);
-        p.mesh.rotation.y += dt * 12;
-        p.mesh.rotation.x += dt * 8;
-
-        // Pulsing glow effect
-        const pulse = 1 + Math.sin(p.t * 15) * 0.15;
-        if (p.mesh.children[0]) {
-          p.mesh.children[0].scale.setScalar(pulse);
-        }
-        if (p.mesh.children[1]) {
-          p.mesh.children[1].scale.setScalar(pulse * 1.1);
+    // Dotted particle trail, following the rendered (curved / arced) path.
+    if (!NO_PARTICLE_TRAIL.has(p.flight)) {
+      p.trailTimer += dt;
+      if (p.trailTimer >= 0.04) {
+        p.trailTimer = 0;
+        const dot = getTrailParticle(p.trailColor, p.trailKind);
+        dot.position.set(p.rx, p.ry, p.rz);
+        scene.add(dot);
+        p.trail.push(dot);
+        if (p.trail.length > MAX_TRAIL_DOTS) {
+          returnTrailParticle(p.trail.shift(), scene);
         }
       }
 
-      p.t += dt;
+      const count = p.trail.length;
+      for (let k = 0; k < count; k++) {
+        const fade = (k + 1) / count;
+        p.trail[k].material.opacity = 0.5 * fade;
+        p.trail[k].scale.setScalar(0.6 + 0.9 * fade);
+      }
     }
   }
 }

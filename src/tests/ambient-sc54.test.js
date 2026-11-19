@@ -12,6 +12,7 @@ vi.mock('../js/engine/audio.js', () => ({
   playSound: mockPlaySound,
   setVolume: mockSetVolume,
   registerSound: mockRegisterSound,
+  stopSound: vi.fn(),
 }));
 
 // ── Import module under test ─────────────────────────────────────────────────

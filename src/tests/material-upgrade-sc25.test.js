@@ -60,6 +60,8 @@ class MockColor {
     this.r = 0.5; this.g = 0.5; this.b = 0.5;
   }
   clone() { return new MockColor(this.c); }
+  lerp() { return this; }
+  getHex() { return this.c; }
   multiplyScalar(s) { return new MockColor(this.c); }
   getHexString() { return '888888'; }
 }
@@ -174,6 +176,25 @@ global.document = {
 global.window = { innerWidth: 800, innerHeight: 600 };
 
 // ── Module mocks ───────────────────────────────────────────────────────────
+
+// The bake step merges static meshes into fewer draw calls for rendering. These
+// tests inspect the individual parts a builder creates, so it is stubbed out.
+vi.mock('../js/rendering/geo-utils.js', () => ({
+  bakeStaticMeshes: vi.fn(() => 0),
+  mergeGeometries: vi.fn(),
+  composeGeometry: vi.fn()
+}));
+
+// The remodelled figures use lathes and extrusions the THREE mock does not have;
+// they are verified in the browser. These tests cover the original builders.
+vi.mock('../js/themes/hockey-towers.js', () => ({ buildTower: null }));
+vi.mock('../js/themes/soccer-towers.js', () => ({ buildTower: null }));
+vi.mock('../js/themes/index.js', () => ({ getThemeKit: () => null, THEME_MODULES: {} }));
+
+
+// Role silhouettes are covered in the browser; these tests look at the base body.
+vi.mock('../js/rendering/enemy-silhouettes.js', () => ({ addRoleSilhouette: vi.fn() }));
+
 
 vi.mock('../js/engine/state.js', () => ({
   getState: vi.fn(() => ({

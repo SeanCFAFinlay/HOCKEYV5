@@ -12,6 +12,7 @@ vi.mock('../js/engine/audio.js', () => ({
   playSoundAt: mockPlaySoundAt,
   registerSound: mockRegisterSound,
   initAudio: vi.fn(),
+  hasSound: vi.fn(() => false),
 }));
 
 // ── Import module under test ────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ describe('SC-5.2 Fire Sound Throttling', () => {
     const { playFireSound } = await import('../js/config/sounds.js');
     const tower = { x: 0, y: 0 };
     playFireSound(tower, 0, 0);
-    expect(mockPlaySoundAt).toHaveBeenCalledWith('towerFire', 0, 0);
+    expect(mockPlaySoundAt).toHaveBeenCalledWith('towerFire', 0, 0, expect.any(Object));
   });
 
   it('throttles fire sound: does not play within 100ms', async () => {
@@ -126,7 +127,7 @@ describe('SC-5.2 Fire Sound Throttling', () => {
     const tower = { x: 2, y: 2 };
     tower._lastFireSoundMs = Date.now() - 200; // 200ms ago — should play
     playFireSound(tower, 2, 2);
-    expect(mockPlaySoundAt).toHaveBeenCalledWith('towerFire', 2, 2);
+    expect(mockPlaySoundAt).toHaveBeenCalledWith('towerFire', 2, 2, expect.any(Object));
   });
 
   it('updates _lastFireSoundMs on tower after playing', async () => {

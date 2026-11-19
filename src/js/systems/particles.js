@@ -3,6 +3,7 @@
 
 import { getState, addParticle, removeParticle } from '../engine/state.js';
 import { getQualityName } from '../rendering/quality.js';
+import { composeGeometry } from '../rendering/geo-utils.js';
 
 // Particle mesh pool
 const meshPool = [];
@@ -488,40 +489,75 @@ export function createMoneyPickup(x, y, z) {
 
 // ── Lightning ─────────────────────────────────────────────────────────────
 
-export function createLightning(x1, z1, x2, z2) {
+// Lightning materials, shared per colour.
+const _lightningMats = new Map();
+
+function getLightningMaterials(color) {
+  let mats = _lightningMats.get(color);
+  if (!mats) {
+    mats = {
+      core: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+      glow: new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
+    };
+    _lightningMats.set(color, mats);
+  }
+  return mats;
+}
+
+/**
+ * A jagged bolt between two points: a white-hot core inside a coloured glow,
+ * visible for a few frames. Each arc is randomly kinked, so a chain reads as
+ * electricity jumping between enemies rather than a straight rod.
+ *
+ * @param {number} x1
+ * @param {number} z1
+ * @param {number} x2
+ * @param {number} z2
+ * @param {number} [color=0xa855f7] - glow colour (the firing tower's)
+ */
+export function createLightning(x1, z1, x2, z2, color = 0xa855f7) {
   const state = getState();
   const dx = x2 - x1;
   const dz = z2 - z1;
   const len = Math.sqrt(dx * dx + dz * dz);
+  if (len < 0.01) return;
 
-  const coreGeo = new THREE.CylinderGeometry(0.03, 0.03, len, 6);
-  coreGeo.rotateX(Math.PI / 2);
-  const coreMesh = new THREE.Mesh(coreGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  coreMesh.position.set((x1 + x2) / 2, 0.5, (z1 + z2) / 2);
-  coreMesh.lookAt(x2, 0.5, z2);
-  state.scene.add(coreMesh);
+  // Kinked path: endpoints exact, everything between pushed sideways.
+  const segments = Math.max(3, Math.round(len / 0.32));
+  const sideX = -dz / len;
+  const sideZ = dx / len;
+  const points = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const inner = i > 0 && i < segments;
+    const jitter = inner ? (Math.random() - 0.5) * 0.34 : 0;
+    points.push([
+      x1 + dx * t + sideX * jitter,
+      0.5 + (inner ? (Math.random() - 0.5) * 0.18 : 0),
+      z1 + dz * t + sideZ * jitter
+    ]);
+  }
 
-  const glowGeo = new THREE.CylinderGeometry(0.08, 0.08, len, 6);
-  glowGeo.rotateX(Math.PI / 2);
-  const glowMesh = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({
-    color: 0xa855f7, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending
+  const strand = (thickness) => composeGeometry(points.slice(1).map((b, i) => {
+    const a = points[i];
+    const sx = b[0] - a[0];
+    const sz = b[2] - a[2];
+    return {
+      geo: new THREE.BoxGeometry(thickness, thickness, Math.sqrt(sx * sx + sz * sz) + thickness * 0.5),
+      p: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2],
+      r: [0, Math.atan2(sx, sz), 0]
+    };
   }));
-  glowMesh.position.set((x1 + x2) / 2, 0.5, (z1 + z2) / 2);
-  glowMesh.lookAt(x2, 0.5, z2);
-  state.scene.add(glowMesh);
 
-  const coronaGeo = new THREE.CylinderGeometry(0.15, 0.15, len, 6);
-  coronaGeo.rotateX(Math.PI / 2);
-  const coronaMesh = new THREE.Mesh(coronaGeo, new THREE.MeshBasicMaterial({
-    color: 0x8844ff, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending
-  }));
-  coronaMesh.position.set((x1 + x2) / 2, 0.5, (z1 + z2) / 2);
-  coronaMesh.lookAt(x2, 0.5, z2);
-  state.scene.add(coronaMesh);
+  const mats = getLightningMaterials(color);
+  const core = new THREE.Mesh(strand(0.04), mats.core);
+  const glow = new THREE.Mesh(strand(0.15), mats.glow);
+  state.scene.add(core);
+  state.scene.add(glow);
 
   [{ x: x1, z: z1 }, { x: x2, z: z2 }].forEach(pos => {
     for (let i = 0; i < 3; i++) {
-      const spark = acquireMesh(0xaa66ff, true, 'spark');
+      const spark = acquireMesh(color, true, 'spark');
       spark.position.set(pos.x, 0.5, pos.z);
       spark.scale.setScalar(0.5);
       state.scene.add(spark);
@@ -539,13 +575,11 @@ export function createLightning(x1, z1, x2, z2) {
   });
 
   setTimeout(() => {
-    state.scene.remove(coreMesh);
-    state.scene.remove(glowMesh);
-    state.scene.remove(coronaMesh);
-    coreGeo.dispose();
-    glowGeo.dispose();
-    coronaGeo.dispose();
-  }, 120);
+    state.scene.remove(core);
+    state.scene.remove(glow);
+    core.geometry.dispose();
+    glow.geometry.dispose();
+  }, 130);
 }
 
 // ── Update ────────────────────────────────────────────────────────────────

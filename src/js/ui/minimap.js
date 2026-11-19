@@ -69,7 +69,8 @@ function _prefersCollapsed() {
   }
 
   if (typeof matchMedia !== 'function') return false;
-  return matchMedia('(max-width: 480px) and (orientation: portrait)').matches;
+  // Phones in either orientation: the open map covers too much of a small board.
+  return matchMedia('(max-width: 480px) and (orientation: portrait), (max-height: 500px) and (orientation: landscape)').matches;
 }
 
 function _applyCollapsed() {

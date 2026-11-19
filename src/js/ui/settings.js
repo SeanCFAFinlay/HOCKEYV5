@@ -7,6 +7,8 @@
 import { setPostProcessingQuality, getComposer } from '../engine/postprocessing.js';
 import { icon } from './icons.js';
 import { resetAllProgress } from '../systems/storage.js';
+import { setVolume } from '../engine/audio.js';
+import { setAmbientUserVolume } from '../engine/ambient.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,6 +74,25 @@ export function applySettings(settings) {
   _applyVignette(settings.vignette);
   _applyCameraSensitivity(settings.cameraSensitivity);
   _applyUIScale(settings.uiScale);
+  _applyAudio(settings);
+}
+
+/** Apply the saved volume sliders. Called at startup and on every change. */
+export function applyAudioSettings() {
+  _applyAudio(getSettings());
+}
+
+function _applyAudio(settings) {
+  const level = (value, fallback) => {
+    const n = Number(value);
+    return Math.max(0, Math.min(1, (Number.isFinite(n) ? n : fallback) / 100));
+  };
+  try {
+    setVolume('sfx', level(settings.sfxVolume, 80));
+    setVolume('music', level(settings.musicVolume, 70));
+    // The slider's default (50%) is the designed crowd level.
+    setAmbientUserVolume(level(settings.ambientVolume, 50) * 2);
+  } catch { /* audio not started yet */ }
 }
 
 function _applyQuality(settings) {
@@ -215,7 +236,7 @@ function _buildAudioSection(settings) {
 
   const note = document.createElement('div');
   note.className = 'settings-note';
-  note.textContent = 'Audio system coming soon — values are saved';
+  note.textContent = 'Sound effects and crowd are live. Music is not in the game yet.';
 
   section.appendChild(_makeSliderRow('SFX', 'sfxVolume', 0, 100, 1, settings.sfxVolume, '%'));
   section.appendChild(_makeSliderRow('Music', 'musicVolume', 0, 100, 1, settings.musicVolume, '%'));

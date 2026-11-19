@@ -243,7 +243,13 @@ function createRenderTarget(width, height) {
     minFilter: T.LinearFilter,
     magFilter: T.LinearFilter,
     format: T.RGBAFormat,
-    type: T.UnsignedByteType
+    type: T.UnsignedByteType,
+    // Asking for a stencil buffer is how three r128 is made to allocate a
+    // 24-bit depth buffer; depth alone gets 16 bits. At 16 bits, surfaces a few
+    // centimetres apart (the rink and the concourse under it, the path overlay)
+    // fight for the same depth from a high, distant camera and the floor
+    // breaks into dark bands. That is exactly the portrait phone view.
+    stencilBuffer: true
   });
 }
 

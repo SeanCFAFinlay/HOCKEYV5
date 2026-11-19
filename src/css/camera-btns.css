@@ -1,22 +1,175 @@
+/* Camera buttons. On a phone they sit in a column under the pause button, over
+   the stands rather than over the board (a phone also has pinch and drag, so
+   they are the fallback, not the main control). On a desktop they sit on the
+   right edge, clear of the minimap above and the dock below. */
+
 .cam-btns {
   position: absolute;
-  right: calc(12px + env(safe-area-inset-right));
-  top: 50%;
-  transform: translateY(-50%);
+  left: calc(12px + env(safe-area-inset-left));
+  top: calc(68px + env(safe-area-inset-top));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   z-index: 50;
 }
 
 .cam-btn {
   width: 44px;
   height: 44px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: grid;
+  place-items: center;
+  background: rgba(6, 10, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cam-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .cam-btns {
+    top: calc(58px + env(safe-area-inset-top));
+    gap: 4px;
+  }
+}
+
+@media (min-width: 769px) and (min-height: 501px) {
+  .cam-btns {
+    left: auto;
+    right: calc(12px + env(safe-area-inset-right));
+    top: 50%;
+    transform: translateY(-50%);
+    gap: 8px;
+  }
+}
+
+/* ── Build strip ─────────────────────────────────────────────────────────
+   Appears just above the dock while a tower type is in hand. It names the
+   tower, says what the next tap does (or why a spot is refused), and carries
+   the Build and Cancel buttons. See js/ui/build-strip.js. */
+
+.build-strip {
+  --c: #fff;
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--bottom-ui-clearance, 176px) + 4px);
+  transform: translateX(-50%);
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  padding: 6px 6px 6px 12px;
+  border-radius: 16px;
+  background: rgba(6, 10, 20, 0.93);
+  border: 1.5px solid color-mix(in srgb, var(--c) 55%, transparent);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  animation: build-strip-in 0.18s ease-out;
+}
+
+.build-strip[hidden] {
+  display: none;
+}
+
+@keyframes build-strip-in {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.build-strip-icon {
+  flex: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--c);
+}
+
+.build-strip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.build-strip-text strong {
+  font-family: var(--font-game);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.build-strip-text > span {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.68);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.build-strip.invalid {
+  border-color: rgba(239, 68, 68, 0.7);
+}
+
+.build-strip.invalid .build-strip-text > span {
+  color: #fca5a5;
+}
+
+.build-confirm {
+  flex: none;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--grass), var(--grass-dim));
   color: #fff;
-  font-size: 1.3rem;
-  backdrop-filter: blur(10px);
+  font: 700 0.95rem/1 var(--font-game);
+  letter-spacing: 1px;
+  text-transform: uppercase;
   cursor: pointer;
 }
+
+.build-confirm[hidden] {
+  display: none;
+}
+
+.build-cancel {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.build-confirm:active,
+.build-cancel:active {
+  filter: brightness(0.85);
+}
+
+/* Phone on its side: the strip moves to the top, into the gap between the two
+   halves of the HUD, so it is not stacked on the board above the dock. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .build-strip {
+    top: calc(4px + env(safe-area-inset-top));
+    bottom: auto;
+    max-width: calc(100vw - 330px);
+    padding: 3px 3px 3px 10px;
+  }
+}
+

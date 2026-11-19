@@ -45,6 +45,19 @@ test('pause freezes the simulation and resume restarts it', async ({ page }) => 
   await page.locator('.hud-menu').click();
   await expect(page.locator('#pauseOverlay')).toBeVisible();
 
+  // The camera stays live while paused (so the player can still orbit), which
+  // means a pause that lands mid-ease — the wave-start pull-back takes over a
+  // second to return — keeps moving for a moment. That is not the simulation
+  // running. Let the camera come to rest first; a simulation that really is
+  // still running never settles, so this cannot hide a genuine failure.
+  let settled = hash(await canvas.screenshot());
+  for (let i = 0; i < 20; i++) {
+    await page.waitForTimeout(300);
+    const next = hash(await canvas.screenshot());
+    if (next === settled) break;
+    settled = next;
+  }
+
   // Screenshot the canvas element, not the page: the overlay covers the board.
   const pauseA = hash(await canvas.screenshot());
   await page.waitForTimeout(800);

@@ -8,7 +8,7 @@
 
 import { getState } from './state.js';
 import { setPostProcessingQuality } from './postprocessing.js';
-import { applyRendererQuality, getQualityName, setQualityTier } from '../rendering/quality.js';
+import { applyRendererQuality, getQualityName, getQualityTier, setQualityTier } from '../rendering/quality.js';
 
 // ── Module state ──────────────────────────────────────────────────────────────
 
@@ -96,8 +96,19 @@ function _triggerQualityReduction() {
 
 function applyActiveQuality(next) {
   try {
-    const renderer = getState().renderer;
+    const { renderer, scene } = getState();
     if (renderer) applyRendererQuality(renderer);
+    // Turning the shadow map off under a live scene is not enough on its own:
+    // every material is still compiled to sample shadows, and now samples a map
+    // nothing renders to, which paints the floor in dark bands. Stop the lights
+    // casting and recompile the materials without shadow code.
+    if (scene && typeof scene.traverse === 'function' && !getQualityTier().shadows) {
+      scene.traverse(obj => {
+        if (obj.isLight && obj.castShadow) obj.castShadow = false;
+        const mats = Array.isArray(obj.material) ? obj.material : (obj.material ? [obj.material] : []);
+        for (const mat of mats) mat.needsUpdate = true;
+      });
+    }
     setPostProcessingQuality(next);
   } catch (e) {
     console.warn('[AutoQuality] Quality tier changed, but runtime application failed:', e);

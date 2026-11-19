@@ -470,6 +470,10 @@ function handleEnemyEscape(e, index) {
 function updateHealthBar(e) {
   if (e.hpBar) {
     const ratio = Math.max(0, e.hp / e.maxHp);
+    if (!e.hpShown && ratio < 1 && e.hpParts) {
+      e.hpShown = true;
+      e.hpParts.forEach(part => { part.visible = true; });
+    }
     e.hpBar.scale.x = ratio;
     e.hpBar.position.x = -e.hpSize * (1 - ratio) / 2;
   }

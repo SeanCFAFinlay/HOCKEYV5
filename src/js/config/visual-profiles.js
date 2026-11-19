@@ -47,14 +47,14 @@ export const VISUAL_PROFILES = {
     },
     ui: { accent: '#00d4ff', dark: '#06111f' },
     projectiles: {
-      puck: { mesh: 'puck', trail: 'ice', impact: 'frost', color: 0x9be8ff, speed: 10.5 },
-      dart: { mesh: 'tracer', trail: 'line', impact: 'spark', color: 0xffaa22, speed: 13 },
-      hammer: { mesh: 'block', trail: 'shock', impact: 'ring', color: 0xff8844, speed: 8 },
-      shard: { mesh: 'shard', trail: 'frost', impact: 'freeze', color: 0xaaffff, speed: 9.5 },
-      glove: { mesh: 'sphere', trail: 'gold', impact: 'slam', color: 0xffd34d, speed: 8.8 },
-      lightning: { mesh: 'bolt', trail: 'electric', impact: 'chain', color: 0xe6ff4a, speed: 16 },
-      fireball: { mesh: 'plasma', trail: 'fire', impact: 'burn', color: 0xff4400, speed: 11 },
-      star: { mesh: 'star', trail: 'gold', impact: 'crit', color: 0xffd700, speed: 11.5 }
+      puck: { mesh: 'puck', flight: 'slide', trail: 'ice', impact: 'frost', color: 0x35d6ff, speed: 10.5 },
+      dart: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xff5a36, speed: 13 },
+      hammer: { mesh: 'block', flight: 'lob', trail: 'shock', impact: 'ring', color: 0xff8a3c, speed: 8, size: 1.15 },
+      shard: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x7fe9ff, speed: 9.5 },
+      glove: { mesh: 'sphere', flight: 'punch', trail: 'gold', impact: 'slam', color: 0xb779ff, speed: 8.8, size: 1.1 },
+      lightning: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xf2ff3a, speed: 16 },
+      fireball: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85 },
+      star: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.25 }
     },
     enemies: {
       swarm: { body: 'puck', color: 0x111111, accent: 0x00d4ff },
@@ -104,14 +104,14 @@ export const VISUAL_PROFILES = {
     },
     ui: { accent: '#22c55e', dark: '#061407' },
     projectiles: {
-      ball: { mesh: 'ball', trail: 'spin', impact: 'grassKick', color: 0xffffff, speed: 9.5, curve: 0.55 },
-      curveBall: { mesh: 'tracer', trail: 'curve', impact: 'spark', color: 0x88eeff, speed: 12, curve: 0.9 },
-      headButt: { mesh: 'ring', trail: 'shock', impact: 'ring', color: 0x22dddd, speed: 8.5 },
-      tackle: { mesh: 'cone', trail: 'dust', impact: 'slam', color: 0xb58a32, speed: 9 },
-      glove: { mesh: 'sphere', trail: 'aqua', impact: 'save', color: 0x88eeff, speed: 8.8 },
-      chain: { mesh: 'beam', trail: 'electric', impact: 'chain', color: 0xffffff, speed: 13 },
-      flare: { mesh: 'shard', trail: 'firework', impact: 'burn', color: 0xff4444, speed: 9.5 },
-      legend: { mesh: 'star', trail: 'gold', impact: 'crit', color: 0xffd700, speed: 11.5 }
+      ball: { mesh: 'ball', flight: 'curve', trail: 'spin', impact: 'grassKick', color: 0x4ade80, speed: 9.5, curve: 0.5 },
+      curveBall: { mesh: 'ball', flight: 'curve', trail: 'curve', impact: 'spark', color: 0x5fd4ff, speed: 12, curve: 1.7, size: 1.25 },
+      headButt: { mesh: 'ring', flight: 'ring', trail: 'shock', impact: 'ring', color: 0x22dddd, speed: 8.5 },
+      tackle: { mesh: 'cone', flight: 'slide', trail: 'dust', impact: 'slam', color: 0xf08a2c, speed: 9 },
+      glove: { mesh: 'sphere', flight: 'punch', trail: 'aqua', impact: 'save', color: 0xb779ff, speed: 8.8, size: 1.1 },
+      chain: { mesh: 'beam', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0x6ff0ff, speed: 13 },
+      flare: { mesh: 'plasma', flight: 'lob', trail: 'firework', impact: 'burn', color: 0xff4444, speed: 9.5, size: 0.9 },
+      legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.25 }
     },
     enemies: {
       swarm: { body: 'ball', color: 0xffffff, accent: 0x111111 },
@@ -157,14 +157,14 @@ export const VISUAL_PROFILES = {
     },
     ui: { accent: '#c084fc', dark: '#05040d' },
     projectiles: {
-      ball: { mesh: 'laser', trail: 'laser', impact: 'spark', color: 0x67e8f9, speed: 20, beam: true },
-      curveBall: { mesh: 'plasma', trail: 'plasma', impact: 'plasma', color: 0xc084fc, speed: 12 },
-      headButt: { mesh: 'ring', trail: 'gravity', impact: 'gravity', color: 0x7dd3fc, speed: 8 },
-      tackle: { mesh: 'bolt', trail: 'ion', impact: 'slam', color: 0x38bdf8, speed: 10 },
-      glove: { mesh: 'sphere', trail: 'shield', impact: 'save', color: 0x93c5fd, speed: 9 },
-      chain: { mesh: 'beam', trail: 'electric', impact: 'chain', color: 0xf0abfc, speed: 15 },
-      flare: { mesh: 'plasma', trail: 'plasma', impact: 'burn', color: 0xff5ca8, speed: 11 },
-      legend: { mesh: 'star', trail: 'gold', impact: 'crit', color: 0xffd700, speed: 12 }
+      ball: { mesh: 'laser', flight: 'tracer', trail: 'laser', impact: 'spark', color: 0x67e8f9, speed: 20, beam: true },
+      curveBall: { mesh: 'orb', flight: 'orb', trail: 'plasma', impact: 'plasma', color: 0xc084fc, speed: 12, size: 1.15 },
+      headButt: { mesh: 'ring', flight: 'ring', trail: 'gravity', impact: 'gravity', color: 0x7dd3fc, speed: 8 },
+      tackle: { mesh: 'shard', flight: 'spray', trail: 'ion', impact: 'slam', color: 0x38bdf8, speed: 10 },
+      glove: { mesh: 'sphere', flight: 'punch', trail: 'shield', impact: 'save', color: 0x93c5fd, speed: 9, size: 1.1 },
+      chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xf0abfc, speed: 15 },
+      flare: { mesh: 'plasma', flight: 'flame', trail: 'plasma', impact: 'burn', color: 0xff5ca8, speed: 11, size: 0.85 },
+      legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 12, size: 1.25 }
     },
     enemies: {
       swarm: { body: 'orb', color: 0x67e8f9, accent: 0xffffff },

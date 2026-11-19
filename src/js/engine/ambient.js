@@ -1,6 +1,6 @@
 // SC-5.4: Ambient Soundscape — per-theme ambient audio with intensity scaling
 
-import { playSound, setVolume, registerSound } from './audio.js';
+import { playSound, stopSound, setVolume, registerSound } from './audio.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -19,6 +19,10 @@ const SOUND_DEFS = {
     loops: ['ambient_crowd_soccer', 'ambient_wind'],
     shot: 'ambient_vuvuzela',
   },
+  space: {
+    loops: ['ambient_space_hum'],
+    shot: 'ambient_ping',
+  },
 };
 
 const SOUND_URLS = {
@@ -35,6 +39,9 @@ const SOUND_URLS = {
 let currentTheme = 'hockey';
 let isRunning = false;
 let shotTimerId = null;
+let playingLoops = [];
+let userVolume = 1;
+let intensityGain = BASE_VOLUME * 0.3;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -51,11 +58,17 @@ function randomShotVolume() {
   return SHOT_VOLUME_MIN + Math.random() * (SHOT_VOLUME_MAX - SHOT_VOLUME_MIN);
 }
 
+function stopLoops() {
+  for (const name of playingLoops) stopSound(name);
+  playingLoops = [];
+}
+
 function playLoops(theme) {
-  const def = SOUND_DEFS[theme];
-  if (!def) return;
+  stopLoops();
+  const def = SOUND_DEFS[theme] || SOUND_DEFS.soccer;
   for (const name of def.loops) {
-    playSound(name, { loop: true });
+    playSound(name, { loop: true, category: 'ambient' });
+    playingLoops.push(name);
   }
 }
 
@@ -63,9 +76,9 @@ function scheduleShot() {
   if (!isRunning) return;
   shotTimerId = setTimeout(() => {
     if (!isRunning) return;
-    const def = SOUND_DEFS[currentTheme];
+    const def = SOUND_DEFS[currentTheme] || SOUND_DEFS.soccer;
     if (def) {
-      playSound(def.shot, { volume: randomShotVolume() });
+      playSound(def.shot, { volume: randomShotVolume(), category: 'ambient' });
     }
     scheduleShot();
   }, randomInterval());
@@ -95,7 +108,17 @@ export function setAmbientTheme(theme) {
 
 export function setAmbientIntensity(level) {
   const clamped = Math.min(1, Math.max(0, level));
-  setVolume('ambient', calcGain(clamped));
+  intensityGain = calcGain(clamped);
+  setVolume('ambient', Math.min(1, intensityGain * userVolume));
+}
+
+/**
+ * The player's Ambient slider as a multiplier on the wave intensity:
+ * 1 is the designed level, 0 is silent, 2 is twice as loud.
+ */
+export function setAmbientUserVolume(level) {
+  userVolume = Math.min(2, Math.max(0, level));
+  setVolume('ambient', Math.min(1, intensityGain * userVolume));
 }
 
 export function startAmbient() {
@@ -108,4 +131,5 @@ export function startAmbient() {
 export function stopAmbient() {
   isRunning = false;
   clearShotTimer();
+  stopLoops();
 }

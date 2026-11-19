@@ -5,6 +5,7 @@ import { HOCKEY_TOWERS, SOCCER_TOWERS } from './towers.js';
 import { HOCKEY_ENEMIES, SOCCER_ENEMIES } from './enemies.js';
 import { HOCKEY_MAPS, SOCCER_MAPS } from './maps.js';
 import { VISUAL_PROFILES } from './visual-profiles.js';
+import { THEME_MODULES } from '../themes/index.js';
 
 function enrichMaps(packId, maps, defaults) {
   return maps.map((map, index) => ({
@@ -108,7 +109,7 @@ const space = withPackFields({
   icon: 'satellite',
   sortOrder: 30,
   status: 'stub-playable',
-  description: 'Example future content pack using the shared engine and metadata model.',
+  description: 'Defend the station. Orbital turrets versus waves of rogue drones.',
   color: '#c084fc',
   groundColor: 0x2d2842,
   pathColor: 0x463d5c,
@@ -151,10 +152,39 @@ const space = withPackFields({
   }))
 });
 
+/**
+ * Build a content pack from a theme module (js/themes/*.js). Stats, maps and
+ * waves come from the soccer pack; names, colours and every model are the
+ * theme's own.
+ */
+function packFromModule(mod) {
+  const { pack, visuals } = mod;
+  return withPackFields({
+    ...pack,
+    visuals,
+    towerSkin: { family: pack.id },
+    maps: enrichMaps(pack.id, SOCCER_MAPS.map((map, index) => ({
+      ...map,
+      name: pack.maps?.[index]?.[0] || map.name,
+      description: pack.maps?.[index]?.[1] || map.description
+    })), {
+      recommendedTowers: pack.recommendedTowers || ['t1', 't3', 't4'],
+      pressureType: pack.pressureType || 'mixed_lanes'
+    }),
+    towers: SOCCER_TOWERS.map(tower => ({ ...tower, ...(pack.towers?.[tower.id] || {}) })),
+    enemies: SOCCER_ENEMIES.map(enemy => ({ ...enemy, ...(pack.enemies?.[enemy.id] || {}), id: enemy.id }))
+  });
+}
+
+const modulePacks = Object.fromEntries(
+  Object.values(THEME_MODULES).map(mod => [mod.pack.id, packFromModule(mod)])
+);
+
 export const CONTENT_PACKS = {
   hockey,
   soccer,
-  space
+  space,
+  ...modulePacks
 };
 
 export const THEMES = CONTENT_PACKS;

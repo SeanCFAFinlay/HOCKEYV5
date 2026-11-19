@@ -3,7 +3,7 @@
 
 import { getState } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
-import { createExplosion, createLightning, createImpact } from './particles.js';
+import { createExplosion, createLightning, createImpact, spawnGroundRipple } from './particles.js';
 import { triggerHitStop } from '../engine/loop.js';
 import { cameraZoomPulse, triggerCameraShake } from '../engine/camera.js';
 
@@ -74,7 +74,7 @@ export function handleHit(p) {
       });
 
       if (next) {
-        createLightning(current.x, current.z, next.x, next.z);
+        createLightning(current.x, current.z, next.x, next.z, p.trailColor);
         hurtEnemy(next, dmg * 0.5, false);
         hitTargets.add(next);
         current = next;
@@ -120,21 +120,35 @@ function createThemedImpact(p, isCrit = false) {
   const color = isCrit ? 0xffd700 : (p.trailColor || 0xffffff);
   switch (p.impactKind) {
     case 'frost':
+      // Puck strike: a sharp chip of ice.
+      createImpact(p.x, p.y, p.z, 0xcdf6ff);
+      break;
     case 'freeze':
+      // Ice spray: frost bursts out and spreads across the surface.
       createImpact(p.x, p.y, p.z, 0x9be8ff);
-      createExplosion(p.x, p.y, p.z, false, 0xaaffff);
+      spawnGroundRipple(p.x, p.z, 0xbdf3ff);
       break;
     case 'burn':
       createExplosion(p.x, p.y, p.z, true, color);
       break;
     case 'ring':
     case 'gravity':
-    case 'slam':
+      // Area hits land with a shockwave rolling out along the ground.
       createExplosion(p.x, p.y, p.z, false, color);
+      spawnGroundRipple(p.x, p.z, color);
+      break;
+    case 'slam':
+    case 'save':
       createImpact(p.x, p.y, p.z, color);
+      spawnGroundRipple(p.x, p.z, color);
       break;
     case 'crit':
       createExplosion(p.x, p.y, p.z, false, 0xffd700);
+      spawnGroundRipple(p.x, p.z, 0xffe680);
+      break;
+    case 'chain':
+      createImpact(p.x, p.y, p.z, 0xffffff);
+      createImpact(p.x, p.y, p.z, color);
       break;
     default:
       createImpact(p.x, p.y, p.z, color);
@@ -189,13 +203,21 @@ export function hurtEnemy(e, dmg, isCrit = false) {
  * @param {number} duration - Flash duration in seconds
  */
 function flashMesh(mesh, color, duration) {
-  const originals = new Map();
+  // A hit that lands mid-flash must keep the first flash's record of the real
+  // colours, or the flash colour itself gets saved as the "original".
+  const originals = (mesh.userData.flashActive && mesh.userData.flashOriginals) || new Map();
 
   mesh.traverse((child) => {
     if (child.isMesh && child.material) {
       const mat = child.material;
       if (mat.emissive) {
-        originals.set(mat, mat.emissive.getHex());
+        // Materials are shared between enemies, so the resting colour is
+        // recorded once on the material itself: another enemy's flash can then
+        // never be mistaken for it.
+        if (!mat.userData.flashBase) {
+          mat.userData.flashBase = { color: mat.emissive.getHex(), intensity: mat.emissiveIntensity };
+        }
+        originals.set(mat, mat.userData.flashBase);
         mat.emissive.setHex(color);
         mat.emissiveIntensity = 0.5;
       }
@@ -238,9 +260,11 @@ export function tickDamageAnimations(mesh, dt) {
       mesh.userData.flashActive = false;
       const originals = mesh.userData.flashOriginals;
       if (originals) {
-        originals.forEach((originalColor, mat) => {
-          mat.emissive.setHex(originalColor);
-          mat.emissiveIntensity = 0;
+        // Restore the material's own glow. This used to force intensity to 0,
+        // so every enemy lost its self-illumination after its first hit.
+        originals.forEach((original, mat) => {
+          mat.emissive.setHex(original.color);
+          mat.emissiveIntensity = original.intensity;
         });
       }
       mesh.userData.flashOriginals = null;

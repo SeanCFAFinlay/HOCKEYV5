@@ -1,6 +1,6 @@
 // SC-5.2: Sound Effects Registry — centralized sound catalogue
 
-import { registerSound, playSound, playSoundAt } from '../engine/audio.js';
+import { registerSound, playSound, playSoundAt, hasSound } from '../engine/audio.js';
 
 // ── Sound catalogue ────────────────────────────────────────────────────────────
 
@@ -38,5 +38,22 @@ export function playFireSound(tower, worldX, worldZ) {
     return;
   }
   tower._lastFireSoundMs = now;
-  playSoundAt('towerFire', worldX, worldZ);
+  // Each projectile family has its own voice; a little random pitch keeps a
+  // fast-firing tower from sounding like a machine loop.
+  const voice = FIRE_VOICES[tower.fireVoice];
+  const name = voice && hasSound(voice) ? voice : 'towerFire';
+  playSoundAt(name, worldX, worldZ, { volume: 0.5, rate: 0.92 + Math.random() * 0.16 });
 }
+
+// Projectile flight style (config/visual-profiles.js) -> fire sound.
+const FIRE_VOICES = {
+  tracer: 'fire_zap',
+  bolt: 'fire_zap',
+  flame: 'fire_flame',
+  spray: 'fire_hiss',
+  heavy: 'fire_thump',
+  lob: 'fire_thump',
+  punch: 'fire_thump',
+  ring: 'fire_hum',
+  orb: 'fire_hum'
+};

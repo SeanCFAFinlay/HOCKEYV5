@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-visual">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Hockey TD">
+  <meta name="theme-color" content="#060b18">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <title>Hockey vs Soccer TD — PH Interactive Studios</title>
 
   <!-- Fonts preconnect + stylesheet for performance -->
@@ -122,23 +128,34 @@
 
 <!-- Menu Screen -->
 <div id="menuScreen" class="screen active">
-  <div class="logo">
-    <div class="logo-icons"><span data-icon="stick"></span><span data-icon="bolt"></span><span data-icon="ball"></span></div>
-    <h1><span class="ice">HOCKEY</span> vs <span class="grass">SOCCER</span></h1>
-    <p>TOWER DEFENSE 3D</p>
-  </div>
-  <div class="menu-cards" id="themeCards"></div>
-  <div class="menu-footer">
-    <div class="brand-credit" data-brand-small></div>
-    <div class="version">v1.0</div>
+  <!-- One scrolling column, so nothing is ever cut off on a short screen. On a
+       landscape phone it becomes two columns: title on the left, worlds on the right. -->
+  <div class="menu-scroll">
+    <header class="logo">
+      <div class="logo-icons"><span data-icon="stick"></span><span data-icon="bolt"></span><span data-icon="ball"></span></div>
+      <h1><span class="ice">HOCKEY</span> <span class="vs">vs</span> <span class="grass">SOCCER</span></h1>
+      <p>TOWER DEFENSE 3D</p>
+    </header>
+    <main class="menu-main">
+      <div class="menu-heading">
+        <span>Choose a world</span>
+        <span class="menu-heading-count" id="menuProgress"></span>
+      </div>
+      <div class="menu-cards" id="themeCards"></div>
+    </main>
+    <footer class="menu-footer">
+      <div class="brand-credit" data-brand-small></div>
+      <div class="version">v1.0</div>
+    </footer>
   </div>
 </div>
 
 <!-- Map Selection Screen -->
 <div id="mapScreen" class="screen">
   <div class="map-header">
-    <button class="back-btn" onclick="showScreen('menuScreen')">‹</button>
+    <button class="back-btn" type="button" onclick="showScreen('menuScreen')" aria-label="Back to worlds">‹</button>
     <h2 class="map-title" id="mapTitle">Select Arena</h2>
+    <div class="map-progress" id="mapProgress"></div>
   </div>
   <div class="map-grid" id="mapGrid"></div>
 </div>
@@ -174,9 +191,21 @@
 
 
   <div class="cam-btns">
-    <button class="cam-btn" onclick="zoomIn()">+</button>
-    <button class="cam-btn" onclick="zoomOut()">−</button>
-    <button class="cam-btn" onclick="resetCam()">⟲</button>
+    <button class="cam-btn" type="button" onclick="zoomIn()" aria-label="Zoom in">+</button>
+    <button class="cam-btn" type="button" onclick="zoomOut()" aria-label="Zoom out">−</button>
+    <button class="cam-btn" type="button" onclick="resetCam()" aria-label="Reset camera">⟲</button>
+  </div>
+
+  <!-- Build strip: says which tower is in hand and what the next tap does.
+       Filled in by js/ui/build-strip.js. -->
+  <div class="build-strip" id="buildStrip" role="status" hidden>
+    <span class="build-strip-icon" id="buildIcon"></span>
+    <span class="build-strip-text">
+      <strong id="buildName"></strong>
+      <span id="buildHint"></span>
+    </span>
+    <button class="build-confirm" id="buildConfirm" type="button" hidden>Build</button>
+    <button class="build-cancel" id="buildCancel" type="button" aria-label="Cancel building">×</button>
   </div>
 
   <div class="bottom-ui">
@@ -185,7 +214,7 @@
          and AUTO into the pause menu, leaving START the one primary action. -->
     <div class="action-bar">
       <button class="action-btn speed-btn" id="speedBtn" type="button" data-speed="1">1×</button>
-      <button class="action-btn start-btn" id="startBtn" type="button" onclick="startWave()">▶ START</button>
+      <button class="action-btn start-btn" id="startBtn" type="button" onclick="startWave()"><span class="start-main">▶ START</span><span class="start-sub"></span></button>
     </div>
   </div>
 </div>
@@ -285,6 +314,15 @@
 
 <!-- Main JS Module -->
 <script type="module" src="js/main.js"></script>
+<script>
+  // Offline support for the installed game. Service workers need HTTPS, and
+  // skipping plain-http hosts also keeps local development free of stale caches.
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
 
 </body>
 </html>

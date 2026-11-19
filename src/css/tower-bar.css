@@ -1,84 +1,55 @@
+/* =====================================================
+   TOWER BAR – the eight build buttons
+   =====================================================
+   Three layouts, one markup (icon, name, role, cost):
+     phone portrait   4×2 grid, so all eight are on screen with no scrolling
+     phone landscape  one row sharing the line with the speed and start buttons
+     tablet/desktop   one row of full cards inside a floating dock
+   The dock container itself is styled in action-bar.css. */
+
 .tower-bar {
-  display: flex;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  padding-bottom: var(--space-md);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  scroll-behavior: smooth;
-  scroll-snap-type: x proximity;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
 }
 
 .tower-btn {
-  flex-shrink: 0;
-  width: 76px;
-  background: rgba(8, 16, 30, 0.82);
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--r-md);
-  padding: var(--space-sm) var(--space-xs);
-  text-align: center;
-  backdrop-filter: blur(8px) saturate(135%);
-  -webkit-backdrop-filter: blur(8px) saturate(135%);
-  cursor: pointer;
-  scroll-snap-align: start;
-  transition: all var(--t-mid);
+  --c: #fff;
   position: relative;
-  overflow: hidden;
-  will-change: transform;
-}
-
-.tower-btn:hover:not(.disabled) {
-  background: rgba(16, 29, 50, 0.92);
-  border-color: rgba(255, 255, 255, 0.22);
-  transform: translateY(-2px);
-}
-
-/* Subtle inner highlight */
-.tower-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.035), transparent);
-  pointer-events: none;
-  border-radius: var(--r-md) var(--r-md) 0 0;
-}
-
-/* Hide scrollbar for all browsers */
-.tower-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.tower-btn.selected {
-  border-color: var(--c);
-  background: color-mix(in srgb, var(--c) 24%, rgba(8, 16, 30, 0.92));
-  box-shadow: 0 0 28px color-mix(in srgb, var(--c) 55%, transparent),
-              0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent),
-              inset 0 0 16px color-mix(in srgb, var(--c) 12%, transparent);
-  transform: translateY(-6px);
-}
-
-.tower-btn.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.tower-btn.disabled .tower-btn-cost {
-  color: var(--red);
+  min-width: 0;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon cost"
+    "icon role";
+  align-items: center;
+  column-gap: 7px;
+  padding: 6px 8px;
+  text-align: left;
+  background: rgba(10, 16, 30, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: transform var(--t-fast), border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast), opacity var(--t-fast);
 }
 
 .tower-btn-icon {
+  grid-area: icon;
   font-size: 1.5rem;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+  line-height: 1;
+  color: var(--c);
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
 }
 
 .tower-btn-name {
-  font-size: 0.58rem;
-  color: rgba(255, 255, 255, 0.82);
-  margin: 3px 0 0;
+  grid-area: name;
+  display: none;
+  max-width: 100%;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,30 +57,143 @@
 }
 
 .tower-btn-role {
-  font-size: 0.55rem;
+  grid-area: role;
+  font-size: 0.58rem;
+  line-height: 1.1;
   color: var(--c);
-  opacity: 0.9;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 1px 0 2px;
+  letter-spacing: 0.6px;
   font-family: var(--font-game);
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tower-btn-cost {
-  font-size: 0.88rem;
+  grid-area: cost;
+  font-size: 0.95rem;
+  line-height: 1.1;
   font-weight: 700;
   font-family: var(--font-game);
   color: var(--gold);
   text-shadow: 0 0 8px var(--gold-glow);
 }
 
-/* Affordable pulse — added by JS when player has enough gold */
-.tower-btn.affordable {
-  animation: affordablePulse 2s ease-in-out infinite;
+/* Keyboard shortcut badge; only shown where there is a keyboard (see below). */
+.tower-key {
+  display: none;
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  min-width: 16px;
+  padding: 1px 3px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.7);
+  font: 700 0.6rem/1.2 var(--font-game);
+  text-align: center;
 }
 
-@keyframes affordablePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
-  50%       { box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.28); }
+.tower-btn.selected {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 26%, rgba(8, 16, 30, 0.94));
+  box-shadow: 0 0 22px color-mix(in srgb, var(--c) 50%, transparent),
+              inset 0 0 14px color-mix(in srgb, var(--c) 14%, transparent);
+  transform: translateY(-3px);
+}
+
+/* Can't afford it yet: dimmed, price in red. */
+.tower-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tower-btn.disabled .tower-btn-icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tower-btn.disabled .tower-btn-cost {
+  color: #ff7b7b;
+  text-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tower-btn:hover:not(.disabled):not(.selected) {
+    background: rgba(18, 30, 52, 0.95);
+    border-color: color-mix(in srgb, var(--c) 55%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .tower-key { display: block; }
+}
+
+/* Narrow phones: tighten so "$280" still fits beside the icon. */
+@media (max-width: 360px) {
+  .tower-bar { gap: 5px; }
+  .tower-btn { padding: 5px 5px; column-gap: 5px; }
+  .tower-btn-icon { font-size: 1.25rem; }
+  .tower-btn-cost { font-size: 0.85rem; }
+  .tower-btn-role { font-size: 0.52rem; letter-spacing: 0.3px; }
+}
+
+/* Phone on its side: one row, icon over price. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .tower-bar {
+    display: flex;
+    flex: 1;
+  }
+
+  .tower-btn {
+    flex: 1 1 0;
+    max-width: 96px;
+    min-height: 48px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "icon" "cost";
+    justify-items: center;
+    row-gap: 2px;
+    padding: 5px 2px;
+    text-align: center;
+  }
+
+  .tower-btn-icon { font-size: 1.3rem; }
+  .tower-btn-cost { font-size: 0.82rem; }
+  .tower-btn-role { display: none; }
+}
+
+/* Tablet and desktop: full cards. */
+@media (min-width: 769px) and (min-height: 501px) {
+  .tower-bar {
+    display: flex;
+    gap: 6px;
+  }
+
+  .tower-btn {
+    flex: none;
+    width: clamp(70px, 8.2vw, 96px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas: "icon" "name" "role" "cost";
+    justify-items: center;
+    row-gap: 2px;
+    padding: 12px 6px 8px;
+    text-align: center;
+  }
+
+  .tower-btn-icon { font-size: 1.8rem; margin-bottom: 2px; }
+  /* Up to two lines, so "Nacho-Cheese Cannon" is not cut to "Nacho-C…". */
+  .tower-btn-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    line-height: 1.15;
+    align-self: center;
+  }
+  .tower-btn-role { font-size: 0.6rem; }
+  .tower-btn-cost { font-size: 0.98rem; margin-top: 1px; }
+
+  .tower-btn.selected { transform: translateY(-6px); }
 }

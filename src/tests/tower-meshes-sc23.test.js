@@ -115,13 +115,33 @@ global.THREE = {
   Group: MockGroup,
   MeshStandardMaterial: MockMaterial,
   MeshBasicMaterial: MockMaterial,
-  Color: class { constructor(c) { this.c = c; } },
+  Color: class {
+    constructor(c) { this.c = c; }
+    lerp() { return this; }
+    clone() { return this; }
+    getHex() { return this.c; }
+  },
   DoubleSide: 2,
   AdditiveBlending: 2,
   Math: { PI: Math.PI }
 };
 
 // ── Module mocks ───────────────────────────────────────────────────────────
+
+// The bake step merges static meshes into fewer draw calls for rendering. These
+// tests inspect the individual parts a builder creates, so it is stubbed out.
+vi.mock('../js/rendering/geo-utils.js', () => ({
+  bakeStaticMeshes: vi.fn(() => 0),
+  mergeGeometries: vi.fn(),
+  composeGeometry: vi.fn()
+}));
+
+// The remodelled figures use lathes and extrusions the THREE mock does not have;
+// they are verified in the browser. These tests cover the original builders.
+vi.mock('../js/themes/hockey-towers.js', () => ({ buildTower: null }));
+vi.mock('../js/themes/soccer-towers.js', () => ({ buildTower: null }));
+vi.mock('../js/themes/index.js', () => ({ getThemeKit: () => null, THEME_MODULES: {} }));
+
 
 vi.mock('../js/engine/state.js', () => ({
   getState: vi.fn(() => ({
@@ -184,7 +204,8 @@ describe('SC-2.3 Improved Procedural Meshes', () => {
 
   describe('Geometry segment counts', () => {
     it('hexagonal base cylinder uses 6 sides (kept intentional)', () => {
-      const tower = { type: 't1', lv: 0, x: 5, y: 5, rng: 3 };
+      // Platform footprint follows the tower's role; the sniper (t2) is the hexagon.
+      const tower = { type: 't2', lv: 0, x: 5, y: 5, rng: 3 };
       const group = createTowerMesh(tower);
       const cyls = getCylinders(group);
       // The base hex cylinder must keep 6 sides

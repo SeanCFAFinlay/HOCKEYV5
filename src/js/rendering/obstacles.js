@@ -1,6 +1,7 @@
 // Obstacle visual rendering
 
 import { getState } from '../engine/state.js';
+import { getThemeKit } from '../themes/index.js';
 import { hash2 } from '../utils/rng.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
 
@@ -250,7 +251,8 @@ export function addObstacleVisuals(hw, hh) {
       const wx = x - hw + 0.5;
       const wz = y - hh + 0.5;
 
-      const prop = isHockey ? hockeyProp(kind) : (isSoccer ? soccerProp(kind) : spaceProp(kind));
+      const kitProp = getThemeKit(theme)?.buildProp;
+      const prop = isHockey ? hockeyProp(kind) : (isSoccer ? soccerProp(kind) : (kitProp ? kitProp(kind) : spaceProp(kind)));
       prop.position.set(wx + jitter(x, y, 0.06), baseY, wz + jitter(y, x, 0.06));
       prop.rotation.y = (hash2(y, x, seed + 1234) - 0.5) * 0.6;
       prop.traverse(o => {

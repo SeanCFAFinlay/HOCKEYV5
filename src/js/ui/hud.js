@@ -25,6 +25,9 @@ let _towerBarButtons = [];
 let _towerBarTheme = null;
 
 // Tower role display names
+// Keyboard shortcuts for the eight tower slots (handled in engine/input.js).
+const TOWER_KEYS = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I'];
+
 const ROLE_DISPLAY = {
   'ANTI-SWARM': 'Fast',
   'SNIPER': 'Sniper',
@@ -312,7 +315,7 @@ function updateWavePreview() {
  * wins: boss > fire > flying > base type. Returns inline SVG, not emoji.
  */
 function getEnemyIcon(enemy, theme) {
-  const base = theme === 'hockey' ? 'stick' : 'ball';
+  const base = getState().themeData?.enemySkin?.icon || (theme === 'hockey' ? 'stick' : 'ball');
   if (enemy.boss) return icon('crown');
   if (enemy.fire) return icon('flame');
   if (enemy.flying) return icon('wings');
@@ -364,9 +367,10 @@ function _buildTowerButtons(bar, themeData) {
 
   const fragment = document.createDocumentFragment();
 
-  themeData.towers.forEach(t => {
+  themeData.towers.forEach((t, i) => {
     const btn = document.createElement('div');
     const roleDisplay = ROLE_DISPLAY[t.role] || '';
+    const key = TOWER_KEYS[i] || '';
 
     btn.className = 'tower-btn';
     btn.style.setProperty('--c', t.clr);
@@ -375,7 +379,10 @@ function _buildTowerButtons(bar, themeData) {
       <div class="tower-btn-name">${t.nm}</div>
       ${roleDisplay ? `<div class="tower-btn-role">${roleDisplay}</div>` : ''}
       <div class="tower-btn-cost">$${t.cost}</div>
+      ${key ? `<kbd class="tower-key">${key}</kbd>` : ''}
     `;
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-label', `${t.nm}, ${roleDisplay || 'tower'}, $${t.cost}`);
 
     btn.onclick = () => {
       hideTooltip();

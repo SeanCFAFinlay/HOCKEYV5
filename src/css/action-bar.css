@@ -1,83 +1,64 @@
+/* =====================================================
+   BOTTOM DOCK – tower bar + speed + start
+   =====================================================
+   phone portrait   towers (4×2) above a row of [speed][START]
+   phone landscape  a single row: towers, then speed and START on the right
+   tablet/desktop   a floating centred dock, towers then speed and START */
+
 .bottom-ui {
   position: absolute;
-  bottom: 0;
   left: 0;
   right: 0;
+  bottom: 0;
   z-index: 100;
-  padding-bottom: calc(4px + env(safe-area-inset-bottom));
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.58) 54%, rgba(0, 0, 0, 0.08) 100%);
-}
-
-/* Subtle separator between tower bar and action bar */
-.tower-bar {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding:
+    20px
+    calc(8px + env(safe-area-inset-right))
+    calc(8px + env(safe-area-inset-bottom))
+    calc(8px + env(safe-area-inset-left));
+  background: linear-gradient(to top, rgba(4, 7, 14, 0.96) 0%, rgba(4, 7, 14, 0.82) 72%, rgba(4, 7, 14, 0) 100%);
 }
 
 .action-bar {
   display: flex;
-  gap: var(--space-sm);
-  padding: 0 var(--space-md) var(--space-md);
+  gap: 8px;
   align-items: stretch;
 }
 
 .action-btn {
   flex: 1;
-  padding: var(--space-md) var(--space-sm);
+  padding: 0 var(--space-sm);
   border: 1.5px solid rgba(255,255,255,0.12);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   font-size: 0.78rem;
   font-weight: 700;
   font-family: var(--font-game);
   letter-spacing: 0.3px;
-  backdrop-filter: blur(8px) saturate(130%);
-  -webkit-backdrop-filter: blur(8px) saturate(130%);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
+  min-height: 52px;
   white-space: nowrap;
-  transition: all var(--t-fast);
-  will-change: transform;
+  transition: filter var(--t-fast), border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
 }
 
-.action-btn:hover:not(:disabled) {
-  filter: brightness(1.12);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.action-btn:active {
-  transform: scale(0.94);
-  opacity: 0.85;
-}
-
-/* One cycling speed button. 56px wide, not the old 40: it is now the only
-   control competing with START, so there is room to clear the 44px touch
-   guideline on both axes. */
+/* One cycling speed button. */
 .speed-btn {
   flex: none;
   width: 56px;
   min-width: 56px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--r-sm);
-  color: rgba(255, 255, 255, 0.72);
-  font-weight: 700;
-  font-family: var(--font-game);
-  font-size: 0.95rem;
-  cursor: pointer;
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1rem;
   padding: 0;
 }
 
-.speed-btn:hover {
-  background: rgba(255, 255, 255, 0.13);
-  color: #fff;
-}
-
-/* Lit whenever the game is running faster than normal — the state that matters
-   is "not 1x", which the old three-button row could only show by elimination. */
+/* Lit whenever the game is running faster than normal. */
 .speed-btn.boosted {
   background: rgba(0, 212, 255, 0.22);
   color: var(--ice);
@@ -85,35 +66,117 @@
   box-shadow: 0 0 12px var(--ice-glow);
 }
 
+/* START: a two-line button. Between waves it is the call to action; during a
+   wave it turns into a progress read-out (see js/ui/start-button.js). */
 .start-btn {
+  --p: 0%;
+  position: relative;
+  overflow: hidden;
   flex: 1;
+  flex-direction: column;
+  gap: 1px;
   background: linear-gradient(135deg, var(--grass), var(--grass-dim));
   color: #fff;
-  border: 1.5px solid rgba(34, 197, 94, 0.5);
-  font-size: 0.92rem;
-  font-weight: 700;
+  border-color: rgba(34, 197, 94, 0.5);
   text-transform: uppercase;
-  letter-spacing: 1.2px;
   box-shadow: 0 4px 20px var(--grass-glow);
   animation: startPulse 2.2s ease-in-out infinite;
 }
 
-.start-btn:not(:disabled):hover {
-  filter: brightness(1.1);
-  box-shadow: 0 4px 28px rgba(34, 197, 94, 0.55);
+.start-main {
+  position: relative;
+  font-size: 1rem;
+  letter-spacing: 1.4px;
+  line-height: 1.1;
 }
 
-/* Pause animation when wave is in progress (disabled state) */
+.start-sub {
+  position: relative;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  opacity: 0.85;
+}
+
+.start-sub:empty {
+  display: none;
+}
+
+/* Wave in progress: no longer a button to press, so it reads as a gauge. The
+   fill grows as the wave is cleared. */
 .start-btn:disabled {
-  background: rgba(100, 100, 100, 0.28);
-  color: rgba(255, 255, 255, 0.28);
-  cursor: not-allowed;
+  background: rgba(14, 20, 34, 0.9);
+  color: rgba(255, 255, 255, 0.82);
+  cursor: default;
   box-shadow: none;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
   animation: none;
+}
+
+.start-btn:disabled::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--p);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--theme-accent, var(--ice)) 20%, transparent), color-mix(in srgb, var(--theme-accent, var(--ice)) 42%, transparent));
+  transition: width 0.3s ease;
 }
 
 @keyframes startPulse {
   0%, 100% { box-shadow: 0 4px 20px var(--grass-glow); }
   50%       { box-shadow: 0 4px 32px rgba(34, 197, 94, 0.6), 0 0 0 3px rgba(34, 197, 94, 0.12); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .action-btn:hover:not(:disabled) {
+    filter: brightness(1.12);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+}
+
+/* Phone on its side: everything on one line. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .bottom-ui {
+    flex-direction: row;
+    align-items: stretch;
+    padding-top: 12px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    padding-left: calc(10px + env(safe-area-inset-left));
+    padding-right: calc(10px + env(safe-area-inset-right));
+  }
+
+  .action-bar { flex: none; gap: 6px; }
+  .action-btn { min-height: 48px; }
+  .speed-btn { width: 48px; min-width: 48px; }
+  .start-btn { flex: none; width: clamp(92px, 15vw, 132px); }
+  .start-main { font-size: 0.9rem; letter-spacing: 1px; }
+  .start-sub { font-size: 0.58rem; letter-spacing: 0.5px; }
+}
+
+/* Tablet and desktop: a floating dock, centred, only as wide as it needs. */
+@media (min-width: 769px) and (min-height: 501px) {
+  .bottom-ui {
+    left: 50%;
+    right: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    width: max-content;
+    max-width: calc(100vw - 24px);
+    padding: 10px;
+    border-radius: 24px;
+    background: rgba(6, 10, 20, 0.84);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+
+  .action-bar { flex: none; }
+  .speed-btn { width: 54px; min-width: 54px; font-size: 1.05rem; }
+  .start-btn { flex: none; width: 150px; }
+  .start-main { font-size: 1.1rem; }
 }

@@ -43,7 +43,8 @@ vi.mock('../js/engine/events.js', () => ({
 vi.mock('../js/systems/particles.js', () => ({
   createExplosion: vi.fn(),
   createLightning: vi.fn(),
-  createImpact: vi.fn()
+  createImpact: vi.fn(),
+  spawnGroundRipple: vi.fn()
 }));
 
 // ── Import damage.js under test ───────────────────────────────────────────
