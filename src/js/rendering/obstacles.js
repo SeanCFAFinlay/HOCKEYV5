@@ -2,19 +2,15 @@
 
 import { getState } from '../engine/state.js';
 import { getThemeKit } from '../themes/index.js';
-import { hash2 } from '../utils/rng.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
+import { buildBoardStructures } from './board.js';
 
 export function addObstacleVisuals(hw, hh) {
   const state = getState();
-  const { theme, mapIndex, grid, ROWS, COLS, scene, themeData } = state;
+  const { theme, themeData } = state;
   const visuals = getVisualProfile(themeData);
   const isHockey = theme === 'hockey';
   const isSoccer = theme === 'soccer';
-  const themeSalt = isHockey ? 17 : (isSoccer ? 29 : 47);
-  const seed = ((mapIndex + 1) * 10007 + themeSalt) >>> 0;
-
-  const baseY = 0.12;
 
   const mat = {
     metal: new THREE.MeshStandardMaterial({ color: 0xcfd3df, roughness: 0.25, metalness: 0.85 }),
@@ -34,8 +30,6 @@ export function addObstacleVisuals(hw, hh) {
     metalness: 0.35
   });
   mat.spaceDark = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.42, metalness: 0.82 });
-
-  const jitter = (x, y, mag = 0.07) => (hash2(x, y, seed) - 0.5) * 2 * mag;
 
   function hockeyProp(kind) {
     const g = new THREE.Group();
@@ -241,27 +235,9 @@ export function addObstacleVisuals(hw, hh) {
     return g;
   }
 
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      if (grid[y][x].type !== 'obstacle') continue;
-
-      const r = hash2(x, y, seed);
-      const kind = Math.floor(r * 5);
-
-      const wx = x - hw + 0.5;
-      const wz = y - hh + 0.5;
-
-      const kitProp = getThemeKit(theme)?.buildProp;
-      const prop = isHockey ? hockeyProp(kind) : (isSoccer ? soccerProp(kind) : (kitProp ? kitProp(kind) : spaceProp(kind)));
-      prop.position.set(wx + jitter(x, y, 0.06), baseY, wz + jitter(y, x, 0.06));
-      prop.rotation.y = (hash2(y, x, seed + 1234) - 0.5) * 0.6;
-      prop.traverse(o => {
-        if (o.isMesh) {
-          o.castShadow = true;
-          o.receiveShadow = true;
-        }
-      });
-      scene.add(prop);
-    }
-  }
+  // Walls, kerb, slab and plinths are built from the grid in board.js; this
+  // file only supplies each theme's props for it to place.
+  const kitProp = getThemeKit(theme)?.buildProp;
+  const makeProp = kind => (isHockey ? hockeyProp(kind) : (isSoccer ? soccerProp(kind) : (kitProp ? kitProp(kind) : spaceProp(kind))));
+  buildBoardStructures(hw, hh, makeProp);
 }

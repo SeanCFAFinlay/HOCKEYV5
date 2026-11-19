@@ -1,6 +1,7 @@
 // Tower placement, targeting, and shooting
 // Uses delta-time based cooldowns, not wall clock
 
+import { getPower, powerValue } from '../config/powers.js';
 import { getState, addTower, removeTower, setSelectedTower, addMoney, dispatch, ActionTypes } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { onNavChanged, findPathGrid } from './pathfinding.js';
@@ -98,6 +99,7 @@ export function handleCellTap(x, y) {
 
       const tower = {
         type: selectedTower,
+        role: td.role,      // picks the tower's power (config/powers.js)
         x,
         y,
         lv: 0,
@@ -201,6 +203,16 @@ export function updateTowers(dt, gameTime) {
 
       // Set cooldown based on fire rate
       tw.cooldown = 1 / tw.rate;
+
+      // Double Tap: a chance that the next shot follows almost at once. The
+      // follow-up cannot itself trigger another.
+      const power = getPower(tw);
+      if (power?.id === 'doubleTap' && !tw.tapped && Math.random() < powerValue(power.chance, tw.lv)) {
+        tw.cooldown = 0.12;
+        tw.tapped = true;
+      } else {
+        tw.tapped = false;
+      }
 
       // Towers without a separate turret (none today) still snap to face.
       if (tw.mesh && !tw.turret) {

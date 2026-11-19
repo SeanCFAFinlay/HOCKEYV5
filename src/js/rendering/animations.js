@@ -1,5 +1,6 @@
 // Animation updates for towers and enemies
 
+import { updateStatusFx } from './status-fx.js';
 import { getState } from '../engine/state.js';
 import { updateEmissiveFlashes } from './tower-meshes.js';
 import { tickDamageAnimations } from '../systems/damage.js';
@@ -208,6 +209,9 @@ export function updateAnimations(dt) {
   enemies.forEach(e => {
     // Tick game-loop-integrated damage animations (flash + punch)
     if (e.mesh) tickDamageAnimations(e.mesh, dt);
+
+    // Ice block, flames, arcs, target mark (rendering/status-fx.js)
+    updateStatusFx(e, t);
 
     // Animate flames with more dynamic motion
     if (e.flames) {

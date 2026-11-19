@@ -111,3 +111,15 @@
   font-family: var(--font-game, 'Rajdhani', sans-serif);
   text-align: right;
 }
+
+.tooltip-power {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tooltip-power strong {
+  color: var(--gold);
+  font-weight: 700;
+}

@@ -466,6 +466,60 @@ export function generateObstacles(layout) {
     if (rng() < bias && place(x, y)) placed++;
   }
 
+  // Tidy strays. Scattered and top-up cells land anywhere, and a lone block one
+  // step away from a wall reads as clutter once walls are solid 3D barriers.
+  // Each isolated obstacle that has a wall within two cells is moved to extend
+  // that wall instead. The obstacle count is unchanged, a move never joins two
+  // wall segments (deliberate gaps stay open), and a move that would cut a
+  // spawn off from the base is undone.
+  const isOb = (x, y) => x >= 0 && x < COLS && y >= 0 && y < ROWS && grid[y][x].type === 'obstacle';
+  const touching = (x, y) => isOb(x - 1, y) || isOb(x + 1, y) || isOb(x, y - 1) || isOb(x, y + 1);
+  const allReachable = () => {
+    // findPathGrid caches by nav version: bump it so the edit just made is seen.
+    incrementNavVersion();
+    return SPAWNS.every(s => {
+      const p = findPathGrid(s.x, s.y, BASE.x, BASE.y);
+      return p && p.length > 0;
+    });
+  };
+  const openForMove = (x, y) => {
+    if (x < 1 || x > COLS - 2 || y < 1 || y > ROWS - 2) return false;
+    if (grid[y][x].type !== 'ground') return false;
+    for (const s of SPAWNS) {
+      if (Math.abs(x - s.x) + Math.abs(y - s.y) <= 1) return false;
+    }
+    return Math.abs(x - BASE.x) + Math.abs(y - BASE.y) > 1;
+  };
+  if (allReachable()) {
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (!isOb(x, y) || touching(x, y)) continue;
+        grid[y][x].type = 'ground';
+        let best = null;
+        let bestDist = Infinity;
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const tx = x + dx, ty = y + dy;
+            const dist = dx * dx + dy * dy;
+            if (!dist || dist >= bestDist || !openForMove(tx, ty) || !touching(tx, ty)) continue;
+            if ((isOb(tx - 1, ty) && isOb(tx + 1, ty)) || (isOb(tx, ty - 1) && isOb(tx, ty + 1))) continue;
+            best = [tx, ty];
+            bestDist = dist;
+          }
+        }
+        if (!best) {
+          grid[y][x].type = 'obstacle';
+          continue;
+        }
+        grid[best[1]][best[0]].type = 'obstacle';
+        if (!allReachable()) {
+          grid[best[1]][best[0]].type = 'ground';
+          grid[y][x].type = 'obstacle';
+        }
+      }
+    }
+  }
+
   // Ensure walkable path exists
   for (let attempt = 0; attempt < 20; attempt++) {
     let ok = true;

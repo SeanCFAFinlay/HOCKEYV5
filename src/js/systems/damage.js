@@ -6,18 +6,26 @@ import { emit, GameEvents } from '../engine/events.js';
 import { createExplosion, createLightning, createImpact, spawnGroundRipple } from './particles.js';
 import { triggerHitStop } from '../engine/loop.js';
 import { cameraZoomPulse, triggerCameraShake } from '../engine/camera.js';
+import { getPower, powerValue } from '../config/powers.js';
+import { applyChill, applyShock, applyStagger, applyBurn, applyExpose, applyKnockback, damageMultiplier } from './status.js';
 
 // Hit flash duration
 const FLASH_DURATION = 0.1;
 
 /**
- * Handle projectile hit
+ * Handle projectile hit.
+ *
+ * Plain damage first, then the firing tower's power (config/powers.js): each
+ * role does something different when its shot lands.
  * @param {Object} p - Projectile
  */
 export function handleHit(p) {
   const state = getState();
   const { enemies } = state;
   const tw = p.tower;
+  const power = getPower(tw);
+  const pv = arr => powerValue(arr, tw.lv || 0);
+  const targetAlive = !!p.target && enemies.includes(p.target);
   let dmg = tw.dmg;
   let isCrit = false;
 
@@ -28,8 +36,15 @@ export function handleHit(p) {
     createExplosion(p.x, p.y, p.z, false, 0xffd700);
   }
 
+  // Giant Slayer: a slice of the target's max health on top, capped at doubling
+  // the hit so it is strong against big targets without one-shotting bosses.
+  if (power?.id === 'giantSlayer' && targetAlive) {
+    dmg += Math.min(dmg, p.target.maxHp * pv(power.pctMaxHp));
+  }
+
   // Splash damage
   if (tw.splash) {
+    const stagger = power?.id === 'shockwave' ? pv(power.stagger) : 0;
     enemies.forEach(e => {
       const dx = e.x - p.x;
       const dz = e.z - p.z;
@@ -38,6 +53,8 @@ export function handleHit(p) {
       if (dist < tw.splash) {
         const splashDmg = dmg * (1 - dist / tw.splash / 2);
         hurtEnemy(e, splashDmg, isCrit);
+        // Shockwave: everything caught in the blast staggers.
+        if (stagger) applyStagger(e, stagger, power.staggerMult);
         if (p.impactKind === 'gravity' && dist > 0.05) {
           const pull = 0.18 * (1 - dist / tw.splash);
           e.x -= (dx / dist) * pull;
@@ -50,9 +67,16 @@ export function handleHit(p) {
     triggerCameraShake(0.08, 200); // Heavy shake for splash impacts
   }
   // Chain lightning
-  else if (tw.chain && p.target && enemies.includes(p.target)) {
+  else if (tw.chain && targetAlive) {
+    // Electrocute: every enemy the lightning touches is stunned.
+    const stun = power?.id === 'electrocute' ? pv(power.stun) : 0;
+    const zap = (e) => {
+      if (stun && applyShock(e, stun)) createImpact(e.x, 0.5, e.z, 0xfff7a8);
+    };
+
     let current = p.target;
     hurtEnemy(current, dmg, isCrit);
+    zap(current);
 
     const hitTargets = new Set([current]);
 
@@ -76,32 +100,64 @@ export function handleHit(p) {
       if (next) {
         createLightning(current.x, current.z, next.x, next.z, p.trailColor);
         hurtEnemy(next, dmg * 0.5, false);
+        zap(next);
         hitTargets.add(next);
         current = next;
       }
     }
+    createThemedImpact(p, isCrit);
   }
   // Single target
-  else if (p.target && enemies.includes(p.target)) {
-    hurtEnemy(p.target, dmg, isCrit);
+  else if (targetAlive) {
+    const target = p.target;
+    const pierce = power?.id === 'pierce';
+    hurtEnemy(target, dmg, isCrit, { pierce });
 
-    // Apply slow
+    // Armor Pierce: the shot ignored armor; now mark the target for everyone.
+    if (pierce) applyExpose(target, power.exposeDur, pv(power.expose));
+
+    // Chill, building to a freeze
     if (tw.slow) {
-      p.target.slow = tw.slowDur;
-      // Visual feedback for slow
-      if (p.target.mesh) {
-        flashMesh(p.target.mesh, 0x7fe9ff, FLASH_DURATION);
+      const freeze = power?.id === 'freeze' ? power : null;
+      const froze = applyChill(
+        target,
+        tw.slowDur,
+        freeze ? 1 / pv(freeze.hitsToFreeze) : 0,
+        freeze ? pv(freeze.freezeDur) : 0
+      );
+      if (froze) {
+        createImpact(target.x, 0.5, target.z, 0xdff8ff);
+        spawnGroundRipple(target.x, target.z, 0x9be8ff);
+        showStatusText(target.x, 0.7, target.z, 'FROZEN', '#9be8ff');
+      } else if (target.mesh) {
+        flashMesh(target.mesh, 0x7fe9ff, FLASH_DURATION);
+      }
+
+      // The spray catches whoever is standing next to the target.
+      const radius = freeze ? pv(freeze.chillRadius) : 0;
+      if (radius > 0) {
+        enemies.forEach(e => {
+          if (e === target) return;
+          const dx = e.x - target.x;
+          const dz = e.z - target.z;
+          if (dx * dx + dz * dz < radius * radius) applyChill(e, tw.slowDur * 0.6);
+        });
       }
     }
 
-    // Apply burn
+    // Burn
     if (tw.burn) {
-      p.target.burnT = tw.burnDur;
-      p.target.burnD = tw.burn;
-      // Visual feedback for burn
-      if (p.target.mesh) {
-        flashMesh(p.target.mesh, 0xff4400, FLASH_DURATION);
+      const ignite = power?.id === 'ignite' ? power : null;
+      applyBurn(target, tw.burn, tw.burnDur, ignite ? pv(ignite.stacks) : 1, ignite ? pv(ignite.spread) : 0);
+      if (target.mesh) {
+        flashMesh(target.mesh, 0xff4400, FLASH_DURATION);
       }
+    }
+
+    // Body Check: throw the target back the way it came.
+    if (power?.id === 'knockback' && applyKnockback(target, pv(power.dist))) {
+      spawnGroundRipple(target.x, target.z, p.trailColor || 0xffffff);
+      triggerCameraShake(0.06, 140);
     }
 
     createThemedImpact(p, isCrit);
@@ -160,9 +216,12 @@ function createThemedImpact(p, isCrit = false) {
  * @param {Object} e - Enemy
  * @param {number} dmg - Raw damage
  * @param {boolean} isCrit - Is critical hit
+ * @param {{pierce?: boolean}} [opts] - pierce: ignore the enemy's armor
  */
-export function hurtEnemy(e, dmg, isCrit = false) {
-  const actualDmg = dmg * (1 - e.armor);
+export function hurtEnemy(e, dmg, isCrit = false, opts = {}) {
+  // Armor is skipped by piercing shots; frozen and marked enemies take more.
+  const armor = opts.pierce ? 0 : e.armor;
+  const actualDmg = dmg * (1 - armor) * damageMultiplier(e);
   e.hp -= actualDmg;
 
   // Visual feedback - flash and scale
@@ -348,5 +407,56 @@ export function showDamageNumber(x, y, z, damage, isCrit) {
     }
   }
 
+  requestAnimationFrame(animate);
+}
+
+/**
+ * Float a short word above an enemy when a status lands ("FROZEN").
+ * @param {number} x - World X
+ * @param {number} y - World Y
+ * @param {number} z - World Z
+ * @param {string} text
+ * @param {string} color - CSS colour
+ */
+export function showStatusText(x, y, z, text, color = '#ffffff') {
+  const state = getState();
+  if (!state.scene || typeof document === 'undefined') return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.font = 'bold 34px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.lineWidth = 5;
+  ctx.strokeText(text, 128, 32);
+  ctx.fillStyle = color;
+  ctx.fillText(text, 128, 32);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.position.set(x, y + 0.6, z);
+  sprite.scale.set(2.0, 0.5, 1);
+  sprite.renderOrder = 999;
+  state.scene.add(sprite);
+
+  const startY = y + 0.6;
+  const startTime = performance.now();
+  function animate() {
+    const t = Math.min(1, (performance.now() - startTime) / 900);
+    sprite.position.y = startY + t * 1.1;
+    mat.opacity = 1 - t * t;
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      state.scene.remove(sprite);
+      mat.dispose();
+      texture.dispose();
+    }
+  }
   requestAnimationFrame(animate);
 }

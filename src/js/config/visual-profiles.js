@@ -5,10 +5,12 @@ export const VISUAL_PROFILES = {
       fog: 0x071626,
       fogDensity: 0.007,
       floor: {
-        base: '#5f94ad',
-        line: 'rgba(16, 70, 115, 0.72)',
-        scratch: 'rgba(255, 255, 255, 0.10)',
-        meshColor: 0x4f8fae,
+        // Near-white ice with a cool tint. Kept a step below white on purpose:
+        // the rink is a large, bright, near-flat surface and clips easily.
+        base: '#e9f2f7',
+        line: 'rgba(120, 165, 195, 0.10)',
+        scratch: 'rgba(120, 150, 175, 0.20)',
+        meshColor: 0xa9c2d1,
         // Low roughness for a wet-ice sheen. Reads as polished only because
         // scene.environment now gives it something to reflect (see scene.js
         // _generateEnvMap); the scratch normal map keeps it from mirroring.

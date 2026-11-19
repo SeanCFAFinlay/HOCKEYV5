@@ -1,5 +1,6 @@
 // Upgrade panel logic
 
+import { describePower } from '../config/powers.js';
 import { getState, setSelectedPlaced, dispatch, ActionTypes, addMoney, removeTower } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { playSound, playSoundAt } from '../engine/audio.js';
@@ -30,6 +31,18 @@ const PRIORITY_OPTIONS = [
   { value: 'last', label: 'Last' }
 ];
 
+/** The power line: what the tower does now, and what the next level changes. */
+function renderPower(td, lv) {
+  const el = document.getElementById('upPower');
+  if (!el) return;
+  const now = describePower(td, lv);
+  if (!now) { el.innerHTML = ''; return; }
+  const next = lv < 3 ? describePower(td, lv + 1) : null;
+  el.innerHTML =
+    `<strong>${now.name}</strong><span>${now.text}</span>` +
+    (next && next.text !== now.text ? `<small>Next level: ${next.text}</small>` : '');
+}
+
 export function showUpgrade(tower) {
   const state = getState();
   const { themeData } = state;
@@ -39,7 +52,7 @@ export function showUpgrade(tower) {
 
   document.getElementById('upIcon').innerHTML = icon(td.icon);
   document.getElementById('upName').textContent = td.nm;
-  document.getElementById('upLevel').textContent = `Level ${tower.lv + 1} • Visual tier ${tower.lv + 1}/4`;
+  document.getElementById('upLevel').textContent = `Level ${tower.lv + 1} of 4`;
   document.getElementById('upRole').textContent = ROLE_DESCRIPTIONS[td.role] || td.role || '';
   document.getElementById('upDmg').textContent = td.dmg[tower.lv];
   document.getElementById('upRng').textContent = td.rng[tower.lv].toFixed(1);
@@ -68,6 +81,7 @@ export function showUpgrade(tower) {
     document.getElementById('upBtn').classList.toggle('available', canUpgrade);
   }
 
+  renderPower(td, tower.lv);
   renderUpgradePath(td, tower.lv);
   applyMaxLevelState(tower.lv >= 3);
   renderPriorityControls(tower);

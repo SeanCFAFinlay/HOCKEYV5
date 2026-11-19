@@ -3,12 +3,16 @@
 import { getState } from '../engine/state.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
 import { getQualityName } from './quality.js';
-import { composeGeometry } from './geo-utils.js';
+import { BOARD, buildBoardSurface } from './board.js';
+import { buildStands, buildSkyBoxes } from './crowd.js';
+import { buildArenaDetails } from './arena-details.js';
+
+// Stands start beyond the moat that surrounds the board slab.
+const STAND_GAP = BOARD.EDGE + BOARD.MOAT + 0.12;
 
 export function buildCells(hw, hh) {
   const state = getState();
-  const { COLS, ROWS, scene, grid, themeData } = state;
-  const visuals = getVisualProfile(themeData);
+  const { COLS, ROWS, scene } = state;
 
   state.cells = [];
 
@@ -17,35 +21,6 @@ export function buildCells(hw, hh) {
   // render list entirely (they were 198 fully transparent draw calls) while
   // Raycaster, which ignores material visibility, still hits them.
   const rayMat = new THREE.MeshBasicMaterial({ visible: false });
-  const pathMat = new THREE.MeshBasicMaterial({
-    color: visuals.map.path.color,
-    transparent: true,
-    opacity: visuals.map.path.opacity,
-    side: THREE.DoubleSide,
-    depthWrite: false
-  });
-  const buildMat = new THREE.MeshBasicMaterial({
-    color: visuals.map.buildZone.color,
-    transparent: true,
-    opacity: visuals.map.buildZone.opacity,
-    side: THREE.DoubleSide,
-    depthWrite: false
-  });
-  const obstacleMat = new THREE.MeshBasicMaterial({
-    color: visuals.map.obstacle.accent,
-    transparent: true,
-    opacity: 0.14,
-    side: THREE.DoubleSide,
-    depthWrite: false
-  });
-
-  // Tile overlays, bucketed by material: one InstancedMesh per kind instead of
-  // one Mesh per tile (~200 draw calls down to 3).
-  const tiles = new Map([
-    [pathMat, []],
-    [buildMat, []],
-    [obstacleMat, []]
-  ]);
 
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
@@ -55,48 +30,18 @@ export function buildCells(hw, hh) {
       cell.userData = { x, y, isCell: true };
       scene.add(cell);
       state.cells.push(cell);
-
-      const type = grid[y]?.[x]?.type;
-      let mat = null;
-      if (type === 'spawn' || type === 'base') mat = pathMat;
-      else if (type === 'ground') mat = buildMat;
-      else if (type === 'obstacle') mat = obstacleMat;
-
-      if (mat) {
-        tiles.get(mat).push({
-          x: x - hw + 0.5,
-          y: type === 'ground' ? 0.026 : 0.035,
-          z: y - hh + 0.5,
-          size: type === 'ground' ? 0.84 : 0.96
-        });
-      }
     }
   }
 
-  const tileGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-  const dummy = new THREE.Object3D();
-  tiles.forEach((list, mat) => {
-    if (!list.length) return;
-    const inst = new THREE.InstancedMesh(tileGeo, mat, list.length);
-    list.forEach((t, i) => {
-      dummy.position.set(t.x, t.y, t.z);
-      dummy.scale.set(t.size, 1, t.size);
-      dummy.updateMatrix();
-      inst.setMatrixAt(i, dummy.matrix);
-    });
-    inst.instanceMatrix.needsUpdate = true;
-    inst.renderOrder = mat === buildMat ? 2 : 3;
-    // Instances span the whole board; the base geometry's bounds do not.
-    inst.frustumCulled = false;
-    scene.add(inst);
-  });
+  // The visible grid: a raised, bevelled tile per cell (see board.js). It
+  // replaces the flat translucent overlays that used to tint each cell.
+  buildBoardSurface(hw, hh);
 }
 
 export function buildLights(hw, hh) {
   const state = getState();
-  const { scene, theme, themeData } = state;
+  const { scene, themeData } = state;
   const visuals = getVisualProfile(themeData);
-  const isHockey = theme === 'hockey';
 
   const positions = [
     [-hw - 3, -hh - 3],
@@ -190,14 +135,15 @@ export function buildLights(hw, hh) {
     state.cameraOccluders.push(tower);
   });
 
-  // Stadium bleacher stands (simple stepped geometry)
-  buildStadiumStands(hw, hh, isHockey, visuals);
+  // Stands and crowd (rendering/crowd.js), then what lies beyond them.
+  buildStands(hw, hh, visuals, STAND_GAP);
   buildArenaShell(hw, hh, visuals);
+
+  // Markings, benches, glass and the rest of what makes each arena the real
+  // place. Last, because it adds to the camera's list of things to hide.
+  buildArenaDetails(hw, hh);
 }
 
-/**
- * Build simple stadium stands around the arena for atmosphere
- */
 /**
  * Texture for the far wall of the arena: tier upon tier of distant spectators
  * fading up into the dark, with the odd camera flash. Painted once to a canvas.
@@ -306,8 +252,21 @@ function buildArenaShell(hw, hh, visuals) {
   const accent = visuals.lighting.accent;
   const background = new THREE.Color(visuals.map.background);
 
+  // A disc with the moat cut out of it, so the board slab stands in a trench.
+  const disc = new THREE.Shape();
+  disc.absarc(0, 0, 70, 0, Math.PI * 2, false);
+  const mx = hw + BOARD.EDGE + BOARD.MOAT + 0.1;
+  const mz = hh + BOARD.EDGE + BOARD.MOAT + 0.1;
+  const moat = new THREE.Path();
+  moat.moveTo(-mx, -mz);
+  moat.lineTo(-mx, mz);
+  moat.lineTo(mx, mz);
+  moat.lineTo(mx, -mz);
+  moat.closePath();
+  disc.holes.push(moat);
+
   const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(70, 48).rotateX(-Math.PI / 2),
+    new THREE.ShapeGeometry(disc, 48).rotateX(-Math.PI / 2),
     new THREE.MeshStandardMaterial({ color: background.clone().lerp(new THREE.Color(0x24364f), 0.35), roughness: 0.95, metalness: 0 })
   );
   floor.position.y = -0.15;   // clear of the playfield at y = 0, even at low depth precision
@@ -323,15 +282,15 @@ function buildArenaShell(hw, hh, visuals) {
   scene.add(bowl);
 
   // Stand geometry, matching buildStadiumStands.
-  const frontGap = 1.05;
+  const frontGap = STAND_GAP;
   const standDepth = 2.5;
   const standTop = 1.8;
   const back = frontGap + standDepth + 0.12;
   const sides = [
-    [0, -(hh + back), hw * 2 + 2 + 2 * back, 0],
-    [0,  (hh + back), hw * 2 + 2 + 2 * back, Math.PI],
-    [-(hw + back), 0, hh * 2 + 2, Math.PI / 2],
-    [ (hw + back), 0, hh * 2 + 2, -Math.PI / 2]
+    [0, -(hh + back), hw * 2 + 2 * back, 0],
+    [0,  (hh + back), hw * 2 + 2 * back, Math.PI],
+    [-(hw + back), 0, hh * 2 + 2 * back, Math.PI / 2],
+    [ (hw + back), 0, hh * 2 + 2 * back, -Math.PI / 2]
   ];
 
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f1826, roughness: 0.85, metalness: 0.15 });
@@ -359,6 +318,9 @@ function buildArenaShell(hw, hh, visuals) {
     scene.add(ribbon);
     ribbons.push(texture);
   });
+
+  // A row of lit boxes above the ribbon, with people at the glass.
+  if (getQualityName() !== 'low') buildSkyBoxes(sides, standTop + 0.1 + ribbonHeight, accent);
 
   // Scroll the message. Tied to the game clock so it stops when paused.
   floor.onBeforeRender = () => {
@@ -393,186 +355,6 @@ function makeLightShaft(x, z, color) {
   shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), from.clone().sub(to).normalize());
   shaft.renderOrder = 5;
   return shaft;
-}
-
-/**
- * Make an instanced crowd material sway on the GPU.
- *
- * Each spectator bobs on their own phase, and a slow "stadium wave" travels
- * round the stands. It is all done in the vertex shader from the instance's
- * world position, so a few hundred animated spectators cost no CPU and no
- * per-frame buffer uploads.
- */
-function animateCrowdMaterial(material, mesh, lift) {
-  material.onBeforeCompile = (shader) => {
-    shader.uniforms.uCrowdTime = { value: 0 };
-    material.userData.shader = shader;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nuniform float uCrowdTime;')
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
-        #ifdef USE_INSTANCING
-          vec3 crowdPos = instanceMatrix[3].xyz;
-          float crowdPhase = crowdPos.x * 1.7 + crowdPos.z * 2.3;
-          float crowdBob = sin(uCrowdTime * 3.2 + crowdPhase) * 0.5 + 0.5;
-          float crowdWave = pow(max(0.0, sin(uCrowdTime * 0.9 - atan(crowdPos.z, crowdPos.x) * 2.0)), 10.0);
-          transformed.y += (crowdBob * 0.035 + crowdWave * 0.2) * ${lift.toFixed(2)};
-        #endif`
-      );
-  };
-  // Driven by the game's animation clock, not wall time, so the crowd freezes
-  // with everything else when the game is paused.
-  mesh.onBeforeRender = () => {
-    const shader = material.userData.shader;
-    if (shader) shader.uniforms.uCrowdTime.value = getState().animTime || 0;
-  };
-}
-
-function buildStadiumStands(hw, hh, isHockey, visuals) {
-  const state = getState();
-  const { scene } = state;
-
-  const standDepth = 2.5;
-  const rowCount   = 4;
-  const rowHeight  = 0.45;
-  const rowDepth   = standDepth / rowCount;
-
-  // Supporters' colours.
-  const fanColors = visuals.crowd?.fans ? visuals.crowd.fans : isHockey
-    ? [0x1d6fd1, 0x123c6b, 0xd42f2f, 0xfacc15, 0xf1f5f9]
-    : [visuals.lighting.accent, visuals.map.floor.meshColor || 0x1a5c1a, 0xcc8800, 0xf1f5f9];
-  const skinTones = [0xf1c9a5, 0xe0ac7e, 0xc68642, 0x8d5524, 0xffdbac];
-  const seatColor = visuals.crowd?.seat ?? (isHockey ? 0x16304f : 0x1c2433);
-  // Fraction of seats filled. The gaps matter: a 100% full stand reads as a texture.
-  const OCCUPANCY = 0.86;
-
-  const frontGap = 1.05;
-
-  // Define stands by their front edge. Local +Z points outward from the rink.
-  const sides = [
-    // [frontX, frontZ, width, rotY]
-    [0, -(hh + frontGap), hw * 2 + 2, Math.PI],
-    [0,  (hh + frontGap), hw * 2 + 2, 0],
-    [-(hw + frontGap), 0, hh * 2 + 2, Math.PI / 2],
-    [ (hw + frontGap), 0, hh * 2 + 2, -Math.PI / 2]
-  ];
-
-  const transformStandPoint = (frontX, frontZ, localX, localZ, rotY) => {
-    const cosR = Math.cos(rotY);
-    const sinR = Math.sin(rotY);
-    return [
-      frontX + localX * cosR - localZ * sinR,
-      frontZ + localX * sinR + localZ * cosR
-    ];
-  };
-
-  const stepMat = new THREE.MeshStandardMaterial({ color: 0x162133, roughness: 0.9, metalness: 0.1 });
-  const barrierMat = new THREE.MeshStandardMaterial({ color: 0x25364a, roughness: 0.7, metalness: 0.2 });
-
-  // Every seat and spectator in the arena, collected first so the whole crowd
-  // can be drawn as three instanced meshes (it was ~500 separate ones).
-  const seats = [];
-  const fans = [];
-
-  sides.forEach(([frontX, frontZ, sideWidth, rotY]) => {
-    const seatsPerRow = Math.floor(sideWidth / 0.6);
-    const seatW = sideWidth / seatsPerRow;
-
-    for (let row = 0; row < rowCount; row++) {
-      const y = row * rowHeight + rowHeight / 2;
-      const localZ = row * rowDepth + rowDepth * 0.5;
-
-      // Stepped platform
-      const step = new THREE.Mesh(new THREE.BoxGeometry(sideWidth, rowHeight, rowDepth), stepMat);
-      step.receiveShadow = true;
-      const [stepX, stepZ] = transformStandPoint(frontX, frontZ, 0, localZ, rotY);
-      step.position.set(stepX, y, stepZ);
-      step.rotation.y = rotY;
-      scene.add(step);
-
-      for (let s = 0; s < seatsPerRow; s++) {
-        const localX = -sideWidth / 2 + s * seatW + seatW / 2;
-        const [seatX, seatZ] = transformStandPoint(frontX, frontZ, localX, localZ, rotY);
-        const seatY = y + rowHeight * 0.2;
-        seats.push({ x: seatX, y: seatY, z: seatZ, rotY, w: seatW * 0.72 });
-
-        if (Math.random() < OCCUPANCY) {
-          fans.push({
-            x: seatX,
-            y: seatY + rowHeight * 0.3,
-            z: seatZ,
-            // Nobody sits perfectly square to the ice.
-            rotY: rotY + (Math.random() - 0.5) * 0.5,
-            height: 0.85 + Math.random() * 0.35,
-            color: fanColors[Math.floor(Math.random() * fanColors.length)],
-            skin: skinTones[Math.floor(Math.random() * skinTones.length)]
-          });
-        }
-      }
-    }
-
-    // Concrete barrier at front of stand
-    const barrier = new THREE.Mesh(new THREE.BoxGeometry(sideWidth, 0.5, 0.2), barrierMat);
-    barrier.castShadow = true;
-    barrier.receiveShadow = true;
-    barrier.position.set(frontX, 0.25, frontZ);
-    barrier.rotation.y = rotY;
-    scene.add(barrier);
-  });
-
-  const dummy = new THREE.Object3D();
-  const tint = new THREE.Color();
-
-  const seatMesh = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(1, rowHeight * 0.55, rowDepth * 0.6),
-    new THREE.MeshStandardMaterial({ color: seatColor, roughness: 0.8, metalness: 0.05 }),
-    seats.length
-  );
-  seats.forEach((seat, i) => {
-    dummy.position.set(seat.x, seat.y, seat.z);
-    dummy.rotation.set(0, seat.rotY, 0);
-    dummy.scale.set(seat.w, 1, 1);
-    dummy.updateMatrix();
-    seatMesh.setMatrixAt(i, dummy.matrix);
-  });
-  seatMesh.receiveShadow = true;
-  seatMesh.frustumCulled = false;
-  scene.add(seatMesh);
-
-  if (!fans.length) return;
-
-  // A tapered torso plus shoulders and a faceted head: about 30 triangles per
-  // spectator. At stand distance the silhouette is all that reads.
-  const bodyGeo = composeGeometry([
-    { geo: new THREE.CylinderGeometry(0.1, 0.15, 0.3, 6), p: [0, 0.15, 0] },
-    { geo: new THREE.BoxGeometry(0.34, 0.07, 0.12), p: [0, 0.27, 0] }
-  ]);
-  const headGeo = new THREE.IcosahedronGeometry(0.085, 0).translate(0, 0.4, 0);
-
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, metalness: 0 });
-  const headMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0 });
-  const bodies = new THREE.InstancedMesh(bodyGeo, bodyMat, fans.length);
-  const heads = new THREE.InstancedMesh(headGeo, headMat, fans.length);
-
-  fans.forEach((fan, i) => {
-    dummy.position.set(fan.x, fan.y, fan.z);
-    dummy.rotation.set(0, fan.rotY, 0);
-    dummy.scale.set(1, fan.height, 1);
-    dummy.updateMatrix();
-    bodies.setMatrixAt(i, dummy.matrix);
-    heads.setMatrixAt(i, dummy.matrix);
-    bodies.setColorAt(i, tint.setHex(fan.color));
-    heads.setColorAt(i, tint.setHex(fan.skin));
-  });
-
-  [bodies, heads].forEach((mesh) => {
-    mesh.instanceColor.needsUpdate = true;
-    mesh.frustumCulled = false;
-    scene.add(mesh);
-  });
-  animateCrowdMaterial(bodyMat, bodies, 1);
-  animateCrowdMaterial(headMat, heads, 1);
 }
 
 export function addPerimeterDecor(hw, hh) {

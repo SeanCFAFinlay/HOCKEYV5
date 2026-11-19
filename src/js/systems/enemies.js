@@ -12,6 +12,11 @@ import { triggerCurrencyFly } from '../ui/currency-fly.js';
 import { hideUpgrade } from '../ui/upgrade-sheet.js';
 import { assertDefined, assertPositiveNumber, warnIf } from '../utils/assertions.js';
 import { cameraBossTrack } from '../engine/camera.js';
+import { freshStatus, tickStatus, speedMultiplier, applyBurn } from './status.js';
+import { detachStatusFx } from '../rendering/status-fx.js';
+
+// How fast a knocked-back enemy is thrown, in tiles per second.
+const KNOCK_SPEED = 7;
 
 // Enemy state machine states
 export const EnemyState = {
@@ -110,11 +115,8 @@ export function spawnEnemy(ed) {
     path: null,
     navV: -1,
 
-    // Status effects
-    slow: 0,
-    slowMult: 0.5,
-    burnT: 0,
-    burnD: 0,
+    // Status effects (chill, freeze, shock, burn, ... see systems/status.js)
+    ...freshStatus(),
 
     // Attack state
     attackTarget: null,
@@ -179,9 +181,15 @@ export function updateEnemies(dt) {
       continue;
     }
 
-    // Calculate current speed with slow effect
-    const speedMult = e.slow > 0 ? e.slowMult : 1;
-    const currentSpeed = e.baseSpd * speedMult;
+    // Current speed: chilled and staggered enemies crawl, frozen and stunned
+    // ones do not move at all.
+    const currentSpeed = e.baseSpd * speedMultiplier(e);
+
+    // A thrown enemy lets go of whatever it was attacking.
+    if (e.knock > 0 && e.state === EnemyState.ATTACKING) {
+      e.state = EnemyState.MOVING;
+      e.attackTarget = null;
+    }
 
     // State machine update
     switch (e.state) {
@@ -212,16 +220,39 @@ export function updateEnemies(dt) {
  * Update status effects (slow, burn)
  */
 function updateStatusEffects(e, dt) {
-  // Slow decay
-  if (e.slow > 0) {
-    e.slow -= dt;
-    if (e.slow < 0) e.slow = 0;
-  }
+  tickStatus(e, dt);
+}
 
-  // Burn damage
-  if (e.burnT > 0) {
-    e.burnT -= dt;
-    e.hp -= e.burnD * dt;
+/**
+ * Throw a ground enemy back along the route it has already walked.
+ * `path[pathIdx - 1]` is the tile behind it.
+ */
+function knockBackAlongPath(e, dt, hw, hh) {
+  let step = Math.min(e.knock, KNOCK_SPEED * dt);
+  e.knock -= step;
+
+  while (step > 0.0001) {
+    const prev = e.path && e.path[e.pathIdx - 1];
+    if (!prev) { e.knock = 0; return; }
+
+    const cx = prev[0] - hw + 0.5;
+    const cz = prev[1] - hh + 0.5;
+    const dx = cx - e.x;
+    const dz = cz - e.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist <= step) {
+      e.x = cx;
+      e.z = cz;
+      step -= dist;
+      // Nothing recorded further back than the start of this route.
+      if (e.pathIdx > 1) e.pathIdx--;
+      else { e.knock = 0; return; }
+    } else {
+      e.x += (dx / dist) * step;
+      e.z += (dz / dist) * step;
+      step = 0;
+    }
   }
 }
 
@@ -237,6 +268,16 @@ function updateFlyingEnemy(e, dt, speed, hw, hh, index) {
   const dx = tx - e.x;
   const dz = tz - e.z;
   const dist = Math.sqrt(dx * dx + dz * dz) || 0.001;
+
+  // Knocked back: thrown directly away from the base.
+  if (e.knock > 0) {
+    const step = Math.min(e.knock, KNOCK_SPEED * dt);
+    e.knock -= step;
+    e.x -= (dx / dist) * step;
+    e.z -= (dz / dist) * step;
+    e.y = 1.2;
+    return;
+  }
 
   const move = speed * dt;
 
@@ -281,6 +322,12 @@ function updateGroundEnemy(e, dt, speed, hw, hh, index) {
     if (gx === BASE.x && gy === BASE.y) {
       handleEnemyEscape(e, index);
     }
+    return;
+  }
+
+  if (e.knock > 0) {
+    knockBackAlongPath(e, dt, hw, hh);
+    e.y = 0.2;
     return;
   }
 
@@ -427,6 +474,17 @@ function handleEnemyDeath(e, index) {
   // Remove from active enemies array immediately so towers don't target it
   state.enemies.splice(index, 1);
 
+  // Ignite: a burning enemy that dies sets its neighbours alight.
+  if (e.burnT > 0 && e.burnSpread > 0) {
+    const r2 = e.burnSpread * e.burnSpread;
+    state.enemies.forEach(other => {
+      const dx = other.x - e.x;
+      const dz = other.z - e.z;
+      if (dx * dx + dz * dz < r2) applyBurn(other, e.burnBase, Math.max(2, e.burnT), 1);
+    });
+  }
+  detachStatusFx(e);
+
   // SC-5.2: enemy death sound (boss vs normal)
   const deathSound = e.boss ? 'enemyDeathBoss' : 'enemyDeath';
   playSoundAt(deathSound, e.x, e.z);
@@ -448,6 +506,7 @@ function handleEnemyEscape(e, index) {
   const state = getState();
 
   e.state = EnemyState.EXITED;
+  detachStatusFx(e);
 
   // Remove mesh
   if (e.mesh) {
@@ -484,6 +543,7 @@ function updateHealthBar(e) {
  */
 export function removeEnemy(e, i) {
   const state = getState();
+  detachStatusFx(e);
 
   if (e.mesh) {
     state.scene.remove(e.mesh);

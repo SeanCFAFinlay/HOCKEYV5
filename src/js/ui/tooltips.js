@@ -1,6 +1,7 @@
 // Tower info tooltips — SC-4.2
 // Show rich tower stats on hover (300ms) or long-press (400ms)
 
+import { describePower } from '../config/powers.js';
 import { icon } from './icons.js';
 
 const SHOW_DELAY_DESKTOP = 300;
@@ -88,6 +89,7 @@ export function buildTooltipContent(tower) {
   const rate = Array.isArray(tower.rate) ? tower.rate[0] : tower.rate;
   const role = ROLE_LABELS[tower.role] || tower.role || '';
   const special = getSpecialAbilityText(tower);
+  const power = describePower(tower, 0);
   const desc = ROLE_DESC[tower.role] || '';
 
   return `
@@ -103,6 +105,7 @@ export function buildTooltipContent(tower) {
       <div>RATE: ${rate}/s</div>
     </div>
     ${special ? `<div class="tooltip-special">${special}</div>` : ''}
+    ${power ? `<div class="tooltip-power"><strong>${power.name}</strong> ${power.text}</div>` : ''}
     <div class="tooltip-desc">${desc}</div>
     <div class="tooltip-cost">$${tower.cost}</div>
   `.trim();

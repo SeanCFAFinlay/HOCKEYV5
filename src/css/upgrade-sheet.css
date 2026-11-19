@@ -433,7 +433,7 @@
     right: 8px;
     bottom: calc(var(--bottom-ui-clearance, 176px) + 8px);
     width: auto;
-    max-height: min(32vh, 280px);
+    max-height: min(42vh, 350px);
     padding: 10px;
   }
 
@@ -480,4 +480,45 @@
   .upgrade-path {
     display: none;
   }
+}
+
+/* ── Power line: what the tower does at this level ── */
+.upgrade-power {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--theme-accent, #38bdf8) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--theme-accent, #38bdf8) 30%, transparent);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.upgrade-power:empty {
+  display: none;
+}
+
+.upgrade-power strong {
+  font-family: var(--font-game);
+  font-size: 0.82rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--theme-accent, #38bdf8);
+}
+
+.upgrade-power small {
+  font-size: 0.68rem;
+  color: var(--gold);
+  opacity: 0.9;
+}
+
+/* Phones: the sheet is short, so keep the power to what it does now. The
+   numbers the next level brings are already shown under each stat. */
+@media (max-width: 640px) {
+  .upgrade-power { padding: 6px 10px; font-size: 0.72rem; }
+  .upgrade-power small { display: none; }
 }

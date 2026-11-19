@@ -9,16 +9,18 @@ import { getState, setSelectedTower } from '../engine/state.js';
 import { on, GameEvents } from '../engine/events.js';
 import { setPreviewListener, confirmPreview, clearPreview } from '../engine/input.js';
 import { icon } from './icons.js';
+import { getPower } from '../config/powers.js';
 
-const ROLE_BLURB = {
-  'ANTI-SWARM': 'Fast, cheap shots',
-  SNIPER: 'Long range, hard hits',
-  SPLASH: 'Area damage',
-  CROWD_CONTROL: 'Slows enemies',
-  CHOKEPOINT: 'Short range, heavy',
-  CHAIN: 'Jumps between enemies',
-  DOT: 'Sets enemies on fire',
-  BOSS_KILLER: 'Huge single hits'
+// One short phrase per power, for the strip's single line.
+const POWER_BLURB = {
+  doubleTap: 'Fast shots, sometimes two',
+  pierce: 'Long range, ignores armor',
+  shockwave: 'Blast that staggers',
+  freeze: 'Slows, then freezes solid',
+  knockback: 'Throws enemies back',
+  electrocute: 'Lightning that stuns',
+  ignite: 'Sets enemies on fire',
+  giantSlayer: 'Huge hits on big targets'
 };
 
 const REFUSALS = {
@@ -61,12 +63,13 @@ function render() {
   }
 
   const touch = isTouchDevice();
+  const blurb = POWER_BLURB[getPower(td)?.id] || 'Tower';
   const refused = preview && !preview.valid ? REFUSALS[preview.reason] : null;
   let hint;
   if (refused) hint = refused;
   else if (preview && preview.touch) hint = 'Tap Build, or the tile again';
-  else if (touch) hint = `${ROLE_BLURB[td.role] || 'Tower'} · tap a tile`;
-  else hint = `${ROLE_BLURB[td.role] || 'Tower'} · click a tile · Esc cancels`;
+  else if (touch) hint = `${blurb} · tap a tile`;
+  else hint = `${blurb} · click a tile · Esc cancels`;
 
   e.strip.style.setProperty('--c', td.clr);
   e.strip.classList.toggle('invalid', !!refused);

@@ -16,6 +16,12 @@ import { setSceneEnvMap } from '../rendering/tower-meshes.js';
 import { on, GameEvents } from './events.js';
 import { initTrails, cleanupTrails } from '../rendering/trails.js';
 
+// The walking surface is the top of the board's tiles at y = 0 (see
+// rendering/board.js). Each arena's floor plane sits this far below it, as the
+// bottom of the grooves between tiles; buildCells reuses its material for the
+// tiles themselves.
+const GROOVE_DEPTH = 0.07;
+
 // Store ambient particles for animation
 let ambientParticles = null;
 let ambientTime = 0;
@@ -524,8 +530,8 @@ function getIceTexture(visuals) {
 
   const iceGrad = ctx.createRadialGradient(256, 256, 40, 256, 256, 390);
   iceGrad.addColorStop(0, 'rgba(255,255,255,0.035)');
-  iceGrad.addColorStop(0.52, 'rgba(53,140,178,0.16)');
-  iceGrad.addColorStop(1, 'rgba(5,45,80,0.32)');
+  iceGrad.addColorStop(0.52, 'rgba(120,170,200,0.05)');
+  iceGrad.addColorStop(1, 'rgba(70,120,160,0.12)');
   ctx.fillStyle = iceGrad;
   ctx.fillRect(0, 0, 512, 512);
 
@@ -647,132 +653,18 @@ function buildHockeyRink() {
 
   const ice = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), iceMat);
   ice.rotation.x = -Math.PI / 2;
+  ice.position.y = -GROOVE_DEPTH;
   ice.receiveShadow = true;
   scene.add(ice);
+  state.boardFloor = ice;
 
-  // SC-2.6: Reflective ice "mirror" layer below the main floor (Y = -0.01)
-  const iceReflectMat = new THREE.MeshStandardMaterial({
-    color: 0x6fa9c9,
-    metalness: 0.02,
-    roughness: 0.32,
-    opacity: 0.035,
-    transparent: true
-  });
-  const iceReflect = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), iceReflectMat);
-  iceReflect.rotation.x = -Math.PI / 2;
-  iceReflect.position.y = -0.01;
-  scene.add(iceReflect);
+  // (Two near-invisible transparent gloss planes used to sit just above and
+  // below the ice; the bevelled tiles and the environment map do that job now.
+  // The boards round the rink are built with the rest of the kerb in
+  // rendering/board.js.)
 
-  // Subtle reflective gloss layer (reduced opacity to prevent washout)
-  const reflectMat = new THREE.MeshStandardMaterial({
-    color: 0xb7d4e6,
-    metalness: 0.18,
-    roughness: 0.46,
-    transparent: true,
-    opacity: 0.018
-  });
-  const reflect = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), reflectMat);
-  reflect.rotation.x = -Math.PI / 2;
-  reflect.position.y = 0.005;
-  scene.add(reflect);
-
-  // === BOARDS === (tinted slightly to not blow out white)
-  const boardMat = new THREE.MeshStandardMaterial({
-    color: 0xb8c5d0,
-    roughness: 0.48,
-    metalness: 0.04
-  });
-
-  const topCapMat = new THREE.MeshStandardMaterial({
-    color: 0xffcc00,
-    roughness: 0.35,
-    metalness: 0.4,
-    emissive: 0xffcc00,
-    emissiveIntensity: 0.12
-  });
-
-  const boards = [
-    [0, -hh - 0.7, COLS + 1.5, 0.6, 0.35],
-    [0,  hh + 0.7, COLS + 1.5, 0.6, 0.35],
-    [-hw - 0.7, 0, 0.35, 0.6, ROWS + 1.5],
-    [ hw + 0.7, 0, 0.35, 0.6, ROWS + 1.5]
-  ];
-
-  boards.forEach(([x, z, w, bh, d]) => {
-    const board = new THREE.Mesh(new THREE.BoxGeometry(w, bh, d), boardMat);
-    board.position.set(x, bh / 2, z);
-    board.castShadow = true;
-    board.receiveShadow = true;
-    scene.add(board);
-
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(w + 0.05, 0.08, d + 0.05), topCapMat);
-    cap.position.set(x, bh + 0.04, z);
-    scene.add(cap);
-  });
-
-  // === ICE LINES (bolder colors for contrast) ===
-  const redMat = new THREE.MeshBasicMaterial({ color: 0xd7193f, side: THREE.DoubleSide });
-
-  const blueMat = new THREE.MeshBasicMaterial({ color: 0x006fc9, side: THREE.DoubleSide });
-
-  const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.22, ROWS), redMat);
-  centerLine.rotation.x = -Math.PI / 2;
-  centerLine.position.y = 0.016;
-  scene.add(centerLine);
-
-  [-hw * 0.38, hw * 0.38].forEach(x => {
-    const line = new THREE.Mesh(new THREE.PlaneGeometry(0.22, ROWS), blueMat);
-    line.rotation.x = -Math.PI / 2;
-    line.position.set(x, 0.016, 0);
-    scene.add(line);
-  });
-
-  // Center circle
-  const circle = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.38, 64), redMat);
-  circle.rotation.x = -Math.PI / 2;
-  circle.position.y = 0.017;
-  scene.add(circle);
-
-  const dot = new THREE.Mesh(
-    new THREE.CircleGeometry(0.15, 32),
-    new THREE.MeshBasicMaterial({ color: 0xd7193f, side: THREE.DoubleSide })
-  );
-  dot.rotation.x = -Math.PI / 2;
-  dot.position.y = 0.018;
-  scene.add(dot);
-
-  // Faceoff circles and defensive goal creases
-  const creaseMat = new THREE.MeshStandardMaterial({
-    color: 0x6ed7ff,
-    emissive: 0x1e90ff,
-    emissiveIntensity: 0.16,
-    transparent: true,
-    opacity: 0.58,
-    roughness: 0.55
-  });
-  const faceoffXs = [-hw * 0.55, hw * 0.55];
-  const faceoffZs = [-hh * 0.42, hh * 0.42];
-  faceoffXs.forEach(x => {
-    faceoffZs.forEach(z => {
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.82, 56), redMat);
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.set(x, 0.018, z);
-      scene.add(ring);
-
-      const faceDot = new THREE.Mesh(new THREE.CircleGeometry(0.09, 20), redMat);
-      faceDot.rotation.x = -Math.PI / 2;
-      faceDot.position.set(x, 0.019, z);
-      scene.add(faceDot);
-    });
-  });
-
-  [BASE_SAFE_X(-hw), BASE_SAFE_X(hw)].forEach(x => {
-    const crease = new THREE.Mesh(new THREE.CircleGeometry(0.72, 36), creaseMat);
-    crease.rotation.x = -Math.PI / 2;
-    crease.position.set(x, 0.0185, 0);
-    crease.scale.z = 0.62;
-    scene.add(crease);
-  });
+  // (Lines, circles, spots and the crease are painted to a real rink's
+  // layout in rendering/arena-details.js.)
 
   // Add visual elements
   addObstacleVisuals(hw, hh);
@@ -782,10 +674,6 @@ function buildHockeyRink() {
 
   // SC-2.6: Placement grid overlay
   buildPlacementGrid(scene, COLS, ROWS);
-}
-
-function BASE_SAFE_X(x) {
-  return x < 0 ? x + 1.0 : x - 1.0;
 }
 
 function buildSoccerPitch() {
@@ -811,10 +699,12 @@ function buildSoccerPitch() {
     metalness: 0.0
   });
 
-  const grass = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 4, ROWS + 4), grassMat);
+  const grass = new THREE.Mesh(new THREE.PlaneGeometry(COLS + 2, ROWS + 2), grassMat);
   grass.rotation.x = -Math.PI / 2;
+  grass.position.y = -GROOVE_DEPTH;
   grass.receiveShadow = true;
   scene.add(grass);
+  state.boardFloor = grass;
 
   // === PITCH MARKINGS ===
   const lineMat = new THREE.MeshStandardMaterial({
@@ -861,7 +751,12 @@ function buildSoccerPitch() {
   const boxW = Math.max(2.5, COLS * 0.2);
   const boxH = Math.max(2.2, ROWS * 0.3);
 
-  [[-hw, 0], [hw, 0]].forEach(([baseX, z]) => {
+  // The attacking end's box is centred; the defended end's is centred on the
+  // goal, wherever this arena puts it.
+  const boxLimit = Math.max(0, hh - boxH / 2);
+  const goalZ = state.BASE ? Math.max(-boxLimit, Math.min(boxLimit, state.BASE.y - hh + 0.5)) : 0;
+
+  [[-hw, 0], [hw, goalZ]].forEach(([baseX, z]) => {
     const side    = baseX < 0 ? 1 : -1;
     const centerX = baseX + (boxW / 2) * side;
 
@@ -969,11 +864,11 @@ function buildOrbitalPlatform() {
   panelTexture.wrapS = THREE.RepeatWrapping;
   panelTexture.wrapT = THREE.RepeatWrapping;
   const tile = kit?.floorTileSize || 6;   // grid cells covered by one texture tile
-  panelTexture.repeat.set((COLS + 4) / tile, (ROWS + 4) / tile);
+  panelTexture.repeat.set((COLS + 2) / tile, (ROWS + 2) / tile);
   panelTexture.anisotropy = getQualityTier().anisotropy;
 
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(COLS + 4, ROWS + 4),
+    new THREE.PlaneGeometry(COLS + 2, ROWS + 2),
     new THREE.MeshStandardMaterial({
       color: visuals.map.floor.meshColor,
       map: panelTexture,
@@ -984,28 +879,10 @@ function buildOrbitalPlatform() {
     })
   );
   floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -GROOVE_DEPTH;
   floor.receiveShadow = true;
   scene.add(floor);
-
-  const edgeMat = new THREE.MeshStandardMaterial({
-    color: visuals.map.rail?.color ?? 0x111827,
-    roughness: visuals.map.rail?.roughness ?? 0.34,
-    metalness: visuals.map.rail?.metalness ?? 0.75,
-    emissive: visuals.map.path.emissive,
-    emissiveIntensity: 0.18
-  });
-  [
-    [0, -hh - 0.8, COLS + 1.8, 0.34],
-    [0, hh + 0.8, COLS + 1.8, 0.34],
-    [-hw - 0.8, 0, 0.34, ROWS + 1.8],
-    [hw + 0.8, 0, 0.34, ROWS + 1.8]
-  ].forEach(([x, z, w, d]) => {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(w, 0.34, d), edgeMat);
-    rail.position.set(x, 0.17, z);
-    rail.castShadow = true;
-    rail.receiveShadow = true;
-    scene.add(rail);
-  });
+  state.boardFloor = floor;
 
   addObstacleVisuals(hw, hh);
   addSpawnAndPenVisuals(hw, hh);
