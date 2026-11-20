@@ -179,8 +179,15 @@ vi.mock('../js/themes/soccer-towers.js', () => ({ buildTower: null }));
 vi.mock('../js/themes/index.js', () => ({ getThemeKit: () => null, THEME_MODULES: {} }));
 
 
-// Role silhouettes are covered in the browser; these tests look at the base body.
-vi.mock('../js/rendering/enemy-silhouettes.js', () => ({ addRoleSilhouette: vi.fn() }));
+// Bodies are modelled with lathes and extrusions the THREE mock does not have,
+// and instanced from templates; they are verified in the browser. These tests
+// cover what enemy-meshes.js assembles around a body: health bar, status
+// dressings, boss scale and aura, pooling.
+const createEnemyBody = vi.fn(() => ({ body: new MockGroup(), gait: { step: 2 }, refs: { rigParts: [], crownGem: null } }));
+vi.mock('../js/rendering/enemy-models.js', () => ({
+  createEnemyBody: (...args) => createEnemyBody(...args),
+  enemyBodyKey: (enemy, sz, theme) => [theme, enemy.nm, enemy.role, sz, !!enemy.boss, !!enemy.flying].join('|')
+}));
 
 
 vi.mock('../js/engine/state.js', () => ({
@@ -209,7 +216,7 @@ vi.mock('../js/rendering/quality.js', () => ({
 
 // ── Import module under test ───────────────────────────────────────────────
 
-import { createEnemyMesh } from '../js/rendering/enemy-meshes.js';
+import { createEnemyMesh, returnEnemyMesh } from '../js/rendering/enemy-meshes.js';
 
 // ── Helper ────────────────────────────────────────────────────────────────
 
@@ -233,15 +240,31 @@ function collectMeshes(group) {
 
 describe('SC-2.4 Improved Procedural Meshes (Enemies)', () => {
 
-  describe('1. Smoother geometry — Puck radial segments', () => {
-    it('puck cylinder uses at least 24 radial segments', () => {
+  describe('1. Body comes from the shared template', () => {
+    it('asks the model module for a body and puts it in the group', () => {
       const enemy = { sz: 1, nm: 'Normal Puck', hp: 100, maxHp: 100 };
       const group = createEnemyMesh(enemy);
-      const cylinders = collectGeometries(group)
-        .filter(g => g instanceof MockCylinderGeometry);
-      expect(cylinders.length).toBeGreaterThan(0);
-      const puckCyl = cylinders[0];
-      expect(puckCyl.segments).toBeGreaterThanOrEqual(24);
+      expect(createEnemyBody).toHaveBeenCalled();
+      expect(enemy.body).toBeDefined();
+      expect(group.children).toContain(enemy.body);
+      expect(enemy.gait).toEqual({ step: 2 });
+    });
+
+    it('a returned mesh is reused only for the same kind of enemy', () => {
+      const puck = { sz: 1, nm: 'Pool Puck', hp: 100, maxHp: 100 };
+      const first = createEnemyMesh(puck);
+      puck.mesh = first;
+      returnEnemyMesh(puck);
+      expect(puck.mesh).toBeNull();
+      expect(puck.hpBar).toBeNull();
+
+      const boss = { sz: 1, nm: 'Pool Boss', boss: true, hp: 100, maxHp: 100 };
+      expect(createEnemyMesh(boss)).not.toBe(first);
+
+      const again = { sz: 1, nm: 'Pool Puck', hp: 100, maxHp: 100 };
+      expect(createEnemyMesh(again)).toBe(first);
+      expect(again.hpBar).toBeDefined();
+      expect(again.hpBar.scale.x).toBe(1);
     });
   });
 
@@ -344,26 +367,6 @@ describe('SC-2.4 Improved Procedural Meshes (Enemies)', () => {
     });
   });
 
-  describe('3. Enhanced status effects — Armored metallic sheen', () => {
-    it('armored enemy has high metalness (>= 0.8) on armor material', () => {
-      const enemy = { sz: 1, nm: 'Normal Puck', armor: 2, hp: 100, maxHp: 100 };
-      const group = createEnemyMesh(enemy);
-      const meshes = collectMeshes(group);
-      const armorMeshes = meshes.filter(m =>
-        m.material instanceof MockMeshStandardMaterial &&
-        m.material._opts?.metalness >= 0.8
-      );
-      expect(armorMeshes.length).toBeGreaterThan(0);
-    });
-
-    it('armored enemy has rim highlight mesh', () => {
-      const enemy = { sz: 1, nm: 'Normal Puck', armor: 2, hp: 100, maxHp: 100 };
-      const group = createEnemyMesh(enemy);
-      // Should have a rimHighlight reference
-      expect(enemy.rimHighlight).toBeDefined();
-    });
-  });
-
   describe('4. Boss visual upgrades', () => {
     it('boss enemy group scale is 1.3x larger', () => {
       const enemy = { sz: 1, nm: 'Boss Puck', boss: true, hp: 500, maxHp: 500 };
@@ -373,34 +376,27 @@ describe('SC-2.4 Improved Procedural Meshes (Enemies)', () => {
       expect(group.scale.z).toBeCloseTo(1.3, 2);
     });
 
-    it('boss has pulsing aura (transparent outer sphere)', () => {
+    it('boss has a pulsing aura', () => {
       const enemy = { sz: 1, nm: 'Boss Puck', boss: true, hp: 500, maxHp: 500 };
       createEnemyMesh(enemy);
       expect(enemy.bossAura).toBeDefined();
     });
 
-    it('boss aura is a transparent sphere geometry', () => {
+    it('boss aura is a transparent ring on the floor', () => {
       const enemy = { sz: 1, nm: 'Boss Puck', boss: true, hp: 500, maxHp: 500 };
       createEnemyMesh(enemy);
-      expect(enemy.bossAura.geometry instanceof MockSphereGeometry).toBe(true);
+      expect(enemy.bossAura.geometry instanceof MockRingGeometry).toBe(true);
       expect(enemy.bossAura.material.transparent).toBe(true);
     });
 
-    it('boss crown spikes use taller cones', () => {
-      const enemy = { sz: 1, nm: 'Boss Puck', boss: true, hp: 500, maxHp: 500 };
-      const group = createEnemyMesh(enemy);
-      const sz = (enemy.sz || 1) * 0.28;
-      const cones = collectGeometries(group)
-        .filter(g => g instanceof MockConeGeometry);
-      // Find taller spikes - boss spikes should be >= 0.5 * sz height
-      const tallSpikes = cones.filter(c => c.h >= sz * 0.5);
-      expect(tallSpikes.length).toBeGreaterThanOrEqual(5);
-    });
-
-    it('boss has pulsing gem (crownGem reference)', () => {
-      const enemy = { sz: 1, nm: 'Boss Puck', boss: true, hp: 500, maxHp: 500 };
-      createEnemyMesh(enemy);
-      expect(enemy.crownGem).toBeDefined();
+    it('boss health bar is shown from the start, others appear on the first hit', () => {
+      const boss = { sz: 1, nm: 'Boss Puck', boss: true, hp: 500, maxHp: 500 };
+      createEnemyMesh(boss);
+      expect(boss.hpShown).toBe(true);
+      const puck = { sz: 1, nm: 'Normal Puck', hp: 100, maxHp: 100 };
+      createEnemyMesh(puck);
+      expect(puck.hpShown).toBe(false);
+      expect(puck.hpParts.every(part => part.visible === false)).toBe(true);
     });
   });
 

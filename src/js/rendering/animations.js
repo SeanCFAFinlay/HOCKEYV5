@@ -4,6 +4,7 @@ import { updateStatusFx } from './status-fx.js';
 import { getState } from '../engine/state.js';
 import { updateEmissiveFlashes } from './tower-meshes.js';
 import { tickDamageAnimations } from '../systems/damage.js';
+import { animateEnemyBody } from './enemy-anim.js';
 
 // ── Enemy Death Animation ──────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ export function updateTowerDropAnimations(towers, dt) {
 
 export function updateAnimations(dt) {
   const state = getState();
-  const { towers, enemies, animTime } = state;
+  const { towers, enemies, animTime, camera } = state;
   const t = animTime;
 
   // SC-2.5: decay emissive flash
@@ -213,6 +214,9 @@ export function updateAnimations(dt) {
     // Ice block, flames, arcs, target mark (rendering/status-fx.js)
     updateStatusFx(e, t);
 
+    // Gait, lean, turning, limbs and rotors (rendering/enemy-anim.js)
+    animateEnemyBody(e, t, dt, camera);
+
     // Animate flames with more dynamic motion
     if (e.flames) {
       e.flames.forEach((flame, i) => {
@@ -302,13 +306,9 @@ export function updateAnimations(dt) {
     // Update health bar color and smooth lerp fill width
     if (e.hpBar && e.hp !== undefined && e.maxHp !== undefined && e.hpMats) {
       const hpPercent = e.hp / e.maxHp;
-      if (hpPercent <= 0.25) {
-        e.hpBar.material.color.setHex(0xef4444);
-      } else if (hpPercent <= 0.5) {
-        e.hpBar.material.color.setHex(0xeab308);
-      } else {
-        e.hpBar.material.color.setHex(0x22c55e);
-      }
+      // The three colours are shared materials: swap, never tint.
+      const hpMat = hpPercent <= 0.25 ? e.hpMats.hpLow : (hpPercent <= 0.5 ? e.hpMats.hpMid : e.hpMats.hpFull);
+      if (hpMat && e.hpBar.material !== hpMat) e.hpBar.material = hpMat;
 
       // Smooth fill transition: lerp currentWidth toward targetWidth
       const ud = e.hpBar.userData;
@@ -328,9 +328,10 @@ export function updateAnimations(dt) {
 
     // Boss aura pulsing at 2Hz (scale 1.0 - 1.1)
     if (e.bossAura) {
-      const auraScale = 1.0 + Math.sin(t * 2 * Math.PI * 2) * 0.05;
+      const auraScale = 1.0 + Math.sin(t * 2 * Math.PI) * 0.06;
       e.bossAura.scale.setScalar(auraScale);
-      e.bossAura.material.opacity = 0.1 + Math.sin(t * 2 * Math.PI * 2 + 0.5) * 0.04;
+      e.bossAura.rotation.z = t * 0.6;
+      e.bossAura.material.opacity = 0.34 + Math.sin(t * 2 * Math.PI + 0.5) * 0.12;
     }
 
     // Animate heat ring (burn status effect distortion ring)
@@ -344,7 +345,7 @@ export function updateAnimations(dt) {
 
     // Slow effect (ice)
     if (e.slowGroup) {
-      const isSlowed = e.slow && e.slow > 0;
+      const isSlowed = e.slow > 0;
       e.slowGroup.visible = isSlowed;
 
       if (isSlowed) {
@@ -356,30 +357,23 @@ export function updateAnimations(dt) {
         }
 
         // Animate ice crystals orbiting
+        const fr = (e.sz || 1) * 0.42;
         if (e.iceCrystals) {
           e.iceCrystals.forEach((crystal, i) => {
             const orbitAngle = crystal.baseAngle + t * 2;
-            const sz = (e.sz || 1) * 0.28;
-            crystal.mesh.position.x = Math.cos(orbitAngle) * sz * 1.0;
-            crystal.mesh.position.z = Math.sin(orbitAngle) * sz * 1.0;
-            crystal.mesh.position.y = sz * 0.3 + Math.sin(t * 4 + i) * sz * 0.15;
+            crystal.mesh.position.x = Math.cos(orbitAngle) * fr * 1.15;
+            crystal.mesh.position.z = Math.sin(orbitAngle) * fr * 1.15;
+            crystal.mesh.position.y = fr * 0.3 + Math.sin(t * 4 + i) * fr * 0.15;
             crystal.mesh.rotation.y = t * 3;
             crystal.mesh.rotation.x = t * 2;
           });
         }
 
-        // Animate frost particles floating
+        // Animate frost particles floating (they share a material: no per-particle fade)
         if (e.frostParticles) {
-          e.frostParticles.forEach((frost, i) => {
+          e.frostParticles.forEach((frost) => {
             frost.mesh.position.y += dt * 0.5;
-            frost.mesh.material.opacity = 0.7 - frost.mesh.position.y * 0.3;
-
-            // Reset when too high
-            const sz = (e.sz || 1) * 0.28;
-            if (frost.mesh.position.y > sz * 1.5) {
-              frost.mesh.position.y = sz * 0.2;
-              frost.mesh.material.opacity = 0.7;
-            }
+            if (frost.mesh.position.y > fr * 1.5) frost.mesh.position.y = fr * 0.2;
           });
         }
       }
@@ -387,7 +381,7 @@ export function updateAnimations(dt) {
 
     // Burn effect (fire)
     if (e.burnGroup) {
-      const isBurning = e.burnT && e.burnT > 0;
+      const isBurning = e.burnT > 0;
       e.burnGroup.visible = isBurning;
 
       if (isBurning) {
@@ -398,36 +392,24 @@ export function updateAnimations(dt) {
           e.heatAura.material.opacity = 0.12 + Math.sin(t * 8) * 0.05;
         }
 
-        // Animate burn flames flickering
+        // Animate burn flames flickering (each sits in a holder that carries its size)
         if (e.burnFlames) {
           e.burnFlames.forEach((flame, i) => {
-            const sz = (e.sz || 1) * 0.28;
-            const flameScale = 0.7 + Math.sin(t * 12 + i * 0.8) * 0.4;
-            flame.mesh.scale.y = flameScale;
+            flame.mesh.scale.y = 0.7 + Math.sin(t * 12 + i * 0.8) * 0.4;
             flame.mesh.scale.x = 0.8 + Math.sin(t * 10 + i) * 0.3;
             flame.mesh.rotation.z = Math.sin(t * 8 + i) * 0.2;
-
-            // Slight position wobble
-            const wobbleAngle = flame.baseAngle + Math.sin(t * 5 + i) * 0.1;
-            flame.mesh.position.x = Math.cos(wobbleAngle) * sz * 0.75;
-            flame.mesh.position.z = Math.sin(wobbleAngle) * sz * 0.75;
           });
         }
 
-        // Animate burn embers rising
+        // Animate burn embers rising (shared material: they shrink out rather than fade)
         if (e.burnEmbers) {
           e.burnEmbers.forEach((ember, i) => {
-            ember.mesh.position.y += dt * 1.2;
-            ember.mesh.material.opacity = 0.9 - ember.mesh.position.y * 0.4;
-            ember.mesh.scale.setScalar(0.7 + Math.sin(t * 15 + i * 2) * 0.3);
-
-            // Reset when too high
-            const sz = (e.sz || 1) * 0.28;
-            if (ember.mesh.position.y > sz * 2.0) {
-              ember.mesh.position.y = sz * 0.3;
-              ember.mesh.position.x = (Math.random() - 0.5) * sz * 1.0;
-              ember.mesh.position.z = (Math.random() - 0.5) * sz * 1.0;
-              ember.mesh.material.opacity = 0.9;
+            ember.mesh.position.y += dt * 2.8;
+            ember.mesh.scale.setScalar(Math.max(0.1, 1.2 - ember.mesh.position.y * 0.45) * (0.8 + Math.sin(t * 15 + i * 2) * 0.2));
+            if (ember.mesh.position.y > 2.0) {
+              ember.mesh.position.y = 0.3;
+              ember.mesh.position.x = Math.random() - 0.5;
+              ember.mesh.position.z = Math.random() - 0.5;
             }
           });
         }

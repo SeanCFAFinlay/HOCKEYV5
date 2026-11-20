@@ -49,3 +49,4 @@ src/tests/visual/.output/
 src/playwright-report/
 src/blob-report/
 src/.playwright/
+.env*

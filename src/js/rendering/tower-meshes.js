@@ -414,6 +414,78 @@ function addLevelFlair(turret, lv, scale, color, goldMat) {
   }
 }
 
+/**
+ * Hand-set muzzle points for figures the measurement below gets wrong, keyed
+ * `theme:towerIndex`. Values are multiples of the figure's scale: [x, y, z].
+ */
+const MUZZLE_OVERRIDES = {};
+
+let _mzV = null;
+let _mzInv = null;
+const MUZZLE_DEFAULT = { x: 0, y: 0.6, z: 0.3 };
+
+/**
+ * Measure where a figure's shots should leave it.
+ *
+ * Every figure faces +Z, so the muzzle is whatever sticks out furthest forward:
+ * a barrel's mouth, a stick's blade, a boot. Figures with nothing pointing
+ * forward (coils, beacons), and chain towers, fire from their top instead.
+ * @returns {{x: number, y: number, z: number}} turret-local point
+ */
+function findMuzzle(turret, role) {
+  try {
+    return measureMuzzle(turret, role);
+  } catch (e) {
+    return MUZZLE_DEFAULT;
+  }
+}
+
+function measureMuzzle(turret, role) {
+  if (!_mzV) {
+    _mzV = new THREE.Vector3();
+    _mzInv = new THREE.Matrix4();
+  }
+  turret.updateMatrixWorld(true);
+  _mzInv.copy(turret.matrixWorld).invert();
+
+  const pts = [];
+  let minZ = Infinity, maxZ = -Infinity, maxY = -Infinity;
+  turret.traverse(o => {
+    const pos = o.isMesh && o.geometry?.attributes?.position;
+    if (!pos || o.visible === false) return;
+    // Soft glows and halos are not part of the figure's shape.
+    if (o.material?.blending === THREE.AdditiveBlending || (o.material?.transparent && o.material.opacity < 0.5)) return;
+    const step = Math.max(1, Math.floor(pos.count / 120));
+    for (let i = 0; i < pos.count; i += step) {
+      _mzV.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(_mzInv);
+      pts.push(_mzV.x, _mzV.y, _mzV.z);
+      if (_mzV.z < minZ) minZ = _mzV.z;
+      if (_mzV.z > maxZ) maxZ = _mzV.z;
+      if (_mzV.y > maxY) maxY = _mzV.y;
+    }
+  });
+  if (!pts.length) return MUZZLE_DEFAULT;
+
+  const average = (pick) => {
+    let x = 0, y = 0, z = 0, n = 0;
+    for (let i = 0; i < pts.length; i += 3) {
+      if (!pick(pts[i], pts[i + 1], pts[i + 2])) continue;
+      x += pts[i]; y += pts[i + 1]; z += pts[i + 2]; n++;
+    }
+    return n ? { x: x / n, y: y / n, z: z / n } : null;
+  };
+
+  const depth = maxZ - minZ || 1;
+  // Round figures (as deep behind as in front) have no front to fire from.
+  const round = Math.abs(maxZ + minZ) < depth * 0.06;
+  if (role === 'CHAIN' || round) {
+    const top = average((x, y) => y > maxY - 0.08 * (maxY || 1));
+    return { x: top.x, y: maxY, z: top.z };
+  }
+  const tip = average((x, y, z) => z > maxZ - depth * 0.06);
+  return { x: tip.x, y: tip.y, z: maxZ };
+}
+
 export function createTowerMesh(tower) {
   const state = getState();
   const { theme, themeData, COLS, ROWS, scene } = state;
@@ -494,6 +566,11 @@ export function createTowerMesh(tower) {
     buildSpaceTowerMesh(turret, towerIdx, scale, bodyMat, glowMat, metalMat, darkMat, whiteMat, goldMat, color);
   }
   turret.userData.animParts = turret.userData.animParts || [];
+
+  // Where shots leave this figure, in the turret's own space (+Z is forward).
+  // A builder can set turret.userData.muzzle itself; otherwise it is measured.
+  tower.muzzle = turret.userData.muzzle || MUZZLE_OVERRIDES[`${theme}:${towerIdx}`] || findMuzzle(turret, role);
+  tower.muzzleBaseY = 0.08 + turret.position.y;
 
   // The remodelled hockey figures carry their own trim.
   if (!(theme === 'hockey' && buildHockeyRemodel)) addTowerDetail(turret, scale, theme);

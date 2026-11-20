@@ -95,16 +95,33 @@ export function createProjectile(tw, target, sx, sz) {
   tw.fireVoice = flight;   // picks the fire sound (config/sounds.js)
   const size = profile.size || 1;
 
-  // Leave from the front of the tower rather than its centre.
+  // Leave from the figure's muzzle (measured when the tower is built), turned
+  // to face the target. The turret snaps onto the target as it fires so the
+  // shot is seen to come out of the barrel, not from beside it.
   const ddx = target.x - sx;
   const ddz = target.z - sz;
   const flat = Math.sqrt(ddx * ddx + ddz * ddz) || 1;
   const dirX = ddx / flat;
   const dirZ = ddz / flat;
-  const lead = Math.min(0.32, flat * 0.4);
-  const startX = sx + dirX * lead;
-  const startZ = sz + dirZ * lead;
-  const startY = flight === 'slide' ? SLIDE_Y : MUZZLE_Y;
+  const mz = tw.muzzle;
+  let startX, startZ, startY;
+  if (mz) {
+    // Never start beyond a target standing right next to the tower.
+    const reach = Math.hypot(mz.x, mz.z) || 1;
+    const k = Math.min(1, (flat * 0.7) / reach);
+    const fwd = mz.z * k;
+    const side = mz.x * k;
+    startX = sx + dirX * fwd + dirZ * side;
+    startZ = sz + dirZ * fwd - dirX * side;
+    startY = (tw.muzzleBaseY || 0) + mz.y;
+    if (tw.turret) tw.turret.rotation.y = Math.atan2(ddx, ddz);
+  } else {
+    const lead = Math.min(0.32, flat * 0.4);
+    startX = sx + dirX * lead;
+    startZ = sz + dirZ * lead;
+    startY = MUZZLE_Y;
+  }
+  if (flight === 'slide') startY = SLIDE_Y;
 
   const mesh = createProjectileMesh(profile.mesh, color, size);
   mesh.position.set(startX, startY, startZ);

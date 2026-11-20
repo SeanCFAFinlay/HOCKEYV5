@@ -7,6 +7,7 @@ import { createExplosion, createLightning, createImpact, spawnGroundRipple } fro
 import { triggerHitStop } from '../engine/loop.js';
 import { cameraZoomPulse, triggerCameraShake } from '../engine/camera.js';
 import { getPower, powerValue } from '../config/powers.js';
+import { flashMesh, tickFlash } from '../rendering/hit-flash.js';
 import { applyChill, applyShock, applyStagger, applyBurn, applyExpose, applyKnockback, damageMultiplier } from './status.js';
 
 // Hit flash duration
@@ -255,47 +256,18 @@ export function hurtEnemy(e, dmg, isCrit = false, opts = {}) {
 }
 
 /**
- * Flash a mesh with a color.
- * Stores state in mesh.userData so the game loop can tick it down with dt.
- * @param {THREE.Object3D} mesh - Mesh to flash
- * @param {number} color - Flash color (hex)
- * @param {number} duration - Flash duration in seconds
- */
-function flashMesh(mesh, color, duration) {
-  // A hit that lands mid-flash must keep the first flash's record of the real
-  // colours, or the flash colour itself gets saved as the "original".
-  const originals = (mesh.userData.flashActive && mesh.userData.flashOriginals) || new Map();
-
-  mesh.traverse((child) => {
-    if (child.isMesh && child.material) {
-      const mat = child.material;
-      if (mat.emissive) {
-        // Materials are shared between enemies, so the resting colour is
-        // recorded once on the material itself: another enemy's flash can then
-        // never be mistaken for it.
-        if (!mat.userData.flashBase) {
-          mat.userData.flashBase = { color: mat.emissive.getHex(), intensity: mat.emissiveIntensity };
-        }
-        originals.set(mat, mat.userData.flashBase);
-        mat.emissive.setHex(color);
-        mat.emissiveIntensity = 0.5;
-      }
-    }
-  });
-
-  mesh.userData.flashActive = true;
-  mesh.userData.flashRemaining = duration;
-  mesh.userData.flashOriginals = originals;
-}
-
-/**
  * Punch scale effect stored in mesh.userData for game-loop integration.
  * @param {THREE.Object3D} mesh - Mesh to scale
  * @param {number} scale - Peak scale multiplier
  */
 function punchScale(mesh, scale) {
-  const originalScale = mesh.scale.clone();
-  mesh.scale.multiplyScalar(scale);
+  // Always punch from the resting size. A hit that lands while an earlier punch
+  // is still easing back must not take the swollen size as the new normal, or
+  // anything hit often enough (a boss) inflates without limit.
+  const originalScale = mesh.userData.punchActive && mesh.userData.punchTargetScale
+    ? mesh.userData.punchTargetScale.clone()
+    : mesh.scale.clone();
+  mesh.scale.copy(originalScale).multiplyScalar(scale);
 
   mesh.userData.punchActive = true;
   mesh.userData.punchTime = 0;
@@ -313,22 +285,8 @@ function punchScale(mesh, scale) {
 export function tickDamageAnimations(mesh, dt) {
   if (!mesh || !mesh.userData) return;
 
-  if (mesh.userData.flashActive) {
-    mesh.userData.flashRemaining -= dt;
-    if (mesh.userData.flashRemaining <= 0) {
-      mesh.userData.flashActive = false;
-      const originals = mesh.userData.flashOriginals;
-      if (originals) {
-        // Restore the material's own glow. This used to force intensity to 0,
-        // so every enemy lost its self-illumination after its first hit.
-        originals.forEach((original, mat) => {
-          mat.emissive.setHex(original.color);
-          mat.emissiveIntensity = original.intensity;
-        });
-      }
-      mesh.userData.flashOriginals = null;
-    }
-  }
+  // Flash: see rendering/hit-flash.js (materials are shared between enemies).
+  tickFlash(mesh, dt);
 
   if (mesh.userData.punchActive) {
     mesh.userData.punchTime += dt;
