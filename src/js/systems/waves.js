@@ -9,6 +9,7 @@ import { updateHUD } from '../ui/hud.js';
 import { hideUpgrade } from '../ui/upgrade-sheet.js';
 import { createSpawnPulse, createWaveComplete } from './particles.js';
 import { generateWaves } from '../config/waves.js';
+import { waveBounty } from '../config/balance.js';
 import { setPathPreviewVisible } from '../rendering/path-preview.js';
 import { cameraWaveStartPullback } from '../engine/camera.js';
 
@@ -65,6 +66,13 @@ export function startWave() {
       }
     }
   });
+
+  // Share the wave's bounty out by each enemy's base reward.
+  const baseRewards = spawnQueue.reduce((sum, ed) => sum + (ed.rwd || 0), 0);
+  if (baseRewards > 0) {
+    const share = waveBounty(currentWave, state.mapIndex || 0) / baseRewards;
+    spawnQueue.forEach(ed => { ed.rwdScale = share; });
+  }
 
   // Shuffle spawn queue for variety (deterministic with wave seed)
   shuffleArray(spawnQueue, currentWave);

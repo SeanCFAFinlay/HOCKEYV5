@@ -4,8 +4,8 @@
 // role, threatTags, unlockWave, waveWeight, speedClass, rewardClass
 //
 // Balance notes:
-//   - Base HP is scaled per-wave in systems/enemies.js: hp * (1 + wave * 0.07 + (wave/25)^1.6 * 0.6)
-//   - Rewards are fixed values; stronger/boss enemies give more
+//   - Base HP, speed and rewards are scaled per wave and per map in config/balance.js
+//   - `rwd` sets each enemy's share of its wave's bounty; stronger/boss enemies get more
 //   - Armor reduces damage taken as a flat multiplier (e.g., 0.35 = 35% damage reduction)
 //
 // ENEMY ROLES:

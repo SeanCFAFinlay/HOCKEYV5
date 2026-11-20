@@ -1,6 +1,7 @@
 // Enemy spawning and movement with state machine
 // Delta-time based, deterministic movement
 
+import { enemyHpScale, enemyRewardScale, enemySpeedScale } from '../config/balance.js';
 import { getState, addEnemy, decrementLives, decrementSpawnsPending, addMoney, addScore, incrementKills } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { playSoundAt } from '../engine/audio.js';
@@ -51,21 +52,12 @@ export function spawnEnemy(ed) {
   const spawnIndex = state.enemies.length % SPAWNS.length;
   const s = SPAWNS[spawnIndex] || { x: 0, y: Math.floor(ROWS / 2) };
 
-  // Calculate phased difficulty scaling
-  // Early game (1-10): Gradual scaling
-  // Mid game (11-20): Moderate scaling
-  // Late game (21+): Steep scaling
-  const hpScale = wave <= 10 
-    ? (1 + wave * 0.10)                    // Early: 1.1x to 2.0x
-    : wave <= 20 
-      ? (2.0 + (wave - 10) * 0.15)         // Mid: 2.0x to 3.5x
-      : (3.5 + (wave - 20) * 0.20);        // Late: 3.5x to 7.5x at wave 40
-
-  const rewardScale = wave <= 10
-    ? (1 + wave * 0.06)                    // Early: 1.06x to 1.6x
-    : wave <= 20
-      ? (1.6 + (wave - 10) * 0.10)         // Mid: 1.6x to 2.6x
-      : (2.6 + (wave - 20) * 0.12);        // Late: 2.6x to 5.0x at wave 40
+  // Health, reward and speed for this wave on this map (config/balance.js).
+  const mapIndex = state.mapIndex || 0;
+  const hpScale = enemyHpScale(wave, mapIndex);
+  // Enemies queued by a wave carry their share of that wave's bounty.
+  const rewardScale = ed.rwdScale ?? enemyRewardScale(wave);
+  const speed = ed.spd * enemySpeedScale(mapIndex);
 
   const e = {
     // Identity
@@ -93,15 +85,11 @@ export function spawnEnemy(ed) {
     prevY: 0.2,
     prevZ: s.y - hh + 0.5,
 
-    // Staged HP scaling: gentle early (readable), escalating mid/late (strategic challenge).
-    // Formula: base * (1 + wave*0.07 + (wave/25)^1.6 * 0.6)
-    //   Wave 1:  ~1.07x  Wave 5:  ~1.36x  Wave 10: ~1.74x
-    //   Wave 20: ~2.54x  Wave 40: ~5.0x   Wave 65: ~10.5x
-    hp: ed.hp * (1 + wave * 0.07 + Math.pow(wave / 25, 1.6) * 0.6),
-    maxHp: ed.hp * (1 + wave * 0.07 + Math.pow(wave / 25, 1.6) * 0.6),
-    baseSpd: ed.spd,
-    spd: ed.spd,
-    rwd: Math.floor(ed.rwd * rewardScale),
+    hp: ed.hp * hpScale,
+    maxHp: ed.hp * hpScale,
+    baseSpd: speed,
+    spd: speed,
+    rwd: Math.max(1, Math.round(ed.rwd * rewardScale)),
     sz: ed.sz || 1,
     armor: ed.armor || 0,
 
