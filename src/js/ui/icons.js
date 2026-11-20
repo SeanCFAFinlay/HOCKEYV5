@@ -87,7 +87,39 @@ const PATHS = {
   bowlball: '<circle class="ln" cx="12" cy="12" r="8.500"/><circle class="fl" cx="10" cy="8.500" r="1.100"/><circle class="fl" cx="13.800" cy="8" r="1.100"/><circle class="fl" cx="12.500" cy="11.500" r="1.100"/>',
   shoe: '<path class="ln" d="M3 17v-6l4-1 3 3 8 2a3 3 0 0 1 3 3v1H3v-2Z"/><path class="ln" d="M3 15h18M9 12l1.500-1.500M11.500 13.500 13 12"/>',
 
+  // ── Bathtub Navy ─────────────────────────────────────────────────────────
+  duck: '<path class="ln" d="M6.500 11.500A4 4 0 1 1 13 9v2.500c2 0 4 .500 5 1.500l3-1c0 5-3 8-7 8h-3c-4 0-7-2-7-5 0-1.500 1-2.800 2.500-3.500Z"/><path class="ln" d="M5.200 8H2.500l2.200 2.200"/><circle class="fl" cx="8.500" cy="7.500" r="1"/>',
+  pistol: '<path class="ln" d="M3 8h14l3 1.500V12H11l-1 2.500H7.500L8.500 20H4.500L3 12V8Z"/><path class="ln" d="M7 8V5h7v3M11 12v2"/><path class="ln" d="M22 14.500v.01M21.500 17.500v.01"/>',
+  shower: '<path class="ln" d="M5 21V8a4 4 0 0 1 8 0v1"/><path class="ln" d="M8.500 13a4.500 4 0 0 1 9 0Z"/><path class="ln" d="M10 15.500l-.800 2M13 15.500v2.500M16 15.500l.800 2M11 20l-.400 1.500M15 20l.400 1.500"/>',
+  bathbomb: '<circle class="ln" cx="10.500" cy="14" r="6.500"/><path class="ln" d="M4.500 12c4 2 8 2 12 0"/><circle class="ln" cx="18.500" cy="6" r="1.800"/><circle class="ln" cx="14" cy="3.500" r="1"/><path class="ln" d="M20.500 11v.01"/>',
+  tap: '<path class="ln" d="M4 21v-3h6v3M7 18v-7"/><path class="ln" d="M7 11h9a4 4 0 0 1 4 4v1h-3v-1a1 1 0 0 0-1-1H7"/><path class="ln" d="M3 7h8M7 7v4M18.500 19v2"/>',
+  plunger: '<path class="ln" d="M12 2v11"/><path class="ln" d="M5 20c0-4 3-7 7-7s7 3 7 7Z"/><path class="ln" d="M3 20h18"/>',
+  dryer: '<path class="ln" d="M6 6.500 14 4a5 5 0 0 1 0 10l-8-2.500v-5Z"/><path class="ln" d="M12 14l1 7h4l-1.500-7.500"/><circle class="ln" cx="14.500" cy="9" r="1.800"/><path class="ln" d="M3.500 7 2 6.500M3.500 9H1.500M3.500 11 2 11.500"/>',
+  iron: '<path class="ln" d="M2.500 18c0-4 2.500-6 6.500-6h11l1 6h-18.500Z"/><path class="ln" d="M20 12a5 5 0 0 0-5-4H9M9 8V6h5"/><path class="ln" d="M6 21v.01M10 21v.01M14 21v.01"/>',
+  rocket: '<path class="ln" d="M12 2c3 3 4 7 4 11H8c0-4 1-8 4-11Z"/><path class="ln" d="M8 13l-3 4h4M16 13l3 4h-4M10 17h4"/><path class="fl" d="M12 18c1 1.500 1 3 0 4-1-1-1-2.500 0-4Z"/><circle class="ln" cx="12" cy="8.500" r="1.500"/>',
+
   trophy: '<path class="ln" d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path class="ln" d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M10 14v3M14 14v3M8 20h8M9 17h6"/>',
+
+  // ── Garden Gnome Uprising ────────────────────────────────────────────────
+  gnome: '<path class="fl" d="M12 2 7.500 11h9Z"/><circle class="ln" cx="12" cy="13" r="3.500"/><path class="ln" d="M8.500 14.500 12 22l3.500-7.500"/>',
+  fishrod: '<path class="ln" d="M4 21 15 4c3 0 5 2 5 5v6"/><path class="ln" d="M20 15v2.500a2 2 0 0 1-4 0"/><circle class="fl" cx="7.500" cy="16" r="1.600"/>',
+  seedbomb: '<circle class="ln" cx="10.500" cy="14" r="6.500"/><path class="ln" d="M15 9.500 17.500 7"/><path class="fl" d="M17.500 7c0-2.500 1.500-4 4-4 0 2.500-1.500 4-4 4Z"/><path class="ln" d="M8.500 12v.01M12.500 13v.01M9.500 16.500v.01"/>',
+  wateringcan: '<path class="ln" d="M6 9h9v11H6Z"/><path class="ln" d="M15 16.500 20 8M18 6.500l4 2.500"/><path class="ln" d="M6 11H4.500a2.500 2.500 0 0 0 0 5H6M8 9c0-3.500 5-3.500 5 0"/>',
+  welly: '<path class="ln" d="M8 3h6v10l5 3a2 2 0 0 1 1 2v3H8Z"/><path class="ln" d="M8 6.500h6M8 18h12"/>',
+  zapper: '<path class="ln" d="M7 7h10v11H7ZM5 7h14M9 18v2.500h6V18M12 3v4"/><path class="fl" d="M13 9l-3 4h2l-1 3.500 3-4.500h-2Z"/>',
+  tiki: '<path class="ln" d="M9 21V10.500h6V21M8 10.500h8"/><path class="fl" d="M12 2c2 2 3 3.500 3 5a3 3 0 0 1-6 0c0-1 .500-2 1.200-2.500.200.800.600 1.200 1 1.200.400-1-.200-2.200.800-3.700Z"/><path class="ln" d="M10.500 14v.01M13.500 14v.01M10.500 17.500h3"/>',
+
+  // ── Sushi Conveyor ───────────────────────────────────────────────────────
+  nigiri: '<path class="ln" d="M4 14v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path class="ln" d="M3 12c1-5 17-5 18 0 0 3-18 3-18 0Z"/><path class="ln" d="M9 9l-1 4.500M13 8.500l-1 5.500M17 9.500l-1 4"/>',
+  chopsticks: '<path class="ln" d="M4 21 18 3M9 21 21 7"/><ellipse class="fl" cx="18.500" cy="6" rx="2.300" ry="1.400" transform="rotate(-45 18.500 6)"/>',
+  sashimiknife: '<path class="ln" d="M3 21l5.500-5.500"/><path class="ln" d="M7 14 20 3c1 5-3 10-10 14Z"/><path class="ln" d="M7.500 15.500l1.500 1.500"/>',
+  ricecooker: '<path class="ln" d="M4 11h16v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3Z"/><path class="ln" d="M5 11a7 5 0 0 1 14 0M10 15.500h4M2.500 13.500H4M20 13.500h1.500"/><path class="ln" d="M10 2.500c0 1 1 1 1 2M14 2c0 1 1 1 1 2"/>',
+  kakigori: '<path class="ln" d="M4 13h16l-3 6H7Z"/><path class="ln" d="M6 13c0-5 3-9 6-9s6 4 6 9"/><path class="ln" d="M9 21.500h6M10 8l1 1.500M14 7.500l-1 2M12 10.500v.01"/>',
+  mochimallet: '<rect class="ln" x="3" y="3.500" width="11" height="6.500" rx="1.500" transform="rotate(-20 8.500 6.750)"/><path class="ln" d="M9.500 9.500 16 20"/><path class="ln" d="M12 21h9M14 21c0-3 5-3 5 0"/>',
+  eeljar: '<rect class="ln" x="6" y="7" width="12" height="14" rx="2"/><path class="ln" d="M8 7V5h8v2"/><path class="ln" d="M9 18c2-3 4 1 6-2s-4-2-3-5"/><path class="fl" d="M13 0 10.500 3H12l-.500 2.500L14 2.500h-1.500Z"/>',
+  konro: '<path class="ln" d="M5 12h14l-1.500 8h-11Z"/><path class="ln" d="M3.500 12h17M10 16h4"/><path class="fl" d="M12 2c1.500 2 3 3 3 5.500a3 3 0 0 1-6 0c0-1 .500-2 1-2.500.300.800.700 1.200 1.200 1.200C11.500 5 11 3.500 12 2Z"/>',
+  luckycat: '<path class="ln" d="M5 10 4.500 4.500 8 7a6 6 0 0 1 5 0l3.500-2.500L16 10a5.500 5 0 1 1-11 0Z"/><path class="ln" d="M8.500 10.500v.01M12.500 10.500v.01M9.500 13c.700.700 1.300.700 2 0"/><path class="ln" d="M17 13.500c2 0 3.500-1.500 3.500-3.500V6a1.500 1.500 0 0 0-3 0v3"/><path class="ln" d="M7 17v4h7v-4"/>',
+  maki: '<circle class="ln" cx="12" cy="12" r="8.500"/><circle class="ln" cx="12" cy="12" r="5.500"/><circle class="fl" cx="12" cy="12" r="2.200"/>',
 
   // ── Controls ─────────────────────────────────────────────────────────────
   pause: '<rect class="fl" x="6" y="5" width="4" height="14" rx="1"/><rect class="fl" x="14" y="5" width="4" height="14" rx="1"/>',

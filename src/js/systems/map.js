@@ -132,7 +132,7 @@ export function generateObstacles(layout) {
   // Lopsided designs come in two mirror-image forms; which one a map gets
   // depends on the world and the map, so the same layout type is not always
   // the same way up.
-  const themeSalt = Math.max(0, ['hockey', 'soccer', 'space', 'kitchen', 'golf', 'bowling'].indexOf(theme));
+  const themeSalt = Math.max(0, ['hockey', 'soccer', 'space', 'kitchen', 'golf', 'bowling', 'bathtub', 'garden', 'sushi'].indexOf(theme));
   const flip = (mapIndex + themeSalt) % 2 === 1;
 
   /** Column at a share of the map width. */

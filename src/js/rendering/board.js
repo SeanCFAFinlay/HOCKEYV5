@@ -105,6 +105,65 @@ const STYLES = {
     base: { color: 0x4a2f1c, rough: 0.85 },
     side: 'cabinet'
   },
+  bathtub: {
+    // Obstacles are bars of pink soap with a cream stripe, a bubble on each
+    // end. The kerb is the rim of the tub: white enamel with a teal tile line.
+    wall: { h: 0.46, t: 0.62, r: 0.12, stripe: [0.17, 0.25] },
+    // Water over tiles: keep the relief shallow so it reads as one surface.
+    tile: { groove: 0.72, checker: 0.03, size: 0.97 },
+    kerb: {
+      h: 0.42, stripe: [0.14, 0.23],
+      body: { color: 0xc3ced4, rough: 0.2 },
+      cap: { color: 0xe9eef1, rough: 0.15 },
+      accent: { color: 0x118a9e, rough: 0.3 }
+    },
+    baseGap: 1.12,
+    post: { shape: 'cyl', top: 'sphere', topBucket: 'accent' },
+    body: { color: 0xb02a58, rough: 0.4 },
+    cap: { color: 0xcf3f6e, rough: 0.35 },
+    accent: { color: 0xe6d3da, rough: 0.35 },
+    base: { color: 0x15485a, rough: 0.8 },
+    side: 'fascia'
+  },
+  garden: {
+    // Obstacles are long terracotta planters brim-full of box hedge, with a
+    // clipped ball in a round pot wherever one ends or turns.
+    wall: { h: 0.46, t: 0.62, r: 0.05, stripe: [0.3, 0.37] },
+    // The garden's edge is a clipped hedge on a timber board; the spawn
+    // tunnels are holes through it.
+    kerb: {
+      h: 0.5, stripe: [0, 0.07],
+      body: { color: 0x0a2c10, rough: 0.9 },
+      cap: { color: 0x0f4216, rough: 0.85 },
+      accent: { color: 0x3a2210, rough: 0.8 }
+    },
+    baseGap: 1.05,
+    post: { shape: 'cyl', top: 'sphere', topBucket: 'cap' },
+    body: { color: 0x6e2a10, rough: 0.75 },
+    cap: { color: 0x124a18, rough: 0.85 },
+    accent: { color: 0xa98a58, rough: 0.6 },
+    base: { color: 0x2e2015, rough: 0.9 },
+    side: 'soil'
+  },
+  sushi: {
+    // Obstacles are lacquered bento boxes: black sides, a gold line, a
+    // vermilion lid, and a red lantern ball on each corner post.
+    wall: { h: 0.46, t: 0.64, r: 0.05, stripe: [0.3, 0.35] },
+    // The counter's edge is a low rail of green bamboo, capped in pale cane.
+    kerb: {
+      h: 0.3, t: 0.3, stripe: [0.11, 0.16],
+      body: { color: 0x55752a, rough: 0.45 },
+      cap: { color: 0x9c8a4e, rough: 0.5 },
+      accent: { color: 0x34491c, rough: 0.6 }
+    },
+    baseGap: 1.05,
+    post: { shape: 'cyl', top: 'sphere', topBucket: 'cap' },
+    body: { color: 0x17120f, rough: 0.22, metal: 0.25 },
+    cap: { color: 0x8f1612, rough: 0.45, metal: 0.05 },
+    accent: { color: 0xc9992e, rough: 0.35, metal: 0.5 },
+    base: { color: 0x2a1c16, rough: 0.85 },
+    side: 'lane'
+  },
   golf: {
     wall: { h: 0.42, t: 0.6, r: 0.05, stripe: [0.17, 0.25] },
     kerbH: 0.34, baseGap: 1.15,

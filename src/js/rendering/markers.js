@@ -112,6 +112,35 @@ function buildTunnel(group, mats, look, theme) {
     m.add(G.torus(0.86, 0.06, 8, 32), mats.accent, { p: [mouth - 0.06, 0.74, 0], r: [0, HALF_PI, 0], shadow: false });
   }
 
+  if (theme === 'bathtub') {
+    // The toys pour in through the tap: a chrome collar on the mouth of the
+    // pipe and a red cross-head handle on top of it.
+    const chrome = M.metal(0xd7dde5, { rough: 0.2 });
+    const hot = M.paint(0xe5352b, { gloss: 0.85, glow: 0.25 });
+    const top = wallH + halfW + 0.08;
+    for (const x of [mouth + 0.22, mouth + len * 0.55]) m.add(G.torus(halfW + 0.12, 0.07, 8, 22, Math.PI), chrome, { p: [x, wallH, 0], r: [0, HALF_PI, 0] });
+    m.add(G.lathe([[0.3, 0], [0.32, 0.06], [0.14, 0.14], [0.11, 0.42], [0.16, 0.46], [0, 0.5]], 14), chrome, { p: [mouth + 0.75, top - 0.06, 0] });
+    m.add(G.sphere(0.15, 12, 10), hot, { p: [mouth + 0.75, top + 0.52, 0] });
+    for (let i = 0; i < 4; i++) {
+      const a = i * HALF_PI + 0.6;
+      m.add(G.cyl(0.045, 0.045, 0.36, 8), chrome, { p: [mouth + 0.75 + Math.cos(a) * 0.26, top + 0.52, -Math.sin(a) * 0.26], r: [0, a, HALF_PI] });
+      m.add(G.sphere(0.1, 10, 8), hot, { p: [mouth + 0.75 + Math.cos(a) * 0.46, top + 0.52, -Math.sin(a) * 0.46] });
+    }
+  }
+
+  if (theme === 'sushi') {
+    // The kitchen hatch: a noren curtain hung across the mouth on a pole.
+    const cloth = M.paint(0x24408e, { gloss: 0.2, glow: 0.1 });
+    const crest = M.glow(0xf6f1e4);
+    const rodY = wallH + 0.42, x = mouth - 0.13;
+    m.add(G.cyl(0.035, 0.035, halfW * 2 + 0.5, 8), M.paint(0x5a3520, { gloss: 0.3 }), { p: [x, rodY, 0], r: [HALF_PI, 0, 0] });
+    for (let i = 0; i < 4; i++) {
+      const z = (i - 1.5) * 0.3;
+      m.add(G.box(0.025, 0.6, 0.275), cloth, { p: [x, rodY - 0.31, z] });
+      m.add(G.cyl(0.075, 0.075, 0.012, 12), crest, { p: [x - 0.014, rodY - 0.26, z], r: [0, 0, HALF_PI], shadow: false });
+    }
+  }
+
   // Painted on the spawn cell: chevrons pointing into the board.
   const chevron = G.plate([[0, 0.2], [-0.16, 0], [0, -0.2], [0.07, -0.2], [-0.06, 0], [0.07, 0.2]], 0.01);
   for (const x of [0.2, -0.05, -0.3]) {
@@ -234,6 +263,123 @@ const BASES = {
     }
     // The cup's white liner.
     m.add(G.ring(0.2, 0.25, 24), white, { p: [0, 0.014, 0], r: [-HALF_PI, 0, 0], shadow: false });
+  },
+
+  bathtub(m, look) {
+    // The plug hole is the base cell itself; the plug stands beside it on its
+    // bead chain, hung from a chrome crook, with a life-ring for the defenders.
+    const chrome = M.metal(0xd7dde5, { rough: 0.2 });
+    const steel = M.paint(0xcfd8e3, { gloss: 0.9, glow: 0.1 });
+    const rubber = M.paint(0xe5352b, { gloss: 0.6, glow: 0.18 });
+    // The drain: dark hole, steel collar, cross-bars, water spiralling in.
+    m.add(new THREE.CircleGeometry(0.27, 28), look.dark, { p: [0, 0.013, 0], r: [-HALF_PI, 0, 0], shadow: false });
+    m.add(G.ring(0.25, 0.31, 28), steel, { p: [0, 0.015, 0], r: [-HALF_PI, 0, 0], shadow: false });
+    for (const ry of [0, HALF_PI]) m.add(G.box(0.52, 0.02, 0.05), steel, { p: [0, 0.018, 0], r: [0, ry, 0], shadow: false });
+    const swirl = M.glow(0xffffff, 0.55);
+    [[0.34, 0.2], [0.4, 2.3], [0.46, 4.4]].forEach(([r, start]) => {
+      m.add(new THREE.RingGeometry(r, r + 0.03, 24, 1, start, 1.9), swirl, { p: [0, 0.016, 0], r: [-HALF_PI, 0, 0], shadow: false });
+    });
+    // The plug, pulled.
+    const px = 1.0, pz = -0.12;
+    m.add(G.lathe([[0.3, 0], [0.45, 0.05], [0.47, 0.27], [0.4, 0.33], [0, 0.33]], 22), rubber, { p: [px, 0, pz] });
+    m.add(G.cyl(0.2, 0.22, 0.05, 18), chrome, { p: [px, 0.35, pz] });
+    m.add(G.torus(0.13, 0.035, 8, 18), chrome, { p: [px, 0.49, pz], r: [0, HALF_PI, 0] });
+    // The crook it hangs from.
+    m.add(G.lathe([[0.16, 0], [0.18, 0.04], [0.08, 0.1]], 14), chrome, { p: [1.22, 0, 0.82] });
+    m.add(G.tube([[1.22, 0.05, 0.82], [1.22, 1.25, 0.82], [1.18, 1.68, 0.62], [1.05, 1.62, 0.3]], 0.075, 8), steel);
+    m.add(G.sphere(0.13, 10, 8), look.glow, { p: [1.05, 1.62, 0.3], shadow: false });
+    // Bead chain, sagging from the crook to the plug's ring.
+    const from = [1.05, 1.58, 0.3], to = [px, 0.62, pz];
+    for (let i = 1; i < 13; i++) {
+      const t = i / 13, sag = Math.sin(t * Math.PI) * 0.32;
+      m.add(G.sphere(0.065, 8, 6), steel, { p: [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t - sag, from[2] + (to[2] - from[2]) * t] });
+    }
+    // A life-ring propped against the rim.
+    const lean = [0.25, 0.9, 0];
+    m.add(G.torus(0.27, 0.09, 8, 24), M.paint(0xf4f6f8, { gloss: 0.7, glow: 0.1 }), { p: [1.12, 0.34, -0.82], r: lean });
+    const red = M.paint(0xe5352b, { gloss: 0.7, glow: 0.2 });
+    for (let i = 0; i < 4; i++) m.add(G.torus(0.27, 0.094, 8, 6, 0.5), red, { p: [1.12, 0.34, -0.82], r: [lean[0], lean[1], i * HALF_PI + 0.5] });
+  },
+
+  garden(m, look) {
+    // The vegetable patch: a raised bed with the prize pumpkin on its straw,
+    // a first-prize rosette on a stake and a lantern on a crook to guard it by.
+    const wood = M.paint(0x8a5a33, { gloss: 0.25 });
+    const leaf = M.paint(0x4fa33f, { gloss: 0.45, glow: 0.1 });
+    const pumpkin = M.paint(0xff8a1f, { gloss: 0.65, glow: 0.22 });
+    const x = 1.12;
+    m.add(G.rbox(0.92, 0.24, 1.84, 0.04), wood, { p: [x, 0.12, 0] });
+    m.add(G.box(0.8, 0.04, 1.72), M.matte(0x3b2a1c), { p: [x, 0.235, 0] });
+    for (const s of [-1, 1]) for (const dx of [-0.42, 0.42]) m.add(G.rbox(0.1, 0.34, 0.1, 0.02), wood, { p: [x + dx, 0.17, s * 0.88] });
+    m.add(G.cyl(0.5, 0.56, 0.05, 14), M.paint(0xe2c56a, { gloss: 0.2, glow: 0.1 }), { p: [x, 0.28, 0] });        // straw
+    // The pumpkin: eight fat ribs round a core, a crooked stalk, a curl of vine.
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      m.add(G.sphere(0.3, 12, 10), pumpkin, { p: [x + Math.cos(a) * 0.24, 0.68, Math.sin(a) * 0.24], s: [0.78, 1.25, 0.78] });
+    }
+    m.add(G.sphere(0.36, 12, 10), pumpkin, { p: [x, 0.68, 0], s: [1, 1.1, 1] });
+    m.add(G.tube([[x, 1.02, 0], [x + 0.02, 1.16, 0.02], [x - 0.08, 1.24, 0.06]], 0.045, 6), leaf);
+    m.add(G.tube([[x, 1.04, 0], [x + 0.2, 1.1, -0.2], [x + 0.3, 0.9, -0.42], [x + 0.2, 0.6, -0.6], [x + 0.25, 0.32, -0.72]], 0.022, 5), leaf);
+    for (const [dx, y, z, ry] of [[0.3, 0.92, -0.44, 0.4], [0.24, 0.36, -0.74, 1.2], [-0.3, 0.34, 0.66, 2.4]]) {
+      m.add(G.sphere(0.17, 8, 6), leaf, { p: [x + dx, y, z], r: [0.3, ry, 0], s: [1.2, 0.18, 0.9] });
+    }
+    // Next year's entries, either side of it.
+    for (const [dx, z] of [[-0.2, 0.68], [0.18, 0.74], [-0.02, -0.72]]) {
+      m.add(G.sphere(0.13, 10, 8), M.paint(0xa8dc7a, { gloss: 0.5, glow: 0.12 }), { p: [x + dx, 0.33, z], s: [1, 0.85, 1] });
+      for (let i = 0; i < 4; i++) m.add(G.sphere(0.11, 6, 5), leaf, { p: [x + dx + Math.cos(i * 1.6) * 0.1, 0.29, z + Math.sin(i * 1.6) * 0.1], s: [1, 0.6, 0.4], r: [0, -i * 1.6 + HALF_PI, 0] });
+    }
+    // First prize: a rosette on a stake, readable from both sides.
+    const blue = M.paint(0x2f6fe0, { gloss: 0.6, glow: 0.3 });
+    m.add(G.cyl(0.025, 0.03, 1.5, 6), wood, { p: [0.78, 0.75, 0.74] });
+    m.add(G.star(0.26, 0.19, 0.05, 12), blue, { p: [0.78, 1.5, 0.74], r: [0, HALF_PI, 0] });
+    m.add(G.cyl(0.14, 0.14, 0.07, 16), M.paint(0xfff3c2, { gloss: 0.6, glow: 0.3 }), { p: [0.78, 1.5, 0.74], r: [0, 0, HALF_PI] });
+    for (const s of [-1, 1]) m.add(G.plate([[-0.05, 0], [0.05, 0], [0.07, -0.34], [0, -0.27], [-0.07, -0.34]], 0.03), blue, { p: [0.78, 1.3, 0.74 + s * 0.07], r: [s * 0.25, HALF_PI, 0] });
+    // The lantern.
+    const iron = M.matte(0x2a2d33);
+    m.add(G.tube([[0.78, 0, -0.8], [0.78, 1.3, -0.8], [0.78, 1.62, -0.66], [0.78, 1.52, -0.46]], 0.03, 6), iron);
+    m.add(G.cyl(0.006, 0.006, 0.16, 4), iron, { p: [0.78, 1.44, -0.46] });
+    m.add(G.lathe([[0.1, 0], [0.11, 0.02], [0.05, 0.08]], 10), iron, { p: [0.78, 1.3, -0.46] });
+    m.add(G.cyl(0.07, 0.085, 0.2, 10), look.glow, { p: [0.78, 1.2, -0.46], shadow: false });
+    m.add(G.cyl(0.1, 0.1, 0.03, 10), iron, { p: [0.78, 1.09, -0.46] });
+    m.add(G.sphere(0.24, 10, 8), M.energy(look.color, 0.28), { p: [0.78, 1.2, -0.46], shadow: false });
+    // Lantern light on the base cell.
+    m.add(new THREE.CircleGeometry(0.47, 24), M.energy(0xffc56b, 0.26), { p: [0.02, 0.011, 0], r: [-HALF_PI, 0, 0], shadow: false });
+  },
+
+  sushi(m, look) {
+    // The customer's order, waiting at the end of the bar: a wooden geta with
+    // two big pieces on it, tea, chopsticks, and a red lantern over the lot.
+    const wood = M.paint(0xc99a5c, { gloss: 0.35 });
+    const rice = M.paint(0xfbf7ee, { gloss: 0.25, glow: 0.12 });
+    const nori = M.paint(0x16261c, { gloss: 0.35 });
+    const black = M.paint(0x1a1513, { gloss: 0.9 });
+    const x = 1.12;
+    m.add(G.rbox(0.82, 0.09, 1.7, 0.03), wood, { p: [x, 0.24, 0] });
+    for (const s of [-1, 1]) m.add(G.rbox(0.7, 0.2, 0.14, 0.03), wood, { p: [x, 0.1, s * 0.55] });
+    // Salmon nigiri and an egg one with its belt of nori.
+    [[-0.4, 0xff7a55, false], [0.36, 0xffd447, true]].forEach(([z, top, belt]) => {
+      m.add(G.rbox(0.56, 0.24, 0.36, 0.1), rice, { p: [x, 0.41, z] });
+      m.add(G.rbox(0.7, 0.12, 0.42, 0.05), M.paint(top, { gloss: 0.65, glow: 0.22 }), { p: [x, 0.58, z] });
+      if (belt) m.add(G.rbox(0.14, 0.39, 0.45, 0.03), nori, { p: [x, 0.455, z] });
+      else for (const dx of [-0.2, 0, 0.2]) m.add(G.box(0.035, 0.014, 0.43), M.paint(0xffd9cc, { glow: 0.25 }), { p: [x + dx, 0.642, z], r: [0, 0.45, 0] });
+    });
+    m.add(G.lathe([[0.12, 0], [0.1, 0.07], [0.04, 0.13], [0, 0.14]], 12), M.paint(0x86c232, { gloss: 0.4, glow: 0.2 }), { p: [x + 0.2, 0.285, 0.74] });   // wasabi
+    m.add(G.sphere(0.11, 10, 8), M.paint(0xffa9b8, { gloss: 0.6, glow: 0.2 }), { p: [x - 0.12, 0.32, 0.74], s: [1, 0.6, 1] });                           // ginger
+    // Chopsticks laid across the front on their rest.
+    m.add(G.rbox(0.12, 0.08, 0.26, 0.03), M.paint(0xc62a1a, { gloss: 0.85 }), { p: [0.66, 0.04, -0.62] });
+    for (const dz of [-0.05, 0.05]) m.add(G.cyl(0.014, 0.024, 1.3, 6), black, { p: [0.66, 0.1, -0.02 + dz], r: [HALF_PI + 0.035, 0, 0] });
+    // A cup of tea.
+    m.add(G.lathe([[0.13, 0], [0.15, 0.02], [0.18, 0.3], [0.165, 0.3], [0.14, 0.06], [0, 0.05]], 16), M.paint(0x2a4f8a, { gloss: 0.85 }), { p: [1.78, 0, 0.62] });
+    m.add(G.cyl(0.16, 0.16, 0.01, 16), M.paint(0x9db83a, { gloss: 0.9, glow: 0.25 }), { p: [1.78, 0.25, 0.62] });
+    // The lantern on its pole, so the plate can be found from across the bar.
+    m.add(G.cyl(0.035, 0.05, 1.5, 8), black, { p: [1.72, 0.75, -0.3] });
+    m.add(G.tube([[1.72, 1.48, -0.3], [1.66, 1.78, -0.3], [1.4, 1.84, -0.3], [1.3, 1.74, -0.3]], 0.03, 6), black);
+    m.add(G.sphere(0.27, 16, 12), M.paint(0xe23a2a, { gloss: 0.3, glow: 0.85 }), { p: [1.3, 1.36, -0.3], s: [1, 1.2, 1], shadow: false });
+    for (const y of [1.07, 1.65]) m.add(G.cyl(0.14, 0.14, 0.06, 12), black, { p: [1.3, y, -0.3] });
+    m.add(G.cyl(0.015, 0.04, 0.2, 6), look.glow, { p: [1.3, 0.95, -0.3], shadow: false });
+    m.add(G.sphere(0.4, 12, 10), M.energy(0xff6a3a, 0.2), { p: [1.3, 1.36, -0.3], shadow: false });
+    // Lantern light on the base cell.
+    m.add(new THREE.CircleGeometry(0.47, 24), M.energy(0xffc56b, 0.26), { p: [0.02, 0.011, 0], r: [-HALF_PI, 0, 0], shadow: false });
   },
 
   bowling(big, look) {

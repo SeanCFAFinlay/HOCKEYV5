@@ -722,6 +722,9 @@ const ROLE_ID = { SWARM: 'e1', FIRE: 'e2', FLYING: 'e3', ARMORED: 'e4', ELITE: '
 // The kit themes model their own enemies; these say how each one carries itself.
 const KIT_GAITS = {
   kitchen: { SWARM: GAIT.scuttle, FIRE: GAIT.scuttle, FLYING: GAIT.buzz, ARMORED: { ...GAIT.scuttle, step: 2.4 }, ELITE: GAIT.scuttle, FLYING_FIRE: GAIT.buzz, BOSS: { ...GAIT.scuttle, step: 1.8, bob: 0.06 } },
+  bathtub: { SWARM: { ...GAIT.waddle, bob: 0.09, nod: 0.05 }, FIRE: { ...GAIT.waddle, step: 3, bob: 0.1, rock: 0.2 }, FLYING: { ...GAIT.soar, hover: 0.08 }, ARMORED: { ...GAIT.trundle, rock: 0.05, nod: 0.04 }, ELITE: { ...GAIT.waddle, rock: 0.2, bob: 0.07 }, FLYING_FIRE: { ...GAIT.soar, hover: 0.05, lean: 0.05, sway: 0.14 }, BOSS: { step: 1.6, bob: 0.04, rock: 0.09, nod: 0.05, lean: 0.03 } },
+  garden: { SWARM: { step: 2.2, bob: 0.012, squash: 0.09, yaw: 0.06, nod: 0.03 }, FIRE: { step: 2.8, bob: 0.07, squash: 0.07, yaw: 0.08, lean: 0.04 }, FLYING: { ...GAIT.hover, hoverF: 5 }, ARMORED: { ...GAIT.trundle, step: 2, squash: 0.03 }, ELITE: GAIT.waddle, FLYING_FIRE: GAIT.soar, BOSS: { step: 1.5, bob: 0.2, lean: 0.12, squash: 0.08, nod: 0.05 } },
+  sushi: { SWARM: { ...GAIT.waddle, step: 3, bob: 0.08 }, FIRE: { step: 2.2, bob: 0.3, squash: 0.16, lean: 0.04 }, FLYING: { ...GAIT.hover, hoverF: 4.5 }, ARMORED: { ...GAIT.scuttle, step: 2.6, yaw: 0.22, rock: 0.08 }, ELITE: GAIT.stomp, FLYING_FIRE: { ...GAIT.soar, yaw: 0.16, step: 1.2 }, BOSS: { step: 1.6, bob: 0.05, rock: 0.07, squash: 0.07, lean: 0.03 } },
   golf: { SWARM: GAIT.waddle, FIRE: GAIT.waddle, FLYING: GAIT.soar, ARMORED: { ...GAIT.stomp, rock: 0.05 }, ELITE: GAIT.stomp, FLYING_FIRE: GAIT.soar, BOSS: GAIT.stomp },
   bowling: { SWARM: GAIT.wobble, FIRE: GAIT.wobble, FLYING: GAIT.soar, ARMORED: GAIT.stomp, ELITE: GAIT.wobble, FLYING_FIRE: GAIT.soar, BOSS: { ...GAIT.wobble, rock: 0.14, step: 2 } }
 };
