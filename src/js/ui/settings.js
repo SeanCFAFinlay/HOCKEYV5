@@ -248,6 +248,17 @@ function _buildAudioSection(settings) {
 function _buildDangerSection() {
   const section = _makeSection('Data');
 
+  const tutBtn = document.createElement('button');
+  tutBtn.className = 'settings-preset-btn settings-tutorial-btn';
+  tutBtn.type = 'button';
+  tutBtn.textContent = 'Show the tutorial again';
+  tutBtn.addEventListener('click', () => {
+    try { localStorage.removeItem('hockeyTD_tutorial'); } catch { /* storage blocked */ }
+    tutBtn.textContent = 'It will show next match';
+    tutBtn.disabled = true;
+  });
+  section.appendChild(tutBtn);
+
   const resetBtn = document.createElement('button');
   resetBtn.className = 'settings-danger-btn';
   resetBtn.textContent = 'Reset All Progress';

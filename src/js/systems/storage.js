@@ -343,6 +343,9 @@ export function getSettings() {
 export function resetAllProgress() {
   saveData = { ...DEFAULT_SAVE };
   persistSave();
+  // Bought upgrades are kept apart from the save (systems/perks.js); a reset
+  // takes the stars away, so the upgrades go too.
+  try { localStorage.removeItem('hockeyTD_perks'); } catch { /* storage blocked */ }
   console.log('All progress has been reset');
 }
 

@@ -453,7 +453,8 @@ function handleEnemyDeath(e, index) {
   e.state = EnemyState.DEAD;
 
   // Award rewards immediately
-  addMoney(e.rwd);
+  // Bounty Hunter upgrade (systems/perks.js), copied onto the state at match start.
+  addMoney(Math.round(e.rwd * (getState().perkBounty || 1)));
   addScore(Math.floor(e.rwd * 1.5));
   incrementKills();
 

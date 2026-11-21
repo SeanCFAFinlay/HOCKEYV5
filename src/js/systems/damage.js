@@ -222,7 +222,9 @@ function createThemedImpact(p, isCrit = false) {
 export function hurtEnemy(e, dmg, isCrit = false, opts = {}) {
   // Armor is skipped by piercing shots; frozen and marked enemies take more.
   const armor = opts.pierce ? 0 : e.armor;
-  const actualDmg = dmg * (1 - armor) * damageMultiplier(e);
+  // Tower hits get the player's permanent damage upgrade; abilities don't.
+  const perk = opts.ability ? 1 : (getState().perkDamage || 1);
+  const actualDmg = dmg * perk * (1 - armor) * damageMultiplier(e);
   e.hp -= actualDmg;
 
   // Visual feedback - flash and scale

@@ -18,7 +18,9 @@ const TIPS = [
   'Towers on a corner cover two stretches of the path at once.',
   'Splash towers shine where the path bunches enemies together.',
   'Upgrading a tower is often better value than building a new one.',
-  'Selling returns 60% of everything you spent on that tower.',
+  'Selling returns at least 60% of everything you spent on that tower.',
+  'Stars from cleared arenas buy permanent Upgrades on the main menu.',
+  'Abilities recharge on their own. Use them early and often.',
   'Flying enemies ignore walls and head straight for your base.',
   'Fast towers shred swarms. Snipers and boss killers handle the big ones.',
   'Switch a tower to "Strong" to make it focus the toughest enemy in range.'

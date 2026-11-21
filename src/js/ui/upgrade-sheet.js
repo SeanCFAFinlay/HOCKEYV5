@@ -113,9 +113,10 @@ export function showUpgrade(tower) {
 
   for (const key of ['dmg', 'rng', 'rate']) renderStat(key, td, tower.lv, themeData.towers);
 
-  let sellVal = Math.floor(td.cost * 0.6);
+  const rate = state.sellRate || 0.6;   // raised by the Trade-in upgrade
+  let sellVal = Math.floor(td.cost * rate);
   for (let i = 0; i < tower.lv; i++) {
-    sellVal += Math.floor(td.up[i] * 0.6);
+    sellVal += Math.floor(td.up[i] * rate);
   }
   document.getElementById('upSell').textContent = sellVal;
 
@@ -292,9 +293,10 @@ export function sellTower() {
   if (!selectedPlaced) return;
 
   const td = themeData.towers.find(t => t.id === selectedPlaced.type);
-  let val = Math.floor(td.cost * 0.6);
+  const rate = state.sellRate || 0.6;
+  let val = Math.floor(td.cost * rate);
   for (let i = 0; i < selectedPlaced.lv; i++) {
-    val += Math.floor(td.up[i] * 0.6);
+    val += Math.floor(td.up[i] * rate);
   }
 
   addMoney(val); // Use addMoney so money subscribers and events fire properly

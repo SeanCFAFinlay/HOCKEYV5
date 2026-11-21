@@ -11,6 +11,7 @@ import { triggerCameraShake } from '../engine/camera.js';
 import { playSound } from '../engine/audio.js';
 
 const cooldowns = { strike: 0, freeze: 0, rally: 0 };
+const cooldownMax = { strike: 1, freeze: 1, rally: 1 };
 let targeting = null;        // ability id waiting for a board tap
 let rallyLeft = 0;           // seconds of faster tower fire left
 const pending = [];          // strikes falling: { x, z, t, marker, bolt }
@@ -31,6 +32,15 @@ export function resetAbilities() {
 }
 
 export function getCooldown(id) { return cooldowns[id] || 0; }
+/** Length of the current recharge, for drawing the ring. */
+export function getCooldownMax(id) { return cooldownMax[id] || 1; }
+
+/** Start a recharge, shortened by the player's Quick Charge upgrade. */
+function startCooldown(id) {
+  const t = ABILITY_RULES[id].cooldown * (getState().perkCooldown || 1);
+  cooldowns[id] = t;
+  cooldownMax[id] = t;
+}
 export function isReady(id) { return (cooldowns[id] || 0) <= 0; }
 export function getTargeting() { return targeting; }
 export function getRallyLeft() { return rallyLeft; }
@@ -54,7 +64,7 @@ export function pressAbility(id) {
   }
   if (id === 'freeze') castFreeze(state);
   if (id === 'rally') castRally(state);
-  cooldowns[id] = ABILITY_RULES[id].cooldown;
+  startCooldown(id);
   targeting = null;
   notify();
   return true;
@@ -71,7 +81,7 @@ export function strikeAt(x, z) {
   if (targeting !== 'strike' || !isReady('strike')) return false;
   const rules = ABILITY_RULES.strike;
   pending.push({ x, z, t: rules.delay, ...makeStrikeVisuals(x, z) });
-  cooldowns.strike = rules.cooldown;
+  startCooldown('strike');
   targeting = null;
   notify();
   return true;
@@ -121,7 +131,7 @@ function landStrike(p) {
     if (!e || e.hp <= 0) continue;
     const dx = e.x - p.x, dz = e.z - p.z;
     if (dx * dx + dz * dz > r2) continue;
-    hurtEnemy(e, dmg * (e.boss ? rules.bossMult : 1), true, { pierce: true });
+    hurtEnemy(e, dmg * (e.boss ? rules.bossMult : 1), true, { pierce: true, ability: true });
     applyStagger(e, rules.stagger, 0.2);
     hits++;
   }

@@ -4,7 +4,7 @@
 import { getState, setSelectedTower } from '../engine/state.js';
 import { abilitiesForWorld } from '../config/abilities.js';
 import {
-  pressAbility, cancelTargeting, getCooldown, getTargeting, getRallyLeft,
+  pressAbility, cancelTargeting, getCooldown, getCooldownMax, getTargeting, getRallyLeft,
   setAbilityListener, resetAbilities
 } from '../systems/abilities.js';
 import { icon } from './icons.js';
@@ -104,7 +104,7 @@ export function paint() {
     const btn = barEl.querySelector(`.ability-btn.${d.id}`);
     if (!btn) continue;
     const left = getCooldown(d.id);
-    const frac = left > 0 ? left / d.cooldown : 0;
+    const frac = left > 0 ? Math.min(1, left / getCooldownMax(d.id)) : 0;
     const key = `${Math.round(frac * 100)}|${Math.ceil(left)}|${aiming === d.id}|${d.id === 'rally' ? Math.ceil(getRallyLeft()) : ''}`;
     if (lastPaint[d.id] === key) continue;
     const wasCooling = lastPaint[d.id] && !lastPaint[d.id].startsWith('0|');

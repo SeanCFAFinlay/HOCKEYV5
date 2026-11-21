@@ -33,6 +33,8 @@ import { performFullCleanup } from '../engine/cleanup.js';
 import { getMapsWithProgress, getThemeProgress, getStarDisplay } from '../systems/progression.js';
 import { showScreenAnimated, cancelTransition } from './transitions.js';
 import { initAbilityBar, hideAbilityBar } from './ability-bar.js';
+import { matchBonuses } from '../systems/perks.js';
+import { refreshUpgradesButton } from './perks-screen.js';
 import { showArenaLoader, hideArenaLoader } from './arena-loader.js';
 
 export function renderThemeCards() {
@@ -75,6 +77,7 @@ export function renderThemeCards() {
     container.appendChild(card);
   });
 
+  refreshUpgradesButton();
   const summary = document.getElementById('menuProgress');
   if (summary) {
     summary.textContent = totalCleared > 0 ? `${totalCleared}/${totalArenas} cleared · ★ ${totalStars}` : `${packs.length} worlds`;
@@ -202,8 +205,18 @@ export function startGame(idx, mode = 'campaign') {
   // Set map data
   setMapData(mapData, idx);
   setMapDimensions(mapData.cols, mapData.rows);
-  setMoney(mapData.money);
-  setLives(mapData.lives);
+  // Permanent upgrades bought with stars (systems/perks.js). The per-match
+  // multipliers ride on the state so the systems need no import of perks.js.
+  const bonus = matchBonuses();
+  setMoney(mapData.money + bonus.cash);
+  setLives(mapData.lives + bonus.lives);
+  {
+    const st = getState();
+    st.perkDamage = bonus.perkDamage;
+    st.perkBounty = bonus.perkBounty;
+    st.perkCooldown = bonus.perkCooldown;
+    st.sellRate = bonus.sellRate;
+  }
   setWave(0);
   setScore(0);
   setKills(0);
