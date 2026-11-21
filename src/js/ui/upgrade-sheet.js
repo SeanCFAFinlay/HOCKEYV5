@@ -10,6 +10,7 @@ import { updateHUD } from './hud.js';
 import { createImpact, createExplosion } from '../systems/particles.js';
 import { renderUpgradePath, applyMaxLevelState, animateStat } from './upgrade-path.js';
 import { icon } from './icons.js';
+import { worldToScreen } from './currency-fly.js';
 
 // Tower role descriptions for upgrade sheet
 const ROLE_DESCRIPTIONS = {
@@ -43,20 +44,73 @@ function renderPower(td, lv) {
     (next && next.text !== now.text ? `<small>Next level: ${next.text}</small>` : '');
 }
 
+/** Highest level-4 value of a stat across the world's towers, for bar scale. */
+function statCeiling(towers, key) {
+  let max = 0;
+  for (const t of towers) {
+    const arr = t[key];
+    if (!arr) continue;
+    const v = arr[3] ?? arr[arr.length - 1];
+    if (v > max) max = v;
+  }
+  return max || 1;
+}
+
+const STAT_FORMAT = {
+  dmg: v => String(Math.round(v)),
+  rng: v => v.toFixed(1),
+  rate: v => v.toFixed(2)
+};
+
+const STAT_IDS = { dmg: ['upDmg', 'upDmgNext'], rng: ['upRng', 'upRngNext'], rate: ['upRate', 'upRateNext'] };
+
+/** One stat row: number, delta to the next level, and the bar. */
+function renderStat(key, td, lv, towers) {
+  const fmt = STAT_FORMAT[key];
+  const now = td[key][lv];
+  const next = lv < 3 ? td[key][lv + 1] : null;
+  const valueEl = document.getElementById(STAT_IDS[key][0]);
+  const nextEl = document.getElementById(STAT_IDS[key][1]);
+  if (valueEl) valueEl.textContent = fmt(now);
+  if (nextEl) nextEl.textContent = next == null ? 'MAX' : (next > now ? '+' + fmt(next - now) : '');
+  const row = typeof document.querySelector === 'function'
+    ? document.querySelector(`.upgrade-stat[data-stat="${key}"]`) : null;
+  if (!row) return;
+  row.classList.toggle('improving', next != null && next > now);
+  const ceiling = statCeiling(towers, key);
+  const nowBar = row.querySelector('.now');
+  const gainBar = row.querySelector('.gain');
+  // Square-root scale: a sniper's damage or a fast tower's range still shows
+  // as a real bar next to the line-up's biggest hitter.
+  const scale = v => Math.min(100, Math.sqrt(Math.max(0, v) / ceiling) * 100);
+  const nowPct = scale(now);
+  const gainPct = next == null ? 0 : Math.max(0, scale(next) - nowPct);
+  if (nowBar) nowBar.style.width = nowPct + '%';
+  if (gainBar) { gainBar.style.left = nowPct + '%'; gainBar.style.width = gainPct + '%'; }
+}
+
+function upgradeLabel(lv, cost, money) {
+  return money >= cost ? `Upgrade to Lv ${lv + 2}` : `Need $${cost - Math.floor(money)} more`;
+}
+
 export function showUpgrade(tower) {
   const state = getState();
   const { themeData } = state;
 
   setSelectedPlaced(tower);
   const td = themeData.towers.find(t => t.id === tower.type);
+  const sheet = document.getElementById('upgradeSheet');
+  const maxed = tower.lv >= 3;
 
+  if (sheet && sheet.style && typeof sheet.style.setProperty === 'function') {
+    sheet.style.setProperty('--tc', td.clr || '#38bdf8');
+  }
   document.getElementById('upIcon').innerHTML = icon(td.icon);
   document.getElementById('upName').textContent = td.nm;
-  document.getElementById('upLevel').textContent = `Level ${tower.lv + 1} of 4`;
+  document.getElementById('upLevel').textContent = maxed ? 'Max level' : `Level ${tower.lv + 1} of 4`;
   document.getElementById('upRole').textContent = ROLE_DESCRIPTIONS[td.role] || td.role || '';
-  document.getElementById('upDmg').textContent = td.dmg[tower.lv];
-  document.getElementById('upRng').textContent = td.rng[tower.lv].toFixed(1);
-  document.getElementById('upRate').textContent = td.rate[tower.lv].toFixed(2);
+
+  for (const key of ['dmg', 'rng', 'rate']) renderStat(key, td, tower.lv, themeData.towers);
 
   let sellVal = Math.floor(td.cost * 0.6);
   for (let i = 0; i < tower.lv; i++) {
@@ -64,29 +118,72 @@ export function showUpgrade(tower) {
   }
   document.getElementById('upSell').textContent = sellVal;
 
-  if (tower.lv >= 3) {
-    document.getElementById('upDmgNext').textContent = 'MAX';
-    document.getElementById('upRngNext').textContent = 'MAX';
-    document.getElementById('upRateNext').textContent = 'MAX';
-    document.getElementById('upBtn').disabled = true;
-    document.getElementById('upBtn').classList.toggle('available', false);
+  const btn = document.getElementById('upBtn');
+  const label = document.getElementById('upBtnLabel');
+  if (maxed) {
+    btn.disabled = true;
+    btn.classList.toggle('available', false);
     document.getElementById('upCost').textContent = '---';
   } else {
-    document.getElementById('upDmgNext').textContent = '→' + td.dmg[tower.lv + 1];
-    document.getElementById('upRngNext').textContent = '→' + td.rng[tower.lv + 1].toFixed(1);
-    document.getElementById('upRateNext').textContent = '→' + td.rate[tower.lv + 1].toFixed(2);
-    document.getElementById('upCost').textContent = td.up[tower.lv];
-    const canUpgrade = state.money >= td.up[tower.lv];
-    document.getElementById('upBtn').disabled = !canUpgrade;
-    document.getElementById('upBtn').classList.toggle('available', canUpgrade);
+    const cost = td.up[tower.lv];
+    document.getElementById('upCost').textContent = cost;
+    const canUpgrade = state.money >= cost;
+    btn.disabled = !canUpgrade;
+    btn.classList.toggle('available', canUpgrade);
+    if (label) label.textContent = upgradeLabel(tower.lv, cost, state.money);
   }
 
   renderPower(td, tower.lv);
   renderUpgradePath(td, tower.lv);
-  applyMaxLevelState(tower.lv >= 3);
+  applyMaxLevelState(maxed);
   renderPriorityControls(tower);
 
-  document.getElementById('upgradeSheet').classList.add('show');
+  sheet.classList.add('show');
+}
+
+/** Keep the Upgrade button honest as money changes while the sheet is open. */
+export function refreshUpgradeAffordability() {
+  const state = getState();
+  const tower = state.selectedPlaced;
+  const sheet = document.getElementById('upgradeSheet');
+  if (!tower || !sheet || !sheet.classList.contains('show') || tower.lv >= 3) return;
+  const td = state.themeData?.towers.find(t => t.id === tower.type);
+  if (!td) return;
+  const cost = td.up[tower.lv];
+  const can = state.money >= cost;
+  const btn = document.getElementById('upBtn');
+  const label = document.getElementById('upBtnLabel');
+  if (!btn) return;
+  btn.disabled = !can;
+  btn.classList.toggle('available', can);
+  if (label) label.textContent = upgradeLabel(tower.lv, cost, state.money);
+}
+
+/** "LEVEL 3" rising off the tower, plus a flash across the sheet. */
+function celebrateLevel(tower, td) {
+  const sheet = document.getElementById('upgradeSheet');
+  if (sheet) {
+    sheet.classList.remove('leveled');
+    void sheet.offsetWidth; // restart the animation
+    sheet.classList.add('leveled');
+    clearTimeout(sheet._lvTimer);
+    sheet._lvTimer = setTimeout(() => sheet.classList.remove('leveled'), 900);
+  }
+  try {
+    const state = getState();
+    const canvas = state.renderer && state.renderer.domElement;
+    if (!canvas || !state.camera || !document.body) return;
+    const hw = state.COLS / 2, hh = state.ROWS / 2;
+    const p = worldToScreen(tower.x - hw + 0.5, 1.4, tower.y - hh + 0.5, state.camera, canvas);
+    const pop = document.createElement('div');
+    pop.className = 'level-pop' + (tower.lv >= 3 ? ' max' : '');
+    pop.style.left = p.x + 'px';
+    pop.style.top = p.y + 'px';
+    pop.style.setProperty('--tc', td.clr || '#ffd700');
+    pop.innerHTML = tower.lv >= 3 ? '<b>MAX</b><span>LEVEL</span>' : `<span>LEVEL</span><b>${tower.lv + 1}</b>`;
+    document.body.appendChild(pop);
+    setTimeout(() => { if (pop.parentNode) pop.parentNode.removeChild(pop); }, 1300);
+  } catch (e) { /* cosmetic only */ }
 }
 
 export function hideUpgrade() {
@@ -139,11 +236,12 @@ export function doUpgrade() {
   emit(GameEvents.TOWER_UPGRADE, { tower: selectedPlaced });
   updateHUD();
   showUpgrade(selectedPlaced);
+  celebrateLevel(selectedPlaced, td);
 
   // Animate stat counters from old → new values
-  animateStat(document.getElementById('upDmg'), td.dmg[prevLv], td.dmg[selectedPlaced.lv], 300);
-  animateStat(document.getElementById('upRng'), td.rng[prevLv], td.rng[selectedPlaced.lv], 300, 1);
-  animateStat(document.getElementById('upRate'), td.rate[prevLv], td.rate[selectedPlaced.lv], 300, 2);
+  animateStat(document.getElementById('upDmg'), td.dmg[prevLv], td.dmg[selectedPlaced.lv], 450);
+  animateStat(document.getElementById('upRng'), td.rng[prevLv], td.rng[selectedPlaced.lv], 450, 1);
+  animateStat(document.getElementById('upRate'), td.rate[prevLv], td.rate[selectedPlaced.lv], 450, 2);
 }
 
 function getPriorityLabel(priority) {

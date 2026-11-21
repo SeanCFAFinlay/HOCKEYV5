@@ -2,7 +2,7 @@
 
 import { getState, setSelectedTower, subscribeToState, setRunning } from '../engine/state.js';
 import { on, GameEvents } from '../engine/events.js';
-import { hideUpgrade } from './upgrade-sheet.js';
+import { hideUpgrade, refreshUpgradeAffordability } from './upgrade-sheet.js';
 import { resetGameSpeed } from './controls.js';
 import { icon } from './icons.js';
 import { createDefeatEffect } from '../systems/particles.js';
@@ -96,6 +96,7 @@ export function initHUD() {
     }
 
     renderTowers();
+    try { refreshUpgradeAffordability(); } catch (e) { /* sheet not ready */ }
   });
 
   subscribeToState('lives', (newVal) => {

@@ -1,98 +1,128 @@
+/* =====================================================
+   UPGRADE SHEET – the panel for a placed tower.
+   --tc is the tower's own colour, set by upgrade-sheet.js.
+   ===================================================== */
+
 .upgrade-sheet {
+  --tc: #38bdf8;
   position: fixed;
   bottom: calc(var(--bottom-ui-clearance, 176px) + 12px);
   left: max(12px, env(safe-area-inset-left));
-  width: min(320px, calc(100vw - 24px));
-  background: linear-gradient(160deg, rgba(14, 16, 28, 0.94), rgba(8, 10, 18, 0.96));
-  border: 1px solid rgba(255, 215, 0, 0.22);
-  border-left: 2px solid rgba(255, 215, 0, 0.5);
+  width: min(340px, calc(100vw - 24px));
+  background:
+    radial-gradient(120% 60% at 0% 0%, color-mix(in srgb, var(--tc) 16%, transparent), transparent 60%),
+    linear-gradient(165deg, rgba(16, 19, 32, 0.96), rgba(8, 10, 18, 0.97));
+  border: 1px solid color-mix(in srgb, var(--tc) 30%, rgba(255, 255, 255, 0.08));
   padding: 12px;
   z-index: 200;
   opacity: 0;
   pointer-events: none;
-  transform: translate3d(-10px, 12px, 0) scale(0.98);
-  transition: opacity var(--t-mid), transform var(--t-mid);
+  transform: translate3d(-16px, 10px, 0) scale(0.96);
+  transform-origin: 0% 100%;
+  transition: opacity 0.2s ease, transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15);
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
-  border-radius: var(--r-md);
-  max-height: min(34vh, 310px);
+  border-radius: var(--r-lg);
+  max-height: calc(100vh - var(--bottom-ui-clearance, 176px) - var(--safe-top, 0px) - 84px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   will-change: opacity, transform;
 }
+
+.upgrade-sheet::-webkit-scrollbar { display: none; }
 
 .upgrade-sheet.show {
   opacity: 1;
   pointer-events: auto;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: none;
 }
 
-.upgrade-handle {
-  display: none;
-}
+.upgrade-handle { display: none; }
+
+/* ── Header ──────────────────────────────────────────── */
 
 .upgrade-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) 32px;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 10px;
-  border-radius: var(--r-sm);
-  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .upgrade-icon {
-  font-size: 1.65rem;
-  filter: drop-shadow(0 2px 12px rgba(0, 212, 255, 0.4));
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  font-size: 1.8rem;
+  color: var(--tc);
+  background:
+    radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--tc) 35%, transparent), transparent 70%),
+    color-mix(in srgb, var(--tc) 12%, rgba(8, 10, 18, 0.9));
+  border: 1px solid color-mix(in srgb, var(--tc) 50%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--tc) 30%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.upgrade-info {
-  min-width: 0;
-}
+.upgrade-info { min-width: 0; }
 
 .upgrade-info h3 {
-  font-size: 1rem;
-  font-weight: 700;
+  margin: 0;
   font-family: var(--font-game);
-  letter-spacing: 0;
-  margin: 0 0 2px 0;
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.3px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.upgrade-info p {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.45);
-  margin: 0 0 3px 0;
+.upgrade-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
 }
 
 .upgrade-role {
   display: inline-block;
-  font-size: 0.56rem;
-  color: var(--gold);
-  background: rgba(255, 215, 0, 0.12);
-  border: 1px solid rgba(255,215,0,0.2);
-  padding: 1px 6px;
-  border-radius: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
   font-family: var(--font-game);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--tc);
+  background: color-mix(in srgb, var(--tc) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tc) 35%, transparent);
+}
+
+.upgrade-level {
+  font-family: var(--font-game);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .upgrade-close {
+  align-self: start;
   width: 32px;
   height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   line-height: 1;
   transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), transform var(--t-fast);
 }
@@ -103,157 +133,206 @@
   color: #fff;
 }
 
-.upgrade-close:active {
-  transform: scale(0.94);
-}
+.upgrade-close:active { transform: scale(0.92); }
 
-.upgrade-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
-  margin-bottom: 9px;
-}
-
-.upgrade-stat {
-  background: rgba(255, 255, 255, 0.06);
-  padding: 8px 6px;
-  border-radius: var(--r-sm);
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  overflow: hidden;
-  transition: border-color var(--t-fast), background var(--t-fast);
-}
-
-/* Highlight stat cards that will improve with next upgrade */
-.upgrade-stat.improving {
-  border-color: rgba(34, 197, 94, 0.35);
-  background: rgba(34, 197, 94, 0.06);
-}
-
-.upgrade-stat::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 40%;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.03), transparent);
-  pointer-events: none;
-}
-
-.upgrade-stat-label {
-  font-size: 0.56rem;
-  color: rgba(255, 255, 255, 0.45);
-  margin-bottom: 2px;
-  font-weight: 700;
-  font-family: var(--font-game);
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-}
-
-.upgrade-stat-value {
-  font-size: 0.95rem;
-  font-weight: 700;
-  font-family: var(--font-game);
-  margin-bottom: 1px;
-}
-
-.upgrade-stat-next {
-  font-size: 0.72rem;
-  color: var(--grass);
-  font-weight: 700;
-  font-family: var(--font-game);
-  text-shadow: 0 0 10px var(--grass-glow);
-  letter-spacing: 0.3px;
-}
-
-/* ── Upgrade Path ─────────────────────────────────────────────────────────── */
+/* ── Level pips (rendered by upgrade-path.js) ────────── */
 
 .upgrade-path {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 0;
-  padding: 8px 2px 14px;
+  margin-top: 7px;
+  max-width: 150px;
 }
 
 .upgrade-node {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  flex-direction: column;
   position: relative;
   flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  transform: rotate(45deg);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
+
+.upgrade-node.completed,
+.upgrade-node.current {
+  border-color: var(--tc);
+  background: var(--tc);
+}
+
+.upgrade-node.completed { opacity: 0.7; }
 
 .upgrade-node.current {
-  border-color: var(--c, #00d4ff);
-  background: var(--c, #00d4ff);
-  color: #000;
-  box-shadow: 0 0 10px var(--c, #00d4ff);
+  box-shadow: 0 0 10px var(--tc), 0 0 2px #fff inset;
 }
 
-.upgrade-node.completed {
-  border-color: var(--c, #00d4ff);
-  background: rgba(0, 212, 255, 0.25);
-  opacity: 0.75;
-}
-
-.upgrade-node-label {
-  font-size: 7px;
-  font-weight: 700;
-  font-family: var(--font-game);
-  line-height: 1;
-  position: absolute;
-  bottom: -13px;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.upgrade-node.current .upgrade-node-label {
-  color: rgba(255, 255, 255, 0.9);
-}
+.upgrade-node-label { display: none; }
 
 .upgrade-node-max {
-  font-size: 6px;
-  font-weight: 700;
-  font-family: var(--font-game);
-  letter-spacing: 0.5px;
-  color: var(--gold, #ffd700);
   position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transform: rotate(-45deg);
+  font-size: 8px;
+  line-height: 1;
+  color: transparent;
 }
+
+.upgrade-node-max::before {
+  content: '★';
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.upgrade-node.current .upgrade-node-max::before { color: #111; }
 
 .upgrade-connector {
   flex: 1;
+  min-width: 10px;
   height: 2px;
-  background: rgba(255, 255, 255, 0.2);
-  min-width: 8px;
+  margin: 0 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .upgrade-connector.filled {
-  background: var(--c, #00d4ff);
-  box-shadow: 0 0 4px var(--c, #00d4ff);
+  background: var(--tc);
+  box-shadow: 0 0 6px var(--tc);
 }
 
-/* ── Target Priority ─────────────────────────────────────────────────────── */
+/* ── Power ───────────────────────────────────────────── */
+
+.upgrade-power {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tc) 9%, rgba(255, 255, 255, 0.02));
+  border: 1px solid color-mix(in srgb, var(--tc) 24%, transparent);
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  line-height: 1.38;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.upgrade-power:empty { display: none; }
+
+.upgrade-power strong {
+  font-family: var(--font-game);
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--tc);
+}
+
+.upgrade-power small {
+  margin-top: 2px;
+  font-size: 0.7rem;
+  color: var(--grass);
+}
+
+.upgrade-power small::before { content: '▲ '; font-size: 0.6rem; }
+
+/* ── Stats: one row each, bar + number + gain ────────── */
+
+.upgrade-stats {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.upgrade-stat {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 38px 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.upgrade-stat-label {
+  font-family: var(--font-game);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.upgrade-stat-bar {
+  position: relative;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.upgrade-stat-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  transition: width 0.5s cubic-bezier(0.3, 0.8, 0.3, 1), left 0.5s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.upgrade-stat-bar .now {
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 55%, #fff 0%), var(--tc));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--tc) 60%, transparent);
+  z-index: 1;
+}
+
+.upgrade-stat-bar .gain {
+  border-radius: 0 999px 999px 0;
+  background: repeating-linear-gradient(-45deg, rgba(34, 197, 94, 0.85) 0 4px, rgba(34, 197, 94, 0.45) 4px 8px);
+  animation: stat-gain-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes stat-gain-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.upgrade-stat-value {
+  font-family: var(--font-game);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.upgrade-stat-next {
+  font-family: var(--font-game);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--grass);
+  text-shadow: 0 0 10px var(--grass-glow);
+  font-variant-numeric: tabular-nums;
+}
+
+.upgrade-stat-next:empty::before { content: '—'; color: rgba(255, 255, 255, 0.2); text-shadow: none; }
+
+.upgrade-sheet.max-level .upgrade-stat-next {
+  color: var(--gold);
+  text-shadow: 0 0 10px var(--gold-glow);
+  font-size: 0.66rem;
+  letter-spacing: 1px;
+}
+
+/* ── Target priority: one segmented control ──────────── */
 
 .target-priority {
   display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
   gap: 6px;
-  margin: 4px 0 10px;
+  margin: 0 0 10px;
 }
 
 .target-priority-label {
@@ -262,125 +341,123 @@
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.52);
-  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.5);
 }
 
-.target-priority-label span {
-  color: var(--gold);
-  text-shadow: 0 0 8px var(--gold-glow);
-}
+.target-priority-label span { color: #fff; }
 
 .priority-controls {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 5px;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .priority-btn {
   min-height: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.055);
-  color: rgba(255, 255, 255, 0.7);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
   font-family: var(--font-game);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   cursor: pointer;
-  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), transform var(--t-fast);
+  transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast), box-shadow var(--t-fast);
 }
 
-.priority-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.priority-btn:active {
-  transform: scale(0.96);
-}
+.priority-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
+.priority-btn:active { transform: scale(0.95); }
 
 .priority-btn.active {
-  background: rgba(255, 215, 0, 0.16);
-  border-color: rgba(255, 215, 0, 0.48);
-  color: var(--gold);
-  box-shadow: inset 0 0 14px rgba(255, 215, 0, 0.08);
+  color: #0b0d14;
+  background: var(--tc);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--tc) 45%, transparent);
 }
 
-/* ── MAX Level State ─────────────────────────────────────────────────────── */
-
-.upgrade-sheet.max-level {
-  border-color: rgba(255, 215, 0, 0.38);
-  border-left-color: rgba(255, 215, 0, 0.8);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), 0 0 24px rgba(255, 215, 0, 0.14);
-}
+/* ── Buttons ─────────────────────────────────────────── */
 
 .upgrade-btns {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
   gap: 8px;
-  /* Pinned to the bottom of the sheet: on a short screen the sheet scrolls, and
-     Sell/Upgrade — the reason it was opened — used to be the part cut off. */
+  /* Pinned to the bottom: on a short screen the sheet scrolls, and Sell/Upgrade,
+     the reason it was opened, must never be the part cut off. */
   position: sticky;
   bottom: -12px;
   margin: 0 -12px -12px;
   padding: 10px 12px 12px;
-  background: linear-gradient(to bottom, rgba(10, 12, 22, 0), rgba(10, 12, 22, 0.98) 28%);
-  z-index: 1;
+  background: linear-gradient(to bottom, rgba(9, 11, 19, 0), rgba(9, 11, 19, 0.98) 30%);
+  z-index: 2;
 }
 
 .upgrade-btn {
-  flex: 1;
-  padding: 10px 8px;
-  border: none;
-  border-radius: var(--r-sm);
-  font-size: 0.86rem;
-  font-weight: 700;
-  font-family: var(--font-game);
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  min-height: 42px;
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: all var(--t-fast);
+  gap: 1px;
+  min-height: 48px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-game);
+  font-weight: 700;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform var(--t-fast), filter var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  position: relative;
-  overflow: hidden;
 }
 
-.upgrade-btn:active {
-  transform: scale(0.96);
+.upgrade-btn:active:not(:disabled) { transform: scale(0.96); }
+
+.upgrade-btn .ub-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.upgrade-btn .ub-cost {
+  font-size: 1.05rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .upgrade-btn.sell {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--red);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  font-size: 0.82rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ff8a8a;
+  border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
-.upgrade-btn.sell:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.32);
-  border-color: rgba(239, 68, 68, 0.7);
-  box-shadow: 0 0 14px var(--red-glow);
-}
-
-.upgrade-btn.sell:active:not(:disabled) {
-  background: rgba(239, 68, 68, 0.4);
-  box-shadow: 0 0 20px var(--red-glow);
+.upgrade-btn.sell:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.6);
 }
 
 .upgrade-btn.do-upgrade {
-  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
-  color: #000;
-  border: 1px solid rgba(255, 215, 0, 0.5);
-  box-shadow: 0 4px 16px var(--gold-glow);
-  overflow: hidden;
+  background: linear-gradient(180deg, #ffe45c, var(--gold) 45%, var(--gold-dim));
+  color: #1a1300;
+  border: 1px solid rgba(255, 236, 140, 0.8);
+  box-shadow: 0 4px 0 #8a6d00, 0 8px 20px var(--gold-glow);
+  transform: translateY(-2px);
 }
 
-/* Shine sweep animation for affordable upgrade button */
+.upgrade-btn.do-upgrade:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 1px 0 #8a6d00, 0 4px 12px var(--gold-glow);
+}
+
+.upgrade-btn.do-upgrade:hover:not(:disabled) { filter: brightness(1.08); }
+
+/* Shine sweep while affordable. */
 .upgrade-btn.do-upgrade.available::after {
   content: '';
   position: absolute;
@@ -388,7 +465,7 @@
   left: -60%;
   width: 40%;
   height: 100%;
-  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
   animation: upgradeShineSweep 2.4s ease-in-out 0.6s infinite;
   pointer-events: none;
 }
@@ -399,126 +476,165 @@
   100% { left: 120%; }
 }
 
-.upgrade-btn.do-upgrade.available {
-  box-shadow: 0 0 28px var(--gold-glow), inset 0 0 0 1px rgba(255,255,255,0.22);
-}
-
-.upgrade-btn.do-upgrade:hover:not(:disabled) {
-  filter: brightness(1.1);
-  box-shadow: 0 4px 24px rgba(255, 215, 0, 0.55);
-}
-
-.upgrade-btn.do-upgrade:active:not(:disabled) {
-  background: linear-gradient(135deg, #ffcc00, #cc9900);
-  box-shadow: 0 2px 10px var(--gold-glow);
-}
-
 .upgrade-btn:disabled {
-  background: rgba(80, 80, 80, 0.2);
-  color: rgba(255, 255, 255, 0.25);
-  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transform: none;
   box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
 }
 
-#upBtn:disabled #upCost {
-  color: var(--red);
+.upgrade-btn:disabled .ub-cost { color: #ff8a8a; }
+
+.upgrade-maxed {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border-radius: 12px;
+  font-family: var(--font-game);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.06), rgba(255, 215, 0, 0.16), rgba(255, 215, 0, 0.06));
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  text-shadow: 0 0 12px var(--gold-glow);
 }
 
-/* Mobile optimization */
+.upgrade-sheet.max-level .upgrade-maxed { display: flex; }
+
+.upgrade-sheet.max-level {
+  border-color: rgba(255, 215, 0, 0.45);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6), 0 0 28px rgba(255, 215, 0, 0.16);
+}
+
+/* ── Level-up feedback ───────────────────────────────── */
+
+.upgrade-sheet.leveled { animation: sheet-level 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3); }
+
+.upgrade-sheet.leveled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 42%, color-mix(in srgb, var(--tc) 30%, rgba(255, 255, 255, 0.14)) 50%, transparent 58%);
+  background-size: 250% 100%;
+  animation: sheet-sweep 0.7s ease-out forwards;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.upgrade-sheet.leveled .upgrade-node.current { animation: pip-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.6); }
+.upgrade-sheet.leveled .upgrade-icon { animation: icon-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.6); }
+
+@keyframes sheet-level {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+
+@keyframes sheet-sweep {
+  from { background-position: 120% 0; }
+  to   { background-position: -120% 0; }
+}
+
+@keyframes pip-pop {
+  0% { transform: rotate(45deg) scale(0.4); }
+  60% { transform: rotate(45deg) scale(1.6); }
+  100% { transform: rotate(45deg) scale(1); }
+}
+
+@keyframes icon-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18) rotate(-6deg); box-shadow: 0 0 30px var(--tc); }
+  100% { transform: scale(1); }
+}
+
+/* "LEVEL 3" rising off the tower on the board. */
+.level-pop {
+  --tc: #ffd700;
+  position: fixed;
+  z-index: 260;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  font-family: var(--font-game);
+  font-weight: 700;
+  color: #fff;
+  background: rgba(8, 10, 18, 0.85);
+  border: 1px solid var(--tc);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--tc) 60%, transparent);
+  animation: level-pop 1.25s cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+}
+
+.level-pop span { font-size: 0.7rem; letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.7); }
+.level-pop b { font-size: 1.2rem; color: var(--tc); text-shadow: 0 0 10px var(--tc); }
+.level-pop.max { border-color: var(--gold); }
+.level-pop.max b { color: var(--gold); }
+
+@keyframes level-pop {
+  0%   { opacity: 0; transform: translate(-50%, -20%) scale(0.5); }
+  18%  { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
+  30%  { transform: translate(-50%, -70%) scale(1); }
+  75%  { opacity: 1; transform: translate(-50%, -150%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -190%) scale(0.95); }
+}
+
+/* ── Phones ──────────────────────────────────────────── */
+
 @media (max-width: 640px) {
   .upgrade-sheet {
     left: 8px;
     right: 8px;
     bottom: calc(var(--bottom-ui-clearance, 176px) + 8px);
     width: auto;
-    max-height: min(42vh, 350px);
-    padding: 10px;
+    padding: 12px;
+    transform-origin: 50% 100%;
+    transform: translate3d(0, 18px, 0) scale(0.97);
   }
 
-  .target-priority {
-    grid-template-columns: 1fr;
-    gap: var(--space-xs);
-  }
+  .upgrade-sheet.show { transform: none; }
 
-  .priority-controls {
-    grid-template-columns: repeat(5, minmax(46px, 1fr));
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
+  .upgrade-icon { width: 48px; height: 48px; font-size: 1.6rem; border-radius: 13px; }
 
-  .priority-controls::-webkit-scrollbar {
-    display: none;
-  }
-
-  .upgrade-btn {
-    min-height: 42px;
-    font-size: 0.86rem;
-  }
-
-  .upgrade-icon {
-    font-size: 1.55rem;
-  }
-
-  .upgrade-stat {
-    padding: 7px 5px;
-  }
+  /* Keep the power to what it does now; the gains are on the bars. */
+  .upgrade-power { padding: 7px 10px; font-size: 0.74rem; }
+  .upgrade-power small { display: none; }
 }
 
 @media (max-height: 560px) {
   .upgrade-sheet {
-    width: min(320px, calc(100vw - 24px));
-    max-height: calc(100vh - var(--bottom-ui-clearance, 112px) - var(--safe-top) - 16px);
+    width: min(340px, calc(100vw - 24px));
+    max-height: calc(100vh - var(--bottom-ui-clearance, 112px) - var(--safe-top, 0px) - 16px);
   }
 
-  .upgrade-header {
-    margin-bottom: 7px;
-    padding: 8px;
-  }
-
-  .upgrade-path {
-    display: none;
-  }
+  .upgrade-sheet { padding: 10px; }
+  .upgrade-header { margin-bottom: 6px; gap: 10px; }
+  .upgrade-icon { width: 40px; height: 40px; font-size: 1.3rem; border-radius: 11px; }
+  .upgrade-info h3 { font-size: 1.02rem; }
+  .upgrade-path { margin-top: 3px; }
+  .upgrade-close { width: 28px; height: 28px; }
+  /* Short screens: the power keeps its name only; the full text is on taller ones. */
+  .upgrade-power { flex-direction: row; padding: 4px 9px; margin-bottom: 6px; }
+  .upgrade-power span, .upgrade-power small { display: none; }
+  .upgrade-stats { gap: 4px; padding: 6px 9px; margin-bottom: 6px; }
+  .target-priority { grid-template-columns: auto 1fr; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .priority-btn { min-height: 26px; }
+  .upgrade-btns { bottom: -10px; margin: 0 -10px -10px; padding: 6px 10px 10px; }
+  .upgrade-btn, .upgrade-maxed { min-height: 40px; }
+  .upgrade-btn { flex-direction: row; gap: 8px; }
 }
 
-/* ── Power line: what the tower does at this level ── */
-.upgrade-power {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0 0 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--theme-accent, #38bdf8) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--theme-accent, #38bdf8) 30%, transparent);
-  font-family: var(--font-ui);
-  font-size: 0.74rem;
-  line-height: 1.35;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.upgrade-power:empty {
-  display: none;
-}
-
-.upgrade-power strong {
-  font-family: var(--font-game);
-  font-size: 0.82rem;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--theme-accent, #38bdf8);
-}
-
-.upgrade-power small {
-  font-size: 0.68rem;
-  color: var(--gold);
-  opacity: 0.9;
-}
-
-/* Phones: the sheet is short, so keep the power to what it does now. The
-   numbers the next level brings are already shown under each stat. */
-@media (max-width: 640px) {
-  .upgrade-power { padding: 6px 10px; font-size: 0.72rem; }
-  .upgrade-power small { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .upgrade-stat-bar .gain,
+  .upgrade-btn.do-upgrade.available::after,
+  .upgrade-sheet.leveled,
+  .upgrade-sheet.leveled::after { animation: none !important; }
 }

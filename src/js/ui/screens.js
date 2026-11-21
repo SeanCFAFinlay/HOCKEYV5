@@ -32,6 +32,7 @@ import { icon } from './icons.js';
 import { performFullCleanup } from '../engine/cleanup.js';
 import { getMapsWithProgress, getThemeProgress, getStarDisplay } from '../systems/progression.js';
 import { showScreenAnimated, cancelTransition } from './transitions.js';
+import { showArenaLoader, hideArenaLoader } from './arena-loader.js';
 
 export function renderThemeCards() {
   const container = document.getElementById('themeCards');
@@ -179,6 +180,8 @@ export function selectTheme(t) {
   showScreenAnimated('mapScreen');
 }
 
+const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+
 export function startGame(idx, mode = 'campaign') {
   const state = getState();
   const { themeData } = state;
@@ -189,6 +192,11 @@ export function startGame(idx, mode = 'campaign') {
     money: mode === 'sandbox' ? Math.floor(baseMapData.money * (themeData.balance?.sandbox?.startingMoneyMultiplier || 3)) : baseMapData.money,
     lives: mode === 'sandbox' ? Math.floor(baseMapData.lives * (themeData.balance?.sandbox?.livesMultiplier || 3)) : baseMapData.lives
   };
+
+  // Cover the screen with the arena card first; building the scene below
+  // blocks the main thread for a moment.
+  const loader = showArenaLoader({ themeData, mapData, mapIndex: idx, mode });
+  loader.step('Laying out the arena', 18);
 
   // Set map data
   setMapData(mapData, idx);
@@ -215,42 +223,57 @@ export function startGame(idx, mode = 'campaign') {
   // Generate map and waves
   generateMap();
   setWaves(generateWaves(mapData.waves, themeData, { mode }));
+  loader.step('Scouting the waves', 34);
 
   showScreenAnimated('gameScreen');
 
-  // Wait for layout before initializing 3D
-  (function waitForLayout() {
-    const wrap = document.querySelector('.canvas-wrap');
-    const w = wrap ? wrap.getBoundingClientRect().width : 0;
-    const h = wrap ? wrap.getBoundingClientRect().height : 0;
+  // Wait for layout before initializing 3D. Each step yields a frame so the
+  // loader's caption and bar actually paint between the heavy pieces.
+  (async function build() {
+    try {
+      for (;;) {
+        const wrap = document.querySelector('.canvas-wrap');
+        const r = wrap ? wrap.getBoundingClientRect() : { width: 0, height: 0 };
+        if (r.width >= 20 && r.height >= 20) break;
+        await nextFrame();
+      }
 
-    if (w < 20 || h < 20) {
-      requestAnimationFrame(waitForLayout);
-      return;
+      loader.step(`Building the ${themeData.environmentSkin?.arena || 'arena'}`, 52);
+      await nextFrame();
+      await nextFrame();
+
+      // Initialize 3D scene
+      init3D();
+      onResize();
+
+      // Initialize camera
+      initCameraState();
+
+      loader.step('Filling the stands', 80);
+      await nextFrame();
+
+      // Initialize UI
+      initHUD();
+      renderTowers();
+      updateHUD();
+
+      // Start game loop
+      startGameLoop();
+
+      // Emit game start event
+      emit(GameEvents.GAME_START, {
+        theme: state.theme,
+        map: mapData.name,
+        waves: mapData.waves,
+        mode
+      });
+
+      // Let the first frames render under the cover, then reveal.
+      await nextFrame();
+      await nextFrame();
+    } finally {
+      loader.done();
     }
-
-    // Initialize 3D scene
-    init3D();
-    onResize();
-
-    // Initialize camera
-    initCameraState();
-
-    // Initialize UI
-    initHUD();
-    renderTowers();
-    updateHUD();
-
-    // Start game loop
-    startGameLoop();
-
-    // Emit game start event
-    emit(GameEvents.GAME_START, {
-      theme: state.theme,
-      map: mapData.name,
-      waves: mapData.waves,
-      mode
-    });
   })();
 }
 
@@ -259,6 +282,7 @@ export function exitGame() {
   const theme = state.theme;
 
   // Perform full cleanup
+  hideArenaLoader();
   performFullCleanup();
   clearTargetingFeedback();
 

@@ -36,11 +36,6 @@ button, .tower-btn, .menu-card, .map-card {
   .hud-wave-theme {
     font-size: 0.6rem;
   }
-
-  .upgrade-role {
-    font-size: 0.55rem;
-    padding: 2px 6px;
-  }
 }
 
 /* Standard phones (376px - 430px) */
@@ -61,17 +56,6 @@ button, .tower-btn, .menu-card, .map-card {
   .hud-stat {
     padding: 10px 14px;
     font-size: 0.9rem;
-  }
-}
-
-/* Tablets and desktop (769px+) */
-@media (min-width: 769px) {
-  .upgrade-sheet {
-    width: min(320px, calc(100vw - 24px));
-  }
-
-  .upgrade-sheet.show {
-    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
@@ -101,13 +85,6 @@ button, .tower-btn, .menu-card, .map-card {
   .hud-center {
     display: none;
   }
-
-  /* Reduce upgrade sheet height in landscape */
-  .upgrade-sheet {
-    width: min(320px, calc(100vw - 24px));
-    max-height: calc(100vh - var(--bottom-ui-clearance, 76px) - var(--safe-top) - 16px);
-    overflow-y: auto;
-  }
 }
 
 /* Safe areas for notched devices */
@@ -129,15 +106,6 @@ button, .tower-btn, .menu-card, .map-card {
   animation: pulse-glow 1.5s ease-in-out infinite;
 }
 
-@keyframes sheet-fade-in {
-  from { opacity: 0.92; }
-  to { opacity: 1; }
-}
-
-.upgrade-sheet.show {
-  animation: sheet-fade-in 0.2s ease-out;
-}
-
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -151,7 +119,6 @@ button, .tower-btn, .menu-card, .map-card {
 .action-btn:active:not(:disabled),
 .cam-btn:active,
 .modal-btn:active,
-.upgrade-btn:active:not(:disabled),
 .back-btn:active,
 .hud-menu:active {
   transform: scale(0.96);

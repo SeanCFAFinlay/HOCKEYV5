@@ -24,74 +24,13 @@
     if (typeof THREE === 'undefined') {
       document.body.innerHTML = '<div style="color:#fff;background:#07090f;padding:24px;text-align:center;font-family:sans-serif"><h2>⚠️ Failed to load 3D engine</h2><p>Please check your internet connection and reload.</p><button onclick="location.reload()" style="margin-top:12px;padding:12px 24px;font-size:1rem;cursor:pointer;border-radius:8px;border:none">Reload</button></div>';
     }
-    // Force-hide loader after 2s regardless of JS state
+    // Fade the splash out after 2.5s even if the app never finishes booting.
     setTimeout(function() {
       var l = document.getElementById('appLoader');
-      if (l) l.style.display = 'none';
-    }, 2000);
+      if (l) l.classList.add('hidden');
+    }, 2500);
   </script>
 
-  <!-- Loading indicator -->
-  <style>
-    #appLoader {
-      position: fixed;
-      inset: 0;
-      background: #07090f;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      z-index: 9999;
-      color: #fff;
-      font-family: 'Rajdhani', sans-serif;
-    }
-    #appLoader.hidden { display: none; }
-
-    .loader-logo {
-      font-size: 1.2rem;
-      letter-spacing: 6px;
-      color: rgba(255,255,255,0.35);
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-
-    .loader-logo span.ice  { color: #00d4ff; }
-    .loader-logo span.sep  { color: rgba(255,255,255,0.2); margin: 0 6px; }
-    .loader-logo span.soccer { color: #22c55e; }
-
-    .loader-bar-wrap {
-      width: 120px;
-      height: 3px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .loader-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #00d4ff, #22c55e);
-      border-radius: 2px;
-      animation: loader-fill 1.2s cubic-bezier(0.4,0,0.2,1) forwards;
-    }
-    @keyframes loader-fill {
-      0%   { width: 0%;   opacity: 1; }
-      80%  { width: 88%;  opacity: 1; }
-      100% { width: 100%; opacity: 0; }
-    }
-    .loader-spinner {
-      width: 36px;
-      height: 36px;
-      border: 2.5px solid rgba(255,255,255,0.1);
-      border-top-color: #00d4ff;
-      border-right-color: #22c55e;
-      border-radius: 50%;
-      animation: spin 0.75s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
 
   <!-- CSS -->
   <link rel="stylesheet" href="css/variables.css">
@@ -104,6 +43,7 @@
   <link rel="stylesheet" href="css/pause-sheet.css">
   <link rel="stylesheet" href="css/icons.css">
   <link rel="stylesheet" href="css/brand.css">
+  <link rel="stylesheet" href="css/loader.css">
   <link rel="stylesheet" href="css/modals.css">
   <link rel="stylesheet" href="css/camera-btns.css">
   <link rel="stylesheet" href="css/responsive.css">
@@ -112,18 +52,13 @@
 </head>
 <body>
 
-<!-- Loading Indicator -->
-<div id="appLoader">
+<!-- Boot splash. The world icons are filled in by main.js. -->
+<div id="appLoader" role="status" aria-label="Loading">
+  <div class="loader-title"><span class="ice">HOCKEY</span><span class="vs">vs</span><span class="grass">SOCCER</span></div>
+  <div class="loader-sub">TOWER DEFENSE 3D</div>
+  <div class="loader-worlds" id="loaderWorlds"></div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
   <div class="brand-mark" data-brand></div>
-  <div class="loader-spinner"></div>
-  <div class="loader-logo">
-    <span class="ice">Hockey</span>
-    <span class="sep">vs</span>
-    <span class="soccer">Soccer</span>
-  </div>
-  <div class="loader-bar-wrap">
-    <div class="loader-bar"></div>
-  </div>
 </div>
 
 <!-- Menu Screen -->
@@ -250,33 +185,39 @@
   </div>
 </div>
 
-<!-- Upgrade Sheet -->
-<div class="upgrade-sheet" id="upgradeSheet">
+<!-- Upgrade Sheet: filled in by js/ui/upgrade-sheet.js -->
+<div class="upgrade-sheet" id="upgradeSheet" role="dialog" aria-labelledby="upName">
   <div class="upgrade-handle"></div>
   <div class="upgrade-header">
     <div class="upgrade-icon" id="upIcon"></div>
     <div class="upgrade-info">
       <h3 id="upName">Tower</h3>
-      <p id="upLevel">Level 1</p>
-      <span class="upgrade-role" id="upRole">Fast</span>
+      <div class="upgrade-meta">
+        <span class="upgrade-role" id="upRole">Fast</span>
+        <span class="upgrade-level" id="upLevel">Level 1 of 4</span>
+      </div>
+      <!-- Four level pips; the lit ones are the levels bought. -->
+      <div id="upgradePath" class="upgrade-path"></div>
     </div>
     <button class="upgrade-close" type="button" onclick="hideUpgrade()" aria-label="Close tower upgrade">×</button>
   </div>
   <!-- The tower's power at its current level, and what the next level changes. -->
   <div class="upgrade-power" id="upPower"></div>
+  <!-- Bars compare this tower with the rest of the world's line-up; the bright
+       tail is what the next level adds. -->
   <div class="upgrade-stats">
-    <div class="upgrade-stat"><div class="upgrade-stat-label">DMG</div><div class="upgrade-stat-value" id="upDmg">50</div><div class="upgrade-stat-next" id="upDmgNext">→75</div></div>
-    <div class="upgrade-stat"><div class="upgrade-stat-label">RNG</div><div class="upgrade-stat-value" id="upRng">3.0</div><div class="upgrade-stat-next" id="upRngNext">→3.5</div></div>
-    <div class="upgrade-stat"><div class="upgrade-stat-label">RATE</div><div class="upgrade-stat-value" id="upRate">1.0</div><div class="upgrade-stat-next" id="upRateNext">→1.2</div></div>
+    <div class="upgrade-stat" data-stat="dmg"><div class="upgrade-stat-label">Damage</div><div class="upgrade-stat-bar"><i class="now"></i><i class="gain"></i></div><div class="upgrade-stat-value" id="upDmg">50</div><div class="upgrade-stat-next" id="upDmgNext">+25</div></div>
+    <div class="upgrade-stat" data-stat="rng"><div class="upgrade-stat-label">Range</div><div class="upgrade-stat-bar"><i class="now"></i><i class="gain"></i></div><div class="upgrade-stat-value" id="upRng">3.0</div><div class="upgrade-stat-next" id="upRngNext">+0.5</div></div>
+    <div class="upgrade-stat" data-stat="rate"><div class="upgrade-stat-label">Speed</div><div class="upgrade-stat-bar"><i class="now"></i><i class="gain"></i></div><div class="upgrade-stat-value" id="upRate">1.0</div><div class="upgrade-stat-next" id="upRateNext">+0.2</div></div>
   </div>
-  <div id="upgradePath" class="upgrade-path"></div>
   <div class="target-priority">
     <div class="target-priority-label">Target <span id="upPriorityLabel">First</span></div>
     <div class="priority-controls" id="priorityControls"></div>
   </div>
   <div class="upgrade-btns">
-    <button class="upgrade-btn sell" onclick="sellTower()">Sell $<span id="upSell">60</span></button>
-    <button class="upgrade-btn do-upgrade" id="upBtn" onclick="doUpgrade()">Upgrade $<span id="upCost">80</span></button>
+    <button class="upgrade-btn sell" type="button" onclick="sellTower()"><span class="ub-label">Sell</span><span class="ub-cost">$<span id="upSell">60</span></span></button>
+    <button class="upgrade-btn do-upgrade" id="upBtn" type="button" onclick="doUpgrade()"><span class="ub-label" id="upBtnLabel">Upgrade</span><span class="ub-cost">$<span id="upCost">80</span></span></button>
+    <div class="upgrade-maxed" id="upMaxed">★ Max level</div>
   </div>
 </div>
 

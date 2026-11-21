@@ -121,6 +121,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // real PNG in ui/brand.js when it's on disk.)
   document.querySelectorAll('[data-brand]').forEach(el => { el.innerHTML = phLogo({ size: 96 }); });
   document.querySelectorAll('[data-brand-small]').forEach(el => { el.innerHTML = phLogo({ size: 40 }); });
+  // One icon per world on the splash, in menu order.
+  const loaderWorlds = document.getElementById('loaderWorlds');
+  if (loaderWorlds) {
+    loaderWorlds.innerHTML = Object.values(THEMES)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+      .map((t, i) => `<span style="--wc:${t.color};--i:${i}" title="${t.name}">${icon(t.icon)}</span>`)
+      .join('');
+  }
   try { applyBrandFavicon(); } catch (e) { /* favicon is non-critical */ }
 
   // Validate all config data on startup
@@ -223,12 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Initialization error:', e);
   }
 
-  // Hide loader once initialized
+  // Fade the splash out once initialized. It stays up for at least ~0.9s from
+  // page start so it reads as a title card rather than a flicker.
   const loader = document.getElementById('appLoader');
   if (loader) {
+    const wait = Math.max(100, 900 - performance.now());
     setTimeout(() => {
       loader.classList.add('hidden');
-    }, 100);
+    }, wait);
   }
 
   console.log('Initialization complete');
