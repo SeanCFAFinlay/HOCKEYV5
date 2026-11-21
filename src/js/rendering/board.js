@@ -24,6 +24,7 @@ import { getState } from '../engine/state.js';
 import { composeGeometry, bakeStaticMeshes, shareEquivalentMaterials } from './geo-utils.js';
 import { hash2 } from '../utils/rng.js';
 import { G } from './model-kit.js';
+import { surfaceKind, applySurface, projectUvs, floorBump } from './surfaces.js';
 
 /** Shared measurements, in grid cells. */
 export const BOARD = {
@@ -164,6 +165,65 @@ const STYLES = {
     base: { color: 0x2a1c16, rough: 0.85 },
     side: 'lane'
   },
+  library: {
+    // Obstacles are low runs of bookshelf: dark walnut, tops lined in
+    // bottle-green leather, a gilt rule, and a brass knob on each newel post.
+    wall: { h: 0.5, t: 0.64, r: 0.05, stripe: [0.3, 0.35] },
+    // The room's edge is a carved walnut skirting with a brass inlay.
+    kerb: {
+      h: 0.4, stripe: [0.12, 0.17],
+      body: { color: 0x2a160c, rough: 0.5 },
+      cap: { color: 0x5a3420, rough: 0.4 },
+      accent: { color: 0xb8892e, rough: 0.35, metal: 0.5 }
+    },
+    baseGap: 1.05,
+    post: { shape: 'cyl', top: 'sphere', topBucket: 'accent' },
+    body: { color: 0x3a2214, rough: 0.45 },
+    cap: { color: 0x1a4a30, rough: 0.5, metal: 0.05 },
+    accent: { color: 0xc9992e, rough: 0.35, metal: 0.5 },
+    base: { color: 0x1c1018, rough: 0.85 },
+    side: 'lane'
+  },
+  pizza: {
+    // Obstacles are runs of stacked pizza boxes: kraft card, a red printed
+    // lid, a cream band, and a tomato on each corner post.
+    wall: { h: 0.46, t: 0.64, r: 0.04, stripe: [0.3, 0.35] },
+    // Checker tiles: let the tile texture carry the pattern, not the shading.
+    tile: { groove: 0.6, checker: 0.02, size: 0.96 },
+    // The room's edge is a tiled counter front in green, white and red.
+    kerb: {
+      h: 0.36, stripe: [0.12, 0.18],
+      body: { color: 0x1f5a34, rough: 0.35 },
+      cap: { color: 0xe8e0d0, rough: 0.3 },
+      accent: { color: 0xb8241a, rough: 0.35 }
+    },
+    baseGap: 1.05,
+    post: { shape: 'box', top: 'sphere', topBucket: 'cap' },
+    body: { color: 0x8a5a2e, rough: 0.75 },
+    cap: { color: 0xa8241a, rough: 0.5 },
+    accent: { color: 0xf3ead8, rough: 0.5 },
+    base: { color: 0x3a2018, rough: 0.85 },
+    side: 'cabinet'
+  },
+  arcade: {
+    // Obstacles are low rows of cabinet: black-violet laminate, a lit purple
+    // top, a cyan neon tube along each side, a glowing ball on every post.
+    wall: { h: 0.44, t: 0.62, r: 0.04, stripe: [0.26, 0.31] },
+    // The floor's edge is a black rail with a magenta neon strip.
+    kerb: {
+      h: 0.34, stripe: [0.2, 0.26],
+      body: { color: 0x15122a, rough: 0.4, metal: 0.2 },
+      cap: { color: 0x2c2450, rough: 0.35, metal: 0.2 },
+      accent: { color: 0xff3df0, rough: 0.3, glow: 0.9 }
+    },
+    baseGap: 1.05,
+    post: { shape: 'box', top: 'sphere', topBucket: 'accent' },
+    body: { color: 0x1c1838, rough: 0.3, metal: 0.2 },
+    cap: { color: 0x52146e, rough: 0.35, glow: 0.16 },
+    accent: { color: 0x22e8ff, rough: 0.3, glow: 0.9 },
+    base: { color: 0x0e0a20, rough: 0.7, metal: 0.2 },
+    side: 'hull'
+  },
   golf: {
     wall: { h: 0.42, t: 0.6, r: 0.05, stripe: [0.17, 0.25] },
     kerbH: 0.34, baseGap: 1.15,
@@ -214,6 +274,13 @@ export function makeBoardMaterials(theme) {
     mats.kcap = makeMat(s.kerb.cap);
     mats.kaccent = makeMat(s.kerb.accent);
   }
+  // Surfaces (wood, brick, metal...) per world: rendering/surfaces.js.
+  // Strong glows stay plain so neon reads as light, not as a painted thing.
+  for (const [bucket, mat] of Object.entries(mats)) {
+    if (mat.emissiveIntensity > 0.4) continue;
+    const kind = surfaceKind(theme, bucket);
+    if (kind) applySurface(mat, kind);
+  }
   return mats;
 }
 
@@ -240,7 +307,10 @@ function flush(collector, mats, scene) {
   for (const key of Object.keys(collector.parts)) {
     const list = collector.parts[key];
     if (!list.length) continue;
-    const mesh = new THREE.Mesh(composeGeometry(list), mats[key]);
+    const geo = composeGeometry(list);
+    // Textured materials get world-projected UVs so grain and bricks keep one size.
+    if (mats[key].map) projectUvs(geo, mats[key].userData.surfaceScale || 1);
+    const mesh = new THREE.Mesh(geo, mats[key]);
     const glows = mats[key].emissiveIntensity > 0.4;
     mesh.castShadow = key !== 'base' && !glows;
     mesh.receiveShadow = true;
@@ -428,6 +498,12 @@ export function buildBoardSurface(hw, hh) {
     tileMat = new THREE.MeshStandardMaterial({ color: 0x7a8794, roughness: 0.7 });
   }
   useWorldUv(tileMat, width, depth);
+  // The painted floor doubles as a bump map, so the tiles have some tooth.
+  const bump = floorBump(state.theme);
+  if (bump > 0 && tileMat.map && !tileMat.bumpMap) {
+    tileMat.bumpMap = tileMat.map;
+    tileMat.bumpScale = bump;
+  }
 
   const tiles = new THREE.InstancedMesh(makeTileGeometry(BOARD.GROOVE), tileMat, COLS * ROWS);
   const dummy = new THREE.Object3D();

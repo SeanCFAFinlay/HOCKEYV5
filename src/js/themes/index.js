@@ -16,8 +16,11 @@ import * as bowling from './bowling.js';
 import * as bathtub from './bathtub.js';
 import * as garden from './garden.js';
 import * as sushi from './sushi.js';
+import * as library from './library.js';
+import * as pizza from './pizza.js';
+import * as arcade from './arcade.js';
 
-export const THEME_MODULES = { kitchen, golf, bowling, bathtub, garden, sushi };
+export const THEME_MODULES = { kitchen, golf, bowling, bathtub, garden, sushi, library, pizza, arcade };
 
 /** The renderer kit for a theme, or null for the built-in themes. */
 export function getThemeKit(themeId) {

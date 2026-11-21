@@ -121,6 +121,40 @@ const PATHS = {
   luckycat: '<path class="ln" d="M5 10 4.500 4.500 8 7a6 6 0 0 1 5 0l3.500-2.500L16 10a5.500 5 0 1 1-11 0Z"/><path class="ln" d="M8.500 10.500v.01M12.500 10.500v.01M9.500 13c.700.700 1.300.700 2 0"/><path class="ln" d="M17 13.500c2 0 3.500-1.500 3.500-3.500V6a1.500 1.500 0 0 0-3 0v3"/><path class="ln" d="M7 17v4h7v-4"/>',
   maki: '<circle class="ln" cx="12" cy="12" r="8.500"/><circle class="ln" cx="12" cy="12" r="5.500"/><circle class="fl" cx="12" cy="12" r="2.200"/>',
 
+  // ── Haunted Library ──────────────────────────────────────────────────────
+  grimoire: '<path class="ln" d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2Z"/><path class="ln" d="M5 18a2 2 0 0 1 2-2h12"/><circle class="ln" cx="12" cy="9.500" r="3"/><circle class="fl" cx="12" cy="9.500" r="1.200"/>',
+  bookmark: '<path class="ln" d="M7 3h10v18l-5-4-5 4Z"/><path class="ln" d="M10 8h4M10 11h4"/>',
+  quill: '<path class="ln" d="M20 3C12 4 7 9 5 17l2 0c5-1 10-6 13-14Z"/><path class="ln" d="M4 21l4-8M9 13l4-1"/>',
+  inkbottle: '<path class="ln" d="M5 12a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3Z"/><path class="ln" d="M9.500 9V6h5v3M8.500 3.500h7"/><path class="fl" d="M12 12.500c1.500 1.800 2 2.800 2 3.600a2 2 0 0 1-4 0c0-.800.500-1.800 2-3.600Z"/>',
+  hushowl: '<path class="ln" d="M6 4l2 3a6 6 0 0 1 8 0l2-3v9a6 7 0 0 1-12 0Z"/><path class="ln" d="M7.500 11c1 .800 2 .800 3 0M13.500 11c1 .800 2 .800 3 0"/><path class="fl" d="M12 12.500l1 1.500h-2Z"/><path class="ln" d="M4 21h16"/>',
+  bookend: '<path class="ln" d="M4 21h16M15 21V7h4v14"/><path class="ln" d="M5 21V9h3v12M8.500 21 11 8l3 .600L11.500 21"/>',
+  lampglobe: '<circle class="ln" cx="12" cy="9" r="6"/><path class="ln" d="M12 15v3M8 21h8l-1.500-3h-5Z"/><path class="fl" d="M13 5l-3 4h2l-1 3.500 3-4.500h-2Z"/>',
+  candelabra: '<path class="ln" d="M12 9v9M5 9c0 4 3 5 7 5s7-1 7-5M8 21h8l-4-3Z"/><path class="ln" d="M4 9h2M11 9h2M18 9h2"/><path class="fl" d="M5 3c1 1.200 1.300 2 1.300 2.700a1.300 1.300 0 0 1-2.600 0C3.700 5 4 4.200 5 3ZM12 2c1 1.200 1.300 2 1.300 2.700a1.300 1.300 0 0 1-2.600 0C10.700 4 11 3.200 12 2ZM19 3c1 1.200 1.300 2 1.300 2.700a1.300 1.300 0 0 1-2.600 0C17.700 5 18 4.200 19 3Z"/>',
+  overduestamp: '<path class="ln" d="M9 3h6v4l-1 1v4h-4V8L9 7Z"/><path class="ln" d="M5 12h14v4H5ZM3 20h18"/><path class="fl" d="M7 17.500h10v1H7Z"/>',
+
+  // ── Pizza Delivery Dash ──────────────────────────────────────────────────
+  pizzaslice: '<path class="ln" d="M12 21 3.500 5.500c5-3 12-3 17 0Z"/><path class="ln" d="M4.800 8c4.500-2.300 9.900-2.300 14.400 0"/><circle class="fl" cx="10" cy="10.500" r="1.300"/><circle class="fl" cx="14.200" cy="11" r="1.200"/><circle class="fl" cx="12" cy="15" r="1.100"/>',
+  standmixer: '<path class="ln" d="M4 21h14M7 21V7a3 3 0 0 1 3-3h8a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-8"/><path class="ln" d="M9 13h10l-1.500 5h-7Z"/><path class="ln" d="M14 10v4"/>',
+  pizzapeel: '<path class="ln" d="M3 21l7.500-7.500"/><rect class="ln" x="11" y="3" width="10" height="10" rx="3" transform="rotate(45 16 8)"/><circle class="fl" cx="16" cy="8" r="2"/>',
+  sauceladle: '<path class="ln" d="M20 3 12.500 13"/><path class="ln" d="M5 13h10a5 5 0 0 1-10 0Z"/><path class="fl" d="M7 15h6a3 2 0 0 1-6 0Z"/>',
+  cheesepull: '<path class="ln" d="M4 3v5M6 3v5M8 3v5M4 8a2 2 0 0 0 4 0M6 10v11"/><path class="ln" d="M16 3v5M18 3v5M20 3v5M16 8a2 2 0 0 0 4 0M18 10v11"/><path class="ln" d="M8 10c2 4 6 4 8 0M8 12c2 6 6 6 8 0"/>',
+  rollingpin: '<rect class="ln" x="6" y="9" width="12" height="6" rx="2" transform="rotate(-30 12 12)"/><path class="ln" d="M2.500 17.500 6.400 15.200M17.600 8.800 21.500 6.500"/>',
+  garlicbulb: '<path class="ln" d="M12 3c0 3 7 5 7 11a7 6 0 0 1-14 0c0-6 7-8 7-11Z"/><path class="ln" d="M12 9c-2 3-2 8 0 11M12 9c2 3 2 8 0 11"/><path class="fl" d="M18 1.500 16 5h1.500l-1 3 3-4h-1.500l.800-2.500Z"/>',
+  pizzaoven: '<path class="ln" d="M3 20h18M4 20v-6a8 8 0 0 1 16 0v6"/><path class="ln" d="M9 20v-3a3 3 0 0 1 6 0v3"/><path class="ln" d="M15 7V3h3v6.500"/><path class="fl" d="M12 15.500c1 1 1.500 2 1.500 3h-3c0-1 .500-2 1.500-3Z"/>',
+  pizzacutter: '<circle class="ln" cx="9" cy="15" r="6"/><circle class="fl" cx="9" cy="15" r="1.500"/><path class="ln" d="M9 15l4.500-4.500M13 11 21 3"/>',
+
+  // ── Arcade Meltdown ──────────────────────────────────────────────────────
+  joystick: '<path class="ln" d="M4 16h16v4H4Z"/><path class="ln" d="M12 16V9"/><circle class="fl" cx="12" cy="6.500" r="3.200"/><circle class="fl" cx="17" cy="14" r="1.300"/>',
+  lightgun: '<path class="ln" d="M3 7h15l2 2v3H10l-1.500 3H6l1 5H3.500L3 13V7Z"/><path class="ln" d="M20 10.500h1.500M11 12v1.500"/><path class="ln" d="M6 10h9"/>',
+  arcadecab: '<path class="ln" d="M7 3h10v4l-1.500 1v5l2.500 2v6H6v-6l2.500-2V8L7 7Z"/><path class="ln" d="M9 9.500h6v3H9ZM7 3h10M10 17v.01M14 17v.01"/>',
+  coinpusher: '<rect class="ln" x="4" y="3" width="16" height="18" rx="2"/><path class="ln" d="M4 13h16M8 9h8"/><ellipse class="fl" cx="9" cy="16.500" rx="2.200" ry="1"/><ellipse class="fl" cx="15" cy="16.500" rx="2.200" ry="1"/><ellipse class="fl" cx="12" cy="18.500" rx="2.200" ry="1"/>',
+  pausebtn: '<circle class="ln" cx="12" cy="12" r="8.500"/><rect class="fl" x="8.500" y="8" width="2.500" height="8" rx=".600"/><rect class="fl" x="13" y="8" width="2.500" height="8" rx=".600"/>',
+  crane: '<path class="ln" d="M3 3h18M12 3v6"/><path class="ln" d="M9 9h6v2H9Z"/><path class="ln" d="M10 11l-3 4 2 4M14 11l3 4-2 4M12 11v6"/>',
+  pinball: '<circle class="ln" cx="12" cy="13" r="5"/><circle class="fl" cx="12" cy="13" r="2"/><path class="ln" d="M12 8V4M9 4h6"/><path class="fl" d="M15.500 1 13 4h1.500L14 6l2.500-3H15Z"/><path class="ln" d="M4 21l4-2M20 21l-4-2"/>',
+  firestick: '<path class="ln" d="M5 17h14v4H5Z"/><path class="ln" d="M12 17v-5"/><circle class="ln" cx="12" cy="9.500" r="2.500"/><path class="fl" d="M12 1c1.500 2 2.500 3 2.500 4.500a2.500 2.500 0 0 1-5 0c0-.800.400-1.600.900-2 .200.600.500 1 .900 1C11.300 3.500 11 2.300 12 1Z"/>',
+  megacab: '<path class="ln" d="M5 6h14v15H5Z"/><path class="ln" d="M8 9h8v5H8ZM8 17.500h2M14 17.500h2"/><path class="fl" d="M12 0.800l1 2 2.200.300-1.600 1.500.400 2.200-2-1.100-2 1.100.400-2.200L8.800 3.100l2.200-.300Z"/>',
+  pixelghost: '<path class="fl" fill-rule="evenodd" d="M8 3h8v2h2v2h2v14h-3v-2h-2v2h-2v-2h-2v2H9v-2H7v2H4V7h2V5h2ZM8 9v3h3V9ZM13 9v3h3V9Z"/>',
+
   // ── Controls ─────────────────────────────────────────────────────────────
   pause: '<rect class="fl" x="6" y="5" width="4" height="14" rx="1"/><rect class="fl" x="14" y="5" width="4" height="14" rx="1"/>',
   map: '<path class="ln" d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path class="ln" d="M9 4v14M15 6v14"/>',

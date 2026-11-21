@@ -76,7 +76,7 @@
 @keyframes tut-pulse { 50% { box-shadow: 0 0 0 9px rgba(255, 215, 0, 0.08), 0 0 34px rgba(255, 215, 0, 0.7); } }
 
 .game-paused .tut-card,
-.game-paused .tut-ring { visibility: hidden; }
+.game-paused .tut-ring { display: none !important; }
 
 @media (max-height: 500px) and (orientation: landscape) {
   /* Sideways the board fills the middle; sit over the left-hand stands. */

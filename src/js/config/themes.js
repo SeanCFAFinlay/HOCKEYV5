@@ -6,9 +6,16 @@ import { HOCKEY_ENEMIES, SOCCER_ENEMIES } from './enemies.js';
 import { HOCKEY_MAPS, SOCCER_MAPS } from './maps.js';
 import { VISUAL_PROFILES } from './visual-profiles.js';
 import { THEME_MODULES } from '../themes/index.js';
+import { layoutFor, LAYOUT_BLURB } from './map-plan.js';
+
+/** Each world gets its own sequence of layouts (config/map-plan.js). */
+function withLayout(packId, map, index) {
+  const layout = layoutFor(packId, index, map.layout);
+  return { ...map, layout, layoutType: layout, description: LAYOUT_BLURB[layout] || map.description };
+}
 
 function enrichMaps(packId, maps, defaults) {
-  return maps.map((map, index) => ({
+  return maps.map((map, index) => withLayout(packId, map, index)).map((map, index) => ({
     ...map,
     id: map.id || `${packId}.${index + 1}`,
     campaignIndex: index,

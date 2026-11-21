@@ -40,7 +40,12 @@ const STYLES = {
   bowling: { bpm: 116, root: 38, scale: 'blues',      prog: [0, 0, 2, 0], lead: 'triangle', bass: 'sawtooth', drums: 'swing',  swing: 0.28 },
   bathtub: { bpm: 108, root: 46, scale: 'majorPent',  prog: [0, 3, 1, 4], lead: 'sine',     bass: 'triangle', drums: 'light',  swing: 0.1 },
   garden:  { bpm: 104, root: 43, scale: 'majorPent',  prog: [0, 2, 3, 0], lead: 'triangle', bass: 'triangle', drums: 'light',  swing: 0.15 },
-  sushi:   { bpm: 118, root: 45, scale: 'insen',      prog: [0, 3, 2, 4], lead: 'triangle', bass: 'square',   drums: 'taiko',  swing: 0 }
+  sushi:   { bpm: 118, root: 45, scale: 'insen',      prog: [0, 3, 2, 4], lead: 'triangle', bass: 'square',   drums: 'taiko',  swing: 0 },
+  // A tarantella bounce for the pizzeria, a creeping waltz-ish minor for the
+  // library, and square-wave chiptune with arpeggios for the arcade.
+  pizza:   { bpm: 148, root: 43, scale: 'major',      prog: [0, 4, 0, 3], lead: 'triangle', bass: 'triangle', drums: 'samba',  swing: 0.18 },
+  library: { bpm: 90,  root: 38, scale: 'minor',      prog: [0, 5, 3, 4], lead: 'sine',     bass: 'triangle', drums: 'light',  swing: 0.22 },
+  arcade:  { bpm: 152, root: 45, scale: 'minorPent',  prog: [0, 3, 4, 2], lead: 'square',   bass: 'square',   drums: 'four',   swing: 0, arp: true }
 };
 const DEFAULT_STYLE = 'hockey';
 

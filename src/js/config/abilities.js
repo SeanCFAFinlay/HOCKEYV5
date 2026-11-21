@@ -44,7 +44,10 @@ const WORLD_ABILITIES = {
   bowling: { strike: ['Strike!', 'bowlball'],         freeze: ['Lane Wax', 'spiral'],          rally: ['Disco Fever', 'disco'] },
   bathtub: { strike: ['Cannonball', 'cannon'],        freeze: ['Cold Tap', 'tap'],             rally: ['Full Steam', 'shower'] },
   garden:  { strike: ['Pot Drop', 'pot'],             freeze: ['Frost Night', 'snowflake'],    rally: ['Fertiliser', 'seedbomb'] },
-  sushi:   { strike: ['Wasabi Bomb', 'flame'],        freeze: ['Ice Bath', 'kakigori'],        rally: ['Rush Hour', 'luckycat'] }
+  sushi:   { strike: ['Wasabi Bomb', 'flame'],        freeze: ['Ice Bath', 'kakigori'],        rally: ['Rush Hour', 'luckycat'] },
+  pizza:   { strike: ['Pizza Drop', 'pizzaslice'],   freeze: ['Cold Delivery', 'snowflake'], rally: ['Rush Order', 'pizzaoven'] },
+  library: { strike: ['Falling Encyclopedia', 'grimoire'], freeze: ['Silence!', 'hushowl'], rally: ['Midnight Study', 'candelabra'] },
+  arcade:  { strike: ['Power-Up Drop', 'star'],      freeze: ['Game Paused', 'pause'],       rally: ['Turbo Mode', 'bolt'] }
 };
 
 const FALLBACK = { strike: ['Airstrike', 'comet'], freeze: ['Deep Freeze', 'snowflake'], rally: ['Rally', 'bolt'] };

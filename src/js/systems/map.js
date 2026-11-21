@@ -132,7 +132,7 @@ export function generateObstacles(layout) {
   // Lopsided designs come in two mirror-image forms; which one a map gets
   // depends on the world and the map, so the same layout type is not always
   // the same way up.
-  const themeSalt = Math.max(0, ['hockey', 'soccer', 'space', 'kitchen', 'golf', 'bowling', 'bathtub', 'garden', 'sushi'].indexOf(theme));
+  const themeSalt = Math.max(0, ['hockey', 'soccer', 'space', 'kitchen', 'golf', 'bowling', 'bathtub', 'garden', 'sushi', 'pizza', 'library', 'arcade'].indexOf(theme));
   const flip = (mapIndex + themeSalt) % 2 === 1;
 
   /** Column at a share of the map width. */
@@ -253,6 +253,149 @@ export function generateObstacles(layout) {
       }
       plus(X(0.46), mid, 1);
       vline(W - 5, mid - 2, mid + 2);
+      break;
+    }
+
+    case MapLayout.SERPENT: {
+      // A box the full height of the board, entered top-left and left
+      // bottom-right, with two shelves inside: an S-bend in three passes.
+      const a = X(0.2), b = X(0.8);
+      const s1 = Math.round(H / 3), s2 = Math.round((2 * H) / 3);
+      const row = r => (flip ? H - 1 - r : r);
+      vline(a, 0, H - 1);
+      vline(b, 0, H - 1);
+      // Door in: two cells near the top of the left wall. Door out: near the
+      // bottom of the right wall.
+      for (const r of [1, 2]) grid[row(r)][a].type = 'ground';
+      for (const r of [H - 3, H - 2]) grid[row(r)][b].type = 'ground';
+      // Shelves: the first leaves a gap at the right, the second at the left.
+      hline(a + 1, b - 3, row(s1));
+      hline(a + 3, b - 1, row(s2));
+      break;
+    }
+
+    case MapLayout.ZIGZAG: {
+      // Two thick staircases: one down from the top edge, one up from the
+      // bottom, overlapping in the middle so the route has to zig, then zag.
+      const reach = Math.round(H * 0.68);
+      const stairs = (x0, x1, fromTop) => {
+        for (let i = 0; i < reach; i++) {
+          const x = Math.round(x0 + ((x1 - x0) * i) / Math.max(1, reach - 1));
+          const y = fromTop ? i : H - 1 - i;
+          place(x, y);
+          place(x + 1, y);
+        }
+      };
+      stairs(X(0.24), X(0.42), !flip);
+      stairs(X(0.56), X(0.74), flip);
+      break;
+    }
+
+    case MapLayout.HOURGLASS: {
+      // Two bastions, top and bottom, closing to a three-wide waist.
+      const cx = X(0.5), span = Math.max(3, Math.round(W * 0.2));
+      for (let x = cx - span; x <= cx + span; x++) {
+        const k = 1 - Math.abs(x - cx) / (span + 1);
+        const d = Math.max(1, Math.round(k * (mid - 1)));
+        vline(x, 0, d - 1);
+        vline(x, H - d, H - 1);
+      }
+      break;
+    }
+
+    case MapLayout.CROSS: {
+      // A plus that quarters the board, its hub left open, and a post at
+      // each end so the edges are not a free way round.
+      const cx = X(0.5);
+      const armX = Math.max(3, Math.round(W * 0.2));
+      const armY = Math.max(2, mid - 2);
+      hline(cx - armX, cx - 2, mid);
+      hline(cx + 2, cx + armX, mid);
+      vline(cx, mid - armY, mid - 2);
+      vline(cx, mid + 2, mid + armY);
+      vline(cx - armX - 3, 1, 2);
+      vline(cx - armX - 3, H - 3, H - 2);
+      vline(cx + armX + 3, mid - 1, mid + 1);
+      break;
+    }
+
+    case MapLayout.RING: {
+      // A walled ring in the middle, open at both ends: through it is short
+      // and covered, round it is long.
+      const x0 = X(0.34), x1 = X(0.66);
+      const y0 = Math.max(2, Math.round(H * 0.22)), y1 = H - 1 - y0;
+      hline(x0, x1, y0);
+      hline(x0, x1, y1);
+      vline(x0, y0, mid - 2);
+      vline(x0, mid + 2, y1);
+      vline(x1, y0, mid - 2);
+      vline(x1, mid + 2, y1);
+      // A pillar inside so the way through bends.
+      vline(X(0.5), mid - 1, mid + 1);
+      break;
+    }
+
+    case MapLayout.FORK: {
+      // A wedge pointing at the spawns splits the route in two; a screen in
+      // front of the base makes both halves come back together.
+      const x0 = X(0.3), x1 = X(0.56);
+      const maxHalf = Math.max(1, mid - 3);
+      for (let x = x0; x <= x1; x++) {
+        const half = Math.round(((x - x0) / Math.max(1, x1 - x0)) * maxHalf);
+        vline(x, mid - half, mid + half);
+      }
+      vline(X(0.8), mid - 2, mid + 2);
+      break;
+    }
+
+    case MapLayout.COMB: {
+      // Teeth hang from the top edge: one lane runs underneath, with
+      // pockets between the teeth to build in.
+      const len = Math.round(H * 0.62);
+      for (let x = X(0.2); x <= W - 5; x += 3) {
+        if (flip) vline(x, H - len, H - 1);
+        else vline(x, 0, len - 1);
+      }
+      break;
+    }
+
+    case MapLayout.PINBALL: {
+      // Bumper blocks, mirrored top and bottom, staggered so there is never
+      // a straight line through.
+      const spots = [[0.28, 0.25], [0.28, 0.75], [0.42, 0.5], [0.56, 0.2], [0.56, 0.8], [0.7, 0.42], [0.7, 0.58]];
+      for (const [fx, fy] of spots) {
+        const x = X(fx), y = clamp(Math.round(fy * (H - 1)), 1, H - 3);
+        rect(x, y, 2, 2);
+      }
+      break;
+    }
+
+    case MapLayout.CASTLE: {
+      // The base walled in, with one gate facing the spawns; two outworks
+      // further out split the approach.
+      const wx = W - 6;
+      vline(wx, 1, mid - 2);
+      vline(wx, mid + 2, H - 2);
+      hline(wx, W - 1, 1);
+      hline(wx, W - 1, H - 2);
+      const ox = X(0.4);
+      rect(ox, Math.round(H * 0.18), 2, Math.max(2, Math.round(H * 0.22)));
+      rect(ox, H - Math.round(H * 0.18) - Math.max(2, Math.round(H * 0.22)), 2, Math.max(2, Math.round(H * 0.22)));
+      plus(X(0.62), mid, 1);
+      break;
+    }
+
+    case MapLayout.RIVER: {
+      // Two rivers across the board. The first has its bridges near the
+      // edges, the second one bridge in the middle, so every crossing means a
+      // turn.
+      const r1 = X(0.36), r2 = X(0.66);
+      const b1 = Math.max(1, Math.round(H * 0.18));
+      const keep = new Set([b1, b1 + 1, H - 2 - b1, H - 1 - b1]);
+      for (let y = 0; y < H; y++) {
+        if (!keep.has(y)) { place(r1, y); place(r1 + 1, y); }
+        if (Math.abs(y - mid) > 1) place(r2, y);
+      }
       break;
     }
 

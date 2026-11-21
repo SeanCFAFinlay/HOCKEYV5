@@ -21,7 +21,18 @@ export const MapLayout = {
   CHOKEPOINT: 'chokepoint',
   MAZE: 'maze',
   GAUNTLET: 'gauntlet',
-  MULTI_BASE: 'multi_base'
+  MULTI_BASE: 'multi_base',
+  // Added with the per-world map plan (config/map-plan.js).
+  SERPENT: 'serpent',       // a boxed three-pass S-bend
+  ZIGZAG: 'zigzag',         // two thick diagonal walls, a Z to run
+  HOURGLASS: 'hourglass',   // bastions closing to a narrow waist
+  CROSS: 'cross',           // a plus that quarters the board
+  RING: 'ring',             // a walled ring in the middle, open both ends
+  FORK: 'fork',             // a wedge splits the route, a screen rejoins it
+  COMB: 'comb',             // teeth from the top: pockets above one lane
+  PINBALL: 'pinball',       // scattered bumper blocks
+  CASTLE: 'castle',         // the base walled in, one gate
+  RIVER: 'river'            // two rivers, the bridges never in line
 };
 
 export const HOCKEY_MAPS = [

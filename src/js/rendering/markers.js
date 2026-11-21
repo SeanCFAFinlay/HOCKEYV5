@@ -141,6 +141,65 @@ function buildTunnel(group, mats, look, theme) {
     }
   }
 
+  if (theme === 'library') {
+    // The books come off the shelf: a ledge over the arch, a row of spines on
+    // it, one already toppling out, and a candle at each end.
+    const wood = M.paint(0x4a2a18, { gloss: 0.45 });
+    const gilt = M.paint(0xe0b04a, { gloss: 0.8, glow: 0.2 });
+    const ledgeY = wallH + halfW + 0.1, x = mouth + 0.05;
+    m.add(G.rbox(0.36, 0.07, halfW * 2 + 0.6, 0.02), wood, { p: [x, ledgeY, 0] });
+    const spines = [0x7a1e22, 0x1f5a3a, 0x24346e, 0x5a2a6a, 0xa8702a, 0x2a4a5a, 0x8a3a1a, 0x1f5a3a];
+    let z = -halfW + 0.02;
+    spines.forEach((color, i) => {
+      const t = 0.11 + (i % 3) * 0.02, h = 0.3 + ((i * 5) % 4) * 0.05, lean = i === 6 ? 0.45 : 0;
+      const cover = M.paint(color, { gloss: 0.5, glow: 0.1 });
+      m.add(G.box(0.26, h, t), cover, { p: [x, ledgeY + 0.035 + h / 2, z + t / 2], r: [lean, 0, 0] });
+      m.add(G.box(0.012, 0.03, t + 0.004), gilt, { p: [x - 0.13, ledgeY + 0.035 + h * 0.75, z + t / 2], r: [lean, 0, 0] });
+      z += t + (lean ? 0.12 : 0.008);
+    });
+    for (const s of [-1, 1]) {
+      m.add(G.cyl(0.05, 0.055, 0.22, 10), M.paint(0xf6ecd2, { gloss: 0.35, glow: 0.2 }), { p: [x, ledgeY + 0.145, s * (halfW + 0.2)] });
+      m.add(G.cone(0.035, 0.1, 8), look.glow, { p: [x, ledgeY + 0.31, s * (halfW + 0.2)], shadow: false });
+    }
+  }
+
+  if (theme === 'pizza') {
+    // The pizzeria's back door: a red-and-white striped awning over the arch
+    // with a scalloped edge, and a dented bin either side of it.
+    const red = M.paint(0xc62a1a, { gloss: 0.5, glow: 0.15 });
+    const white = M.paint(0xf6efe2, { gloss: 0.4, glow: 0.1 });
+    const iron = M.paint(0x24262c, { gloss: 0.5 });
+    const y = wallH + halfW + 0.24, x = mouth - 0.06, n = 7, w = (halfW * 2 + 0.5) / n;
+    for (let i = 0; i < n; i++) {
+      const z = (i - (n - 1) / 2) * w, mat = i % 2 ? white : red;
+      m.add(G.box(0.62, 0.03, w), mat, { p: [x, y, z], r: [0, 0, 0.42] });
+      m.add(new THREE.CylinderGeometry(w / 2, w / 2, 0.03, 12, 1, false, 0, Math.PI), mat, { p: [x - 0.285, y - 0.13, z], r: [0, 0, -HALF_PI] });
+    }
+    for (const s of [-1, 1]) {
+      m.add(G.tube([[mouth + 0.2, y + 0.12, s * (halfW + 0.2)], [x - 0.1, y - 0.06, s * (halfW + 0.2)], [mouth, wallH, s * (halfW + 0.12)]], 0.02, 5), iron);
+      const bz = s * (halfW + 0.42);
+      m.add(G.cyl(0.17, 0.15, 0.42, 14), M.metal(0x8a96a4, { rough: 0.4 }), { p: [mouth - 0.2, 0.21, bz] });
+      m.add(G.cyl(0.19, 0.19, 0.04, 14), M.metal(0x8a96a4, { rough: 0.4 }), { p: [mouth - 0.2, 0.45, bz], r: [s * 0.25, 0, 0] });
+    }
+  }
+
+  if (theme === 'arcade') {
+    // The characters climb out of a cabinet: a lit marquee over the arch with
+    // chasing bulbs, and a coin door either side.
+    const laminate = M.paint(0x1c1838, { gloss: 0.85 });
+    const y = wallH + halfW + 0.22, x = mouth - 0.08, w = halfW * 2 + 0.44;
+    m.add(G.rbox(0.16, 0.34, w, 0.03), laminate, { p: [x, y, 0] });
+    m.add(new THREE.PlaneGeometry(w - 0.1, 0.24), M.glow(0xff3df0), { p: [x - 0.085, y, 0], r: [0, -HALF_PI, 0], shadow: false });
+    for (let i = 0; i < 7; i++) m.add(G.box(0.03, 0.05, 0.12), M.glow(0x2a0838), { p: [x - 0.09, y, (i - 3) * 0.17], shadow: false });
+    for (let i = 0; i < 9; i++) m.add(G.sphere(0.035, 8, 6), M.glow(i % 2 ? 0xffe23a : 0x22e8ff), { p: [x - 0.09, y + 0.2, (i - 4) * (w / 9)], shadow: false });
+    for (const s of [-1, 1]) {
+      const z = s * (halfW + 0.3);
+      m.add(G.rbox(0.14, 0.5, 0.3, 0.03), laminate, { p: [mouth - 0.05, 0.25, z] });
+      for (const dz of [-0.06, 0.06]) m.add(G.box(0.02, 0.1, 0.03), M.glow(0xff2d55), { p: [mouth - 0.125, 0.33, z + dz], shadow: false });
+      m.add(G.box(0.02, 0.06, 0.18), M.glow(0x22e8ff), { p: [mouth - 0.125, 0.16, z], shadow: false });
+    }
+  }
+
   // Painted on the spawn cell: chevrons pointing into the board.
   const chevron = G.plate([[0, 0.2], [-0.16, 0], [0, -0.2], [0.07, -0.2], [-0.06, 0], [0.07, 0.2]], 0.01);
   for (const x of [0.2, -0.05, -0.3]) {
@@ -380,6 +439,150 @@ const BASES = {
     m.add(G.sphere(0.4, 12, 10), M.energy(0xff6a3a, 0.2), { p: [1.3, 1.36, -0.3], shadow: false });
     // Lantern light on the base cell.
     m.add(new THREE.CircleGeometry(0.47, 24), M.energy(0xffc56b, 0.26), { p: [0.02, 0.011, 0], r: [-HALF_PI, 0, 0], shadow: false });
+  },
+
+  library(m, look) {
+    // The librarian's desk, in front of the door to the restricted section:
+    // a green banker's lamp, the bell, the returns pile, a round rug.
+    const walnut = M.paint(0x4a2a18, { gloss: 0.5 });
+    const leather = M.paint(0x1f5a3a, { gloss: 0.35, glow: 0.08 });
+    const brass = M.metal(0xd4a24a, { rough: 0.28 });
+    const gilt = M.paint(0xe0b04a, { gloss: 0.8, glow: 0.25 });
+    const pages = M.paint(0xf3e6c4, { gloss: 0.2, glow: 0.15 });
+    // The rug on the base cell.
+    m.add(new THREE.CircleGeometry(0.47, 28), M.paint(0x7a1e22, { gloss: 0.1, glow: 0.15 }), { p: [0, 0.011, 0], r: [-HALF_PI, 0, 0], shadow: false });
+    m.add(G.ring(0.4, 0.45, 28), M.paint(0xe0b04a, { gloss: 0.2, glow: 0.3 }), { p: [0, 0.013, 0], r: [-HALF_PI, 0, 0], shadow: false });
+    // The door: oak, arched, studded, light leaking out round its edges.
+    const dx = 1.78;
+    m.add(G.box(0.1, 1.4, 1.1), M.glow(0x8f7bff, 0.9), { p: [dx + 0.06, 0.7, 0], shadow: false });
+    m.add(G.rbox(0.12, 1.3, 0.96, 0.03), M.paint(0x6a4024, { gloss: 0.4 }), { p: [dx, 0.65, 0] });
+    m.add(new THREE.CylinderGeometry(0.48, 0.48, 0.12, 20, 1, false, 0, Math.PI), M.paint(0x6a4024, { gloss: 0.4 }), { p: [dx, 1.3, 0], r: [HALF_PI, 0, HALF_PI] });
+    m.add(G.torus(0.6, 0.1, 6, 22, Math.PI), M.paint(0x5a5068, { gloss: 0.3 }), { p: [dx + 0.02, 1.3, 0], r: [0, HALF_PI, 0] });
+    for (const s of [-1, 1]) m.add(G.box(0.2, 1.32, 0.18), M.paint(0x5a5068, { gloss: 0.3 }), { p: [dx + 0.02, 0.66, s * 0.6] });
+    for (const y of [0.35, 1.05]) m.add(G.box(0.02, 0.06, 0.9), M.matte(0x2a2d33), { p: [dx - 0.065, y, 0] });     // iron straps
+    m.add(G.torus(0.08, 0.02, 6, 14), brass, { p: [dx - 0.08, 0.7, 0.28], r: [0, HALF_PI, 0] });
+    // The desk.
+    const x = 1.05;
+    m.add(G.rbox(0.62, 0.62, 1.7, 0.04), walnut, { p: [x, 0.31, 0] });
+    m.add(G.rbox(0.7, 0.06, 1.82, 0.02), walnut, { p: [x, 0.65, 0] });
+    m.add(G.box(0.6, 0.012, 1.64), leather, { p: [x, 0.685, 0] });
+    for (const z of [-0.5, 0, 0.5]) m.add(G.box(0.02, 0.4, 0.42), M.paint(0x3a1f10, { gloss: 0.5 }), { p: [x - 0.31, 0.32, z] });   // carved panels
+    m.add(G.box(0.02, 0.04, 1.6), gilt, { p: [x - 0.32, 0.58, 0] });
+    // The banker's lamp.
+    m.add(G.lathe([[0.12, 0], [0.13, 0.02], [0.06, 0.05], [0.025, 0.06]], 14), brass, { p: [x + 0.1, 0.69, 0.55] });
+    m.add(G.cyl(0.015, 0.015, 0.34, 6), brass, { p: [x + 0.1, 0.88, 0.55] });
+    m.add(new THREE.CylinderGeometry(0.15, 0.15, 0.36, 16, 1, false, 0, Math.PI), M.paint(0x1f7a40, { gloss: 0.9, glow: 0.5 }), { p: [x + 0.06, 1.05, 0.55], r: [HALF_PI, 0, 0], s: [1, 1, 0.7] });
+    m.add(G.box(0.03, 0.26, 0.34), M.glow(0xfff1c2), { p: [x + 0.06, 1.0, 0.55], r: [0, 0, 0], shadow: false });
+    m.add(G.sphere(0.4, 10, 8), M.energy(0xffe6a8, 0.16), { p: [x, 0.95, 0.55], shadow: false });
+    // The service bell.
+    m.add(G.cyl(0.08, 0.09, 0.03, 14), M.paint(0x1a1430, { gloss: 0.7 }), { p: [x - 0.08, 0.705, 0.05] });
+    m.add(G.dome(0.07, 14), brass, { p: [x - 0.08, 0.72, 0.05] });
+    m.add(G.sphere(0.018, 6, 5), brass, { p: [x - 0.08, 0.8, 0.05] });
+    // The returns pile.
+    [[0x7a1e22, 0.1, 0], [0x24346e, 0.08, 0.4], [0x5a2a6a, 0.09, -0.3], [0xa8702a, 0.07, 0.2]].reduce((y, [color, t, ry]) => {
+      m.add(G.rbox(0.36, t, 0.46, 0.012), M.paint(color, { gloss: 0.5, glow: 0.08 }), { p: [x + 0.05, y + t / 2, -0.45], r: [0, ry, 0] });
+      m.add(G.box(0.33, t * 0.75, 0.44), pages, { p: [x + 0.065, y + t / 2, -0.45], r: [0, ry, 0] });
+      return y + t;
+    }, 0.69);
+    // A candle on the corner, lit in the spawn's ghost light.
+    m.add(G.cyl(0.04, 0.045, 0.2, 10), M.paint(0xf6ecd2, { gloss: 0.35, glow: 0.2 }), { p: [x - 0.2, 0.79, -0.78] });
+    m.add(G.cone(0.03, 0.09, 8), look.glow, { p: [x - 0.2, 0.94, -0.78], shadow: false });
+    m.add(G.sphere(0.16, 8, 6), M.energy(look.color, 0.25), { p: [x - 0.2, 0.94, -0.78], shadow: false });
+  },
+
+  pizza(m, look) {
+    // The front counter: a hot pizza in its open box, the till, the bell,
+    // and a striped awning over it all with a giant slice on the roof, so the
+    // counter can be found from anywhere in the room.
+    const red = M.paint(0xc62a1a, { gloss: 0.6, glow: 0.12 });
+    const cream = M.paint(0xf6efe2, { gloss: 0.5, glow: 0.1 });
+    const green = M.paint(0x1f6a3a, { gloss: 0.6, glow: 0.1 });
+    const kraft = M.paint(0xc89a62, { gloss: 0.2 });
+    const chrome = M.metal(0xd7dde5, { rough: 0.2 });
+    const crust = M.paint(0xe2a95c, { gloss: 0.35, glow: 0.12 });
+    const cheese = M.paint(0xffd866, { gloss: 0.55, glow: 0.22 });
+    const pep = M.paint(0xb3261a, { gloss: 0.6, glow: 0.15 });
+    const x = 1.1;
+    // The counter, tiled down the front in green, white and red.
+    m.add(G.rbox(0.62, 0.62, 1.8, 0.04), red, { p: [x, 0.31, 0] });
+    [green, cream, red].forEach((mat, i) => m.add(G.box(0.02, 0.1, 1.8), mat, { p: [x - 0.315, 0.44 - i * 0.1, 0] }));
+    m.add(G.rbox(0.72, 0.06, 1.92, 0.02), M.paint(0xeee8de, { gloss: 0.85 }), { p: [x, 0.65, 0] });
+    // The open box, a whole pie in it.
+    m.add(G.rbox(0.56, 0.05, 0.56, 0.01), kraft, { p: [x - 0.04, 0.705, -0.42] });
+    m.add(G.rbox(0.03, 0.56, 0.56, 0.01), kraft, { p: [x + 0.25, 0.97, -0.42], r: [0, 0, -0.2] });
+    m.add(G.cyl(0.15, 0.15, 0.01, 18), red, { p: [x + 0.22, 1.0, -0.42], r: [0, 0, HALF_PI - 0.2] });
+    m.add(G.cyl(0.24, 0.25, 0.03, 24), crust, { p: [x - 0.04, 0.74, -0.42] });
+    m.add(G.torus(0.235, 0.03, 6, 24), crust, { p: [x - 0.04, 0.76, -0.42], r: [HALF_PI, 0, 0] });
+    m.add(G.cyl(0.21, 0.21, 0.02, 22), cheese, { p: [x - 0.04, 0.762, -0.42] });
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 6) * Math.PI * 2, d = i === 6 ? 0 : 0.12;
+      m.add(G.cyl(0.04, 0.04, 0.012, 12), pep, { p: [x - 0.04 + Math.cos(a) * d, 0.775, -0.42 + Math.sin(a) * d] });
+    }
+    for (let i = 0; i < 3; i++) m.add(G.sphere(0.08, 8, 6), M.energy(0xffffff, 0.2 - i * 0.05), { p: [x - 0.04, 0.9 + i * 0.14, -0.42 + i * 0.04], shadow: false });
+    // The till.
+    m.add(G.rbox(0.36, 0.2, 0.42, 0.03), cream, { p: [x + 0.08, 0.78, 0.48] });
+    m.add(G.rbox(0.3, 0.16, 0.1, 0.02), cream, { p: [x + 0.16, 0.94, 0.48], r: [0, 0, 0.5] });
+    m.add(G.box(0.01, 0.07, 0.2), M.glow(0x56ff9a), { p: [x + 0.11, 0.97, 0.48], r: [0, 0, 0.5], shadow: false });
+    m.add(G.box(0.02, 0.05, 0.3), chrome, { p: [x - 0.1, 0.74, 0.48] });
+    // The bell.
+    m.add(G.cyl(0.07, 0.08, 0.025, 14), M.paint(0x1a1513, { gloss: 0.7 }), { p: [x - 0.18, 0.693, 0.05] });
+    m.add(G.dome(0.065, 14), chrome, { p: [x - 0.18, 0.705, 0.05] });
+    m.add(G.sphere(0.016, 6, 5), chrome, { p: [x - 0.18, 0.78, 0.05] });
+    // The awning, on two posts behind the counter.
+    const iron = M.paint(0x24262c, { gloss: 0.5 });
+    for (const s of [-1, 1]) m.add(G.cyl(0.035, 0.04, 1.7, 8), iron, { p: [x + 0.42, 0.85, s * 0.98] });
+    const n = 8, w = 2.1 / n;
+    for (let i = 0; i < n; i++) {
+      const z = (i - (n - 1) / 2) * w, mat = i % 2 ? cream : red;
+      m.add(G.box(0.9, 0.035, w), mat, { p: [x + 0.06, 1.62, z], r: [0, 0, 0.42] });
+      m.add(new THREE.CylinderGeometry(w / 2, w / 2, 0.035, 12, 1, false, 0, Math.PI), mat, { p: [x - 0.36, 1.43, z], r: [0, 0, -HALF_PI] });
+    }
+    // The slice on the roof, tilted up to be seen.
+    const roof = m.group({ p: [x + 0.15, 1.84, 0], r: [0, 0, 0.42] });
+    roof.add(G.plate([[0, 0.85], [-0.4, 0], [0.4, 0]], 0.06), cheese, { r: [-HALF_PI, 0, 0], p: [0, 0, 0] });
+    roof.add(G.cyl(0.06, 0.06, 0.84, 10), crust, { p: [0, 0.02, 0], r: [0, 0, HALF_PI] });
+    for (const [dx, dz] of [[0, -0.45], [-0.14, -0.18], [0.15, -0.2]]) roof.add(G.cyl(0.08, 0.08, 0.02, 12), pep, { p: [dx, 0.04, dz] });
+    // Warm light on the base cell.
+    m.add(new THREE.CircleGeometry(0.47, 24), M.energy(0xffc56b, 0.26), { p: [0.02, 0.011, 0], r: [-HALF_PI, 0, 0], shadow: false });
+  },
+
+  arcade(m, look) {
+    // The prize counter: a lit glass case of plush, the star prize (a giant
+    // pink bear-blob) sitting on top, tickets spilling off the end, and a
+    // neon star on a mast so it can be found from across the floor.
+    const laminate = M.paint(0x1c1838, { gloss: 0.85 });
+    const glass = M.glass(0xcfe8ff, 0.24);
+    const x = 1.12;
+    m.add(G.rbox(0.82, 0.36, 1.8, 0.04), laminate, { p: [x, 0.18, 0] });
+    m.add(G.box(0.84, 0.05, 1.82), M.glow(0xffe23a), { p: [x, 0.385, 0], shadow: false });
+    m.add(G.box(0.76, 0.4, 1.72), glass, { p: [x, 0.61, 0], shadow: false });
+    m.add(G.box(0.84, 0.04, 1.82), M.glow(0xff3df0), { p: [x, 0.83, 0], shadow: false });
+    [[-0.6, 0x7fd8ff], [-0.2, 0xffe23a], [0.2, 0x8dff7a], [0.6, 0xc9a6ff]].forEach(([z, col]) => {
+      const fur = M.paint(col, { gloss: 0.2, glow: 0.18 });
+      m.add(G.sphere(0.13, 10, 8), fur, { p: [x, 0.54, z] });
+      m.add(G.sphere(0.1, 10, 8), fur, { p: [x - 0.02, 0.7, z] });
+      for (const s of [-1, 1]) m.add(G.sphere(0.04, 6, 5), fur, { p: [x - 0.02, 0.78, z + s * 0.07] });
+    });
+    // The star prize.
+    const pink = M.paint(0xff8fc8, { gloss: 0.25, glow: 0.22 });
+    m.add(G.sphere(0.32, 16, 12), pink, { p: [x + 0.05, 1.15, 0.3] });
+    m.add(G.sphere(0.24, 16, 12), pink, { p: [x, 1.56, 0.3] });
+    for (const s of [-1, 1]) {
+      m.add(G.sphere(0.09, 8, 6), pink, { p: [x, 1.76, 0.3 + s * 0.17] });
+      m.add(G.sphere(0.04, 8, 6), M.glow(0x1a1020), { p: [x - 0.22, 1.6, 0.3 + s * 0.08], shadow: false });
+      m.add(G.sphere(0.1, 8, 6), pink, { p: [x - 0.18, 1.12, 0.3 + s * 0.24] });
+    }
+    m.add(G.sphere(0.06, 8, 6), M.paint(0xffffff, { gloss: 0.4 }), { p: [x - 0.23, 1.52, 0.3], s: [0.6, 0.8, 1.3] });
+    m.add(G.torus(0.2, 0.03, 6, 16), M.glow(0xffe23a), { p: [x, 1.38, 0.3], r: [HALF_PI, 0, 0], shadow: false });
+    // Tickets, a ribbon of them running off the counter to the floor.
+    const tix = M.paint(0xffcf3a, { gloss: 0.4, glow: 0.3 });
+    for (let i = 0; i < 7; i++) m.add(G.box(0.16, 0.008, 0.1), tix, { p: [x - 0.3 - Math.min(i, 3) * 0.04, 0.86 - Math.max(0, i - 2) * 0.17, -0.55 - i * 0.02], r: [0, 0, i > 2 ? 1.2 : 0] });
+    // The neon star on its mast.
+    m.add(G.cyl(0.03, 0.04, 1.6, 8), laminate, { p: [x + 0.3, 1.6, -0.62] });
+    m.add(G.star(0.26, 0.11, 0.06), look.glow, { p: [x + 0.3, 2.45, -0.62], r: [0, HALF_PI, 0], shadow: false });
+    m.add(G.sphere(0.36, 12, 10), M.energy(look.color, 0.18), { p: [x + 0.3, 2.45, -0.62], shadow: false });
+    // Neon glow on the base cell.
+    m.add(new THREE.CircleGeometry(0.47, 24), M.energy(0xff3df0, 0.22), { p: [0.02, 0.011, 0], r: [-HALF_PI, 0, 0], shadow: false });
   },
 
   bowling(big, look) {

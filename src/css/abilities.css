@@ -206,7 +206,7 @@
 /* Paused: the menu covers the board and abilities can't be used, so the
    buttons go away rather than glowing on under the blur. */
 .game-paused .ability-bar,
-.game-paused .ability-aim { visibility: hidden; }
+.game-paused .ability-aim { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .ability-btn, .ability-btn.aiming, .ability-btn.ready-pop, .ability-btn.active::after { animation: none !important; }

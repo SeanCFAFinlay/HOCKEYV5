@@ -94,6 +94,7 @@ export function isPaused() {
  */
 export function setPaused(next) {
   paused = !!next;
+  lastPausedView = '';   // always draw the first paused frame
   // Drop any accumulated-but-unsimulated time. Without this the accumulator
   // survives the pause and the first frame after resuming fast-forwards to
   // catch up, which reads as a jolt.
@@ -110,6 +111,8 @@ export function togglePause() {
  * Main game loop with fixed timestep accumulator pattern
  * @param {number} currentTime - Current timestamp from RAF
  */
+let lastPausedView = '';
+
 export function gameLoop(currentTime) {
   const state = getState();
 
@@ -133,7 +136,18 @@ export function gameLoop(currentTime) {
   // first frame after it sees a normal delta rather than the whole pause.
   if (paused) {
     updateCamera(clampedFrameTime);
-    renderFrame(state);
+    // Nothing moves while paused except the camera, so only draw when it (or
+    // the canvas size) changed. Saves a phone's battery behind the pause menu
+    // and keeps the paused picture perfectly still.
+    const cam = state.camera;
+    const canvas = state.renderer?.domElement;
+    const key = cam
+      ? `${cam.position.x.toFixed(4)},${cam.position.y.toFixed(4)},${cam.position.z.toFixed(4)},${cam.quaternion.x.toFixed(5)},${cam.quaternion.y.toFixed(5)},${cam.quaternion.z.toFixed(5)},${canvas?.width}x${canvas?.height}`
+      : '';
+    if (key !== lastPausedView) {
+      lastPausedView = key;
+      renderFrame(state);
+    }
     updatePerfOverlay(clampedFrameTime, 0);
     frameId = requestAnimationFrame(gameLoop);
     return;
