@@ -7,6 +7,7 @@ import { handleCellTap, wouldBlockPath } from '../systems/towers.js';
 import { onResize } from './scene.js';
 import { showUpgrade } from '../ui/upgrade-sheet.js';
 import { buzz } from '../ui/mobile.js';
+import { getTargeting, strikeAt } from '../systems/abilities.js';
 
 // Input state machine states
 export const InputState = {
@@ -306,6 +307,8 @@ function isTouchOverUI(e) {
         el.closest('.bottom-ui') ||
         el.closest('.cam-btns') ||
         el.closest('.build-strip') ||
+        el.closest('.ability-bar') ||
+        el.closest('.ability-aim') ||
         el.closest('.upgrade-sheet') ||
         el.closest('.modal-overlay')) {
       return true;
@@ -654,6 +657,12 @@ function aimAt(touch) {
 function handleTap(e) {
   const isTouch = 'identifier' in e;
   const state = getState();
+
+  // Aiming an ability: this tap says where it lands, not which tile to build on.
+  if (getTargeting()) {
+    if (getCellUnderPoint(e) && lastHitPoint && strikeAt(lastHitPoint.x, lastHitPoint.z)) buzz('build');
+    return;
+  }
   const raw = getCellUnderPoint(e);
   const cell = isTouch ? snapToBuildable(raw) : raw;
 

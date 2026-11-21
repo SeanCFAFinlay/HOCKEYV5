@@ -21,6 +21,8 @@ import { updateLights } from './scene.js';
 import * as PostProcessing from './postprocessing.js';
 import { enableAutoQuality, updateAutoQuality } from './auto-quality.js';
 import { updateTargetingFeedback } from '../rendering/targeting-feedback.js';
+import { updateAbilities } from '../systems/abilities.js';
+import { paint as paintAbilityBar } from '../ui/ability-bar.js';
 import { didWaveCostLives, shouldAutoStartNextWave } from '../systems/auto-wave.js';
 
 // Fixed timestep configuration
@@ -165,6 +167,7 @@ export function gameLoop(currentTime) {
     updateTowers(FIXED_DT, gameTime);
     updateProjectiles(FIXED_DT);
     updateParticles(FIXED_DT);
+    updateAbilities(FIXED_DT);
     accumulator -= FIXED_DT;
     gameTime += FIXED_DT;
     steps++;
@@ -179,6 +182,7 @@ export function gameLoop(currentTime) {
   updateLights(gameTime);
   updateOptionalScreenEffects(frameTime);
   updateTargetingFeedback();
+  paintAbilityBar();
 
   renderFrame(state);
 

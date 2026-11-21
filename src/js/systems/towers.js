@@ -176,8 +176,8 @@ export function updateTowers(dt, gameTime) {
   const hh = ROWS / 2;
 
   for (const tw of towers) {
-    // Reduce cooldown
-    tw.cooldown -= dt;
+    // Reduce cooldown (faster while the player's rally ability is up)
+    tw.cooldown -= dt * (getState().towerRateMult || 1);
 
     const tx = tw.x - hw + 0.5;
     const tz = tw.y - hh + 0.5;

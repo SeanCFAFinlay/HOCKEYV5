@@ -1,0 +1,213 @@
+/* Ability buttons (js/ui/ability-bar.js). They sit over the stands, never
+   over the board:
+   - portrait phone: a row along the top, between the camera buttons and the
+     map button (the rink fills the width below it);
+   - landscape phone: a column on the right edge under the map button;
+   - desktop: a column on the left edge (the camera buttons are on the right). */
+
+.ability-bar {
+  --ab-c: #38bdf8;
+  position: absolute;
+  right: calc(66px + env(safe-area-inset-right));
+  top: calc(64px + env(safe-area-inset-top));
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  z-index: 55;
+}
+.ability-bar[hidden] { display: none; }
+
+.ability-btn {
+  --cd: 0;
+  position: relative;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background:
+    radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--ab-c) 55%, #0b1220) 0%, #0b1220 75%);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--ab-c) 85%, white 15%),
+    0 0 18px color-mix(in srgb, var(--ab-c) 55%, transparent),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+  color: #fff;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.ability-btn:active { transform: scale(0.92); }
+
+.ability-btn .ab-icon {
+  position: relative;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+.ability-btn .ab-icon svg { width: 100%; height: 100%; }
+
+/* Cooldown: a dark wedge that unwinds clockwise. */
+.ability-btn .ab-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  z-index: 3;
+  pointer-events: none;
+  background: conic-gradient(rgba(3, 6, 14, 0.78) calc(var(--cd) * 360deg), transparent 0);
+}
+.ability-btn .ab-time {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-game, 'Rajdhani', sans-serif);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #fff;
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+}
+
+.ability-btn.cooling {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.18),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+  filter: saturate(0.4);
+}
+.ability-btn.cooling .ab-icon { opacity: 0.45; }
+
+/* Ready and waiting: a slow breathing glow so it's noticed mid-wave. */
+.ability-btn:not(.cooling) { animation: ab-breathe 2.4s ease-in-out infinite; }
+@keyframes ab-breathe {
+  50% { box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--ab-c) 85%, white 15%),
+    0 0 28px color-mix(in srgb, var(--ab-c) 80%, transparent),
+    0 6px 14px rgba(0, 0, 0, 0.45); }
+}
+
+.ability-btn.ready-pop { animation: ab-ready 0.5s ease-out, ab-breathe 2.4s ease-in-out 0.5s infinite; }
+@keyframes ab-ready {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+.ability-btn.aiming {
+  animation: ab-aim 0.7s ease-in-out infinite;
+  box-shadow: 0 0 0 3px #fff, 0 0 26px var(--ab-c);
+}
+@keyframes ab-aim { 50% { transform: scale(1.1); } }
+
+.ability-btn.active::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid #ffd166;
+  animation: ab-active 0.9s linear infinite;
+  pointer-events: none;
+}
+@keyframes ab-active { from { transform: scale(0.9); opacity: 1; } to { transform: scale(1.25); opacity: 0; } }
+
+.ability-btn.nope { animation: ab-nope 0.3s ease; }
+@keyframes ab-nope {
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Aiming banner: same spot as the build strip, which can't be up at once. */
+.ability-aim {
+  --ab-c: #38bdf8;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--bottom-ui-clearance, 112px) + 10px);
+  width: min(440px, calc(100vw - 24px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 16px;
+  background: rgba(6, 10, 20, 0.92);
+  border: 1px solid color-mix(in srgb, var(--ab-c) 70%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--ab-c) 40%, transparent);
+  z-index: 60;
+  color: #fff;
+  animation: ab-aim-in 0.2s ease-out;
+}
+.ability-aim[hidden] { display: none; }
+@keyframes ab-aim-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+.ability-aim-icon { width: 30px; height: 30px; color: var(--ab-c); flex: none; }
+.ability-aim-icon svg { width: 100%; height: 100%; }
+.ability-aim-text { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.2; }
+.ability-aim-text strong { font-family: var(--font-game, 'Rajdhani', sans-serif); font-size: 1.1rem; }
+.ability-aim-text span { font-size: 0.85rem; opacity: 0.75; }
+.ability-aim-cancel {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+/* Full-screen tint when freeze or rally goes off. */
+.ability-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  animation: ab-flash 0.9s ease-out forwards;
+}
+.ability-flash.freeze {
+  background: radial-gradient(ellipse at center, rgba(160, 230, 255, 0.05) 30%, rgba(120, 210, 255, 0.55) 100%);
+}
+.ability-flash.rally {
+  background: radial-gradient(ellipse at center, rgba(255, 209, 102, 0.04) 30%, rgba(255, 190, 60, 0.45) 100%);
+}
+@keyframes ab-flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Landscape phone: smaller buttons to fit between the map button and the dock. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .ability-bar {
+    flex-direction: column;
+    right: calc(12px + env(safe-area-inset-right));
+    top: calc(122px + env(safe-area-inset-top));
+    gap: 7px;
+  }
+  .ability-btn { width: 50px; height: 50px; }
+  .ability-btn .ab-icon { width: 24px; height: 24px; }
+}
+
+/* Desktop: left edge, centred. */
+@media (min-width: 769px) and (min-height: 501px) {
+  .ability-bar {
+    flex-direction: column;
+    right: auto;
+    left: calc(16px + env(safe-area-inset-left));
+    top: 50%;
+    transform: translateY(-50%);
+    gap: 14px;
+  }
+  .ability-btn { width: 64px; height: 64px; }
+}
+
+/* Paused: the menu covers the board and abilities can't be used, so the
+   buttons go away rather than glowing on under the blur. */
+.game-paused .ability-bar,
+.game-paused .ability-aim { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ability-btn, .ability-btn.aiming, .ability-btn.ready-pop, .ability-btn.active::after { animation: none !important; }
+}

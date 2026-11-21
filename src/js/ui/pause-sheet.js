@@ -11,6 +11,7 @@
 import { getState } from '../engine/state.js';
 import { setPaused, isPaused } from '../engine/loop.js';
 import { toggleAutoWave } from '../systems/waves.js';
+import { onPauseChanged, syncSwitches } from './music-control.js';
 
 let overlayEl = null;
 let lastFocused = null;
@@ -60,6 +61,9 @@ export function openPauseMenu() {
   if (!overlayEl || isPauseMenuOpen()) return;
   lastFocused = document.activeElement;
   setPaused(true);
+  onPauseChanged(true);
+  document.body?.classList.add('game-paused');
+  syncSwitches();
   syncPauseSheet();
   overlayEl.hidden = false;
   $('pauseResumeBtn')?.focus();
@@ -69,6 +73,8 @@ export function closePauseMenu() {
   if (!overlayEl || !isPauseMenuOpen()) return;
   overlayEl.hidden = true;
   setPaused(false);
+  onPauseChanged(false);
+  document.body?.classList.remove('game-paused');
   // Return focus to whatever opened the sheet, rather than dumping the
   // keyboard user back at the top of the document.
   if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();

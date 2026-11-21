@@ -24,6 +24,7 @@ import { showScreen, showScreenWithAnimation, selectTheme, exitGame, replayGame 
 import { initModals, closeModal } from './ui/modals.js';
 import { initPauseSheet, togglePauseMenu, closePauseMenu, openPauseMenu } from './ui/pause-sheet.js';
 import { initMobileHelpers } from './ui/mobile.js';
+import { initMusicControl } from './ui/music-control.js';
 import { isPaused } from './engine/loop.js';
 import { initIcons, icon } from './ui/icons.js';
 import { phLogo, applyBrandFavicon } from './ui/brand.js';
@@ -171,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // by the sheet itself, to keep ui/pause-sheet.js from depending on screens.js.
   initPauseSheet({ onRestart: replayGameScreens, onExit: exitGame });
   initMobileHelpers({ pause: openPauseMenu, isPaused });
+  initMusicControl();
 
   // Initialize settings panel (loads settings, applies, injects buttons)
   try { initSettings(); } catch(e) { console.warn('Settings init failed:', e); }

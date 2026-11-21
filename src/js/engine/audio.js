@@ -220,6 +220,12 @@ function _playBuffer(name, buffer, destinationNode, options = {}) {
   };
 }
 
+/** The context and music bus, for the generated music (engine/music-synth.js). */
+export function getMusicBus() {
+  if (!ctx || !categoryGains.music) return null;
+  return { ctx, bus: categoryGains.music };
+}
+
 // ── Music ─────────────────────────────────────────────────────────────────────
 
 export function playMusic(name) {

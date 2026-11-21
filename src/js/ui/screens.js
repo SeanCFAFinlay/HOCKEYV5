@@ -32,6 +32,7 @@ import { icon } from './icons.js';
 import { performFullCleanup } from '../engine/cleanup.js';
 import { getMapsWithProgress, getThemeProgress, getStarDisplay } from '../systems/progression.js';
 import { showScreenAnimated, cancelTransition } from './transitions.js';
+import { initAbilityBar, hideAbilityBar } from './ability-bar.js';
 import { showArenaLoader, hideArenaLoader } from './arena-loader.js';
 
 export function renderThemeCards() {
@@ -256,6 +257,7 @@ export function startGame(idx, mode = 'campaign') {
       initHUD();
       renderTowers();
       updateHUD();
+      initAbilityBar();
 
       // Start game loop
       startGameLoop();
@@ -283,6 +285,7 @@ export function exitGame() {
 
   // Perform full cleanup
   hideArenaLoader();
+  hideAbilityBar();
   performFullCleanup();
   clearTargetingFeedback();
 

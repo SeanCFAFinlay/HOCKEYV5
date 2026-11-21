@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS = {
   musicVolume:       70,
   ambientVolume:     50,
   haptics:           true,
+  music:             false,   // off until the player turns it on
 };
 
 // ── Module state ──────────────────────────────────────────────────────────────
@@ -236,14 +237,10 @@ function _buildCameraSection(settings) {
 function _buildAudioSection(settings) {
   const section = _makeSection('Audio');
 
-  const note = document.createElement('div');
-  note.className = 'settings-note';
-  note.textContent = 'Sound effects and crowd are live. Music is not in the game yet.';
-
+  section.appendChild(_makeToggleRow('Music', 'music', settings.music === true));
   section.appendChild(_makeSliderRow('SFX', 'sfxVolume', 0, 100, 1, settings.sfxVolume, '%'));
   section.appendChild(_makeSliderRow('Music', 'musicVolume', 0, 100, 1, settings.musicVolume, '%'));
   section.appendChild(_makeSliderRow('Ambient', 'ambientVolume', 0, 100, 1, settings.ambientVolume, '%'));
-  section.appendChild(note);
 
   return section;
 }
@@ -414,6 +411,9 @@ function _onToggleChange(e) {
   saveSettings(updated);
   applySettings(updated);
   _syncPresetButtons(updated);
+  if (key === 'music') {
+    import('./music-control.js').then(m => m.setMusicEnabled(value)).catch(() => {});
+  }
 }
 
 function _onSliderChange(e) {
