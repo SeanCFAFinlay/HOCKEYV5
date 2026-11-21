@@ -32,6 +32,7 @@ export const DEFAULT_SETTINGS = {
   sfxVolume:         80,
   musicVolume:       70,
   ambientVolume:     50,
+  haptics:           true,
 };
 
 // ── Module state ──────────────────────────────────────────────────────────────
@@ -226,8 +227,9 @@ function _buildGraphicsSection(settings) {
 }
 
 function _buildCameraSection(settings) {
-  const section = _makeSection('Camera');
-  section.appendChild(_makeSliderRow('Sensitivity', 'cameraSensitivity', 0.5, 2.0, 0.1, settings.cameraSensitivity, 'x'));
+  const section = _makeSection('Controls');
+  section.appendChild(_makeSliderRow('Camera speed', 'cameraSensitivity', 0.5, 2.0, 0.1, settings.cameraSensitivity, 'x'));
+  section.appendChild(_makeToggleRow('Vibration', 'haptics', settings.haptics !== false));
   return section;
 }
 

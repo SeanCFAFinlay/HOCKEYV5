@@ -620,15 +620,15 @@
   .upgrade-icon { width: 40px; height: 40px; font-size: 1.3rem; border-radius: 11px; }
   .upgrade-info h3 { font-size: 1.02rem; }
   .upgrade-path { margin-top: 3px; }
-  .upgrade-close { width: 28px; height: 28px; }
+  .upgrade-close { width: 34px; height: 34px; }
   /* Short screens: the power keeps its name only; the full text is on taller ones. */
   .upgrade-power { flex-direction: row; padding: 4px 9px; margin-bottom: 6px; }
   .upgrade-power span, .upgrade-power small { display: none; }
   .upgrade-stats { gap: 4px; padding: 6px 9px; margin-bottom: 6px; }
   .target-priority { grid-template-columns: auto 1fr; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .priority-btn { min-height: 26px; }
+  .priority-btn { min-height: 32px; }
   .upgrade-btns { bottom: -10px; margin: 0 -10px -10px; padding: 6px 10px 10px; }
-  .upgrade-btn, .upgrade-maxed { min-height: 40px; }
+  .upgrade-btn, .upgrade-maxed { min-height: 44px; }
   .upgrade-btn { flex-direction: row; gap: 8px; }
 }
 

@@ -14,6 +14,7 @@ import { spawnGroundRipple, spawnTowerDust } from './particles.js';
 import { shakeCamera } from '../engine/camera.js';
 import { playFireSound } from '../config/sounds.js';
 import { playSoundAt } from '../engine/audio.js';
+import { buzz } from '../ui/mobile.js';
 
 // Targeting priority modes
 export const TargetPriority = {
@@ -94,6 +95,7 @@ export function handleCellTap(x, y) {
     if (money >= td.cost) {
       if (wouldBlockPath(x, y)) {
         shakeCamera(0.18, 0.08);
+        buzz('invalid');
         return;
       }
 
@@ -153,6 +155,7 @@ export function handleCellTap(x, y) {
       spawnTowerDust(wx, wz);
       shakeCamera(0.3, 0.08);
       playSoundAt('towerPlace', wx, wz);
+      buzz('build');
 
       dispatch(ActionTypes.ADD_MONEY, -td.cost);
       onNavChanged();

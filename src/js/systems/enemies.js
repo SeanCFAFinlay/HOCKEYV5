@@ -1,6 +1,7 @@
 // Enemy spawning and movement with state machine
 // Delta-time based, deterministic movement
 
+import { buzz } from '../ui/mobile.js';
 import { enemyHpScale, enemyRewardScale, enemySpeedScale } from '../config/balance.js';
 import { getState, addEnemy, decrementLives, decrementSpawnsPending, addMoney, addScore, incrementKills } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
@@ -503,6 +504,7 @@ function handleEnemyEscape(e, index) {
   }
 
   decrementLives();
+  buzz('lifeLost');
 
   // Remove from array
   state.enemies.splice(index, 1);

@@ -11,6 +11,7 @@ import { createImpact, createExplosion } from '../systems/particles.js';
 import { renderUpgradePath, applyMaxLevelState, animateStat } from './upgrade-path.js';
 import { icon } from './icons.js';
 import { worldToScreen } from './currency-fly.js';
+import { buzz } from './mobile.js';
 
 // Tower role descriptions for upgrade sheet
 const ROLE_DESCRIPTIONS = {
@@ -233,6 +234,7 @@ export function doUpgrade() {
   createExplosion(wx, 0.45, wz, false, parseInt(td.clr.replace('#', '0x'), 16));
 
   playSound('upgrade');
+  buzz('upgrade');
   emit(GameEvents.TOWER_UPGRADE, { tower: selectedPlaced });
   updateHUD();
   showUpgrade(selectedPlaced);
@@ -311,6 +313,7 @@ export function sellTower() {
     const state2 = getState();
     const hw = state2.COLS / 2;
     const hh = state2.ROWS / 2;
+    buzz('sell');
     playSoundAt('towerSell', selectedPlaced.x - hw + 0.5, selectedPlaced.y - hh + 0.5);
   }
 

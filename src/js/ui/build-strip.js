@@ -68,7 +68,7 @@ function render() {
   let hint;
   if (refused) hint = refused;
   else if (preview && preview.touch) hint = 'Tap Build, or the tile again';
-  else if (touch) hint = `${blurb} · tap a tile`;
+  else if (touch) hint = `${blurb} · tap or slide to a tile`;
   else hint = `${blurb} · click a tile · Esc cancels`;
 
   e.strip.style.setProperty('--c', td.clr);

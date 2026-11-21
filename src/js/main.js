@@ -22,7 +22,9 @@ import { initSettings, openSettings } from './ui/settings.js';
 // Import UI modules
 import { showScreen, showScreenWithAnimation, selectTheme, exitGame, replayGame as replayGameScreens } from './ui/screens.js';
 import { initModals, closeModal } from './ui/modals.js';
-import { initPauseSheet, togglePauseMenu, closePauseMenu } from './ui/pause-sheet.js';
+import { initPauseSheet, togglePauseMenu, closePauseMenu, openPauseMenu } from './ui/pause-sheet.js';
+import { initMobileHelpers } from './ui/mobile.js';
+import { isPaused } from './engine/loop.js';
 import { initIcons, icon } from './ui/icons.js';
 import { phLogo, applyBrandFavicon } from './ui/brand.js';
 import { doUpgrade, hideUpgrade, sellTower, setTowerPriorityFromUI } from './ui/upgrade-sheet.js';
@@ -168,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Pause / overflow menu. Restart and exit are injected rather than imported
   // by the sheet itself, to keep ui/pause-sheet.js from depending on screens.js.
   initPauseSheet({ onRestart: replayGameScreens, onExit: exitGame });
+  initMobileHelpers({ pause: openPauseMenu, isPaused });
 
   // Initialize settings panel (loads settings, applies, injects buttons)
   try { initSettings(); } catch(e) { console.warn('Settings init failed:', e); }

@@ -6,6 +6,7 @@ import { rotateCamera, zoomIn, zoomOut, setCameraZoom } from './camera.js';
 import { handleCellTap, wouldBlockPath } from '../systems/towers.js';
 import { onResize } from './scene.js';
 import { showUpgrade } from '../ui/upgrade-sheet.js';
+import { buzz } from '../ui/mobile.js';
 
 // Input state machine states
 export const InputState = {
@@ -13,13 +14,17 @@ export const InputState = {
   CAMERA_DRAG: 'camera_drag',
   PINCH_ZOOM: 'pinch_zoom',
   AWAITING_TAP: 'awaiting_tap',
+  AIMING: 'aiming',
   UI_BLOCKED: 'ui_blocked'
 };
 
 // Configuration
-const DRAG_THRESHOLD = 8; // Pixels - must move this far to count as drag
-const TAP_MAX_DURATION = 250; // ms - tap must be shorter than this
-const LONG_PRESS_DURATION = 400; // ms - hold for this long for detail view
+const DRAG_THRESHOLD = 8; // Pixels - must move this far to count as drag (mouse uses half)
+// A fingertip wobbles more than a mouse, and a deliberate tap on a small tile
+// often lasts longer than a quarter second. A tighter threshold made taps
+// silently turn into camera drags.
+const TOUCH_DRAG_THRESHOLD = 16;
+const LONG_PRESS_DURATION = 550; // ms - hold on a tower for its detail view
 const PINCH_SENSITIVITY = 0.04;
 const DRAG_SENSITIVITY = 0.008;
 const HEIGHT_SENSITIVITY = 0.05;
@@ -333,16 +338,13 @@ function cancelLongPress() {
  * Handle long press - show tower details if over a tower
  */
 function handleLongPress() {
-  longPressTriggered = true;
-
-  if (lastTouchCell) {
-    const state = getState();
-    const { grid } = state;
-    const cell = grid[lastTouchCell.y]?.[lastTouchCell.x];
-
-    if (cell?.tower) {
-      showUpgrade(cell.tower);
-    }
+  if (!lastTouchCell) return;
+  const { grid } = getState();
+  const cell = grid[lastTouchCell.y]?.[lastTouchCell.x];
+  if (cell?.tower) {
+    longPressTriggered = true;
+    showUpgrade(cell.tower);
+    buzz('tick');
   }
 }
 
@@ -400,11 +402,25 @@ function onTouchMove(e) {
     const dy = touch.clientY - touchStartPos.y;
     const totalDistance = Math.sqrt(dx * dx + dy * dy);
 
+    // With a tower in hand, sliding a finger moves the placement preview
+    // around the board instead of spinning the camera: tiles are small on a
+    // phone, and this lets the player slide onto the right one and see the
+    // range ring before committing. Two fingers still zoom.
+    if (inputState === InputState.AIMING) {
+      aimAt(touch);
+      return;
+    }
+
     // Check if we've moved enough to count as a drag
-    if (totalDistance > DRAG_THRESHOLD) {
+    if (totalDistance > TOUCH_DRAG_THRESHOLD) {
       cancelLongPress();
-      inputState = InputState.CAMERA_DRAG;
       setDragMoved(true);
+      if (state.selectedTower) {
+        inputState = InputState.AIMING;
+        aimAt(touch);
+        return;
+      }
+      inputState = InputState.CAMERA_DRAG;
     }
 
     // If dragging, update camera
@@ -439,10 +455,20 @@ function onTouchEnd(e) {
     return;
   }
 
-  // Check for tap (short duration, minimal movement, no long press)
-  const touchDuration = Date.now() - touchStartTime;
+  // Finished aiming: leave the preview where the finger lifted. The build
+  // strip offers Build, and tapping that tile again builds too.
+  if (inputState === InputState.AIMING) {
+    inputState = InputState.IDLE;
+    setDragging(false);
+    lastTouchCell = null;
+    return;
+  }
+
+  // A tap is a touch that didn't move and didn't turn into a long press on a
+  // tower. It is deliberately not timed: when a phone is busy rendering, the
+  // touchend is handled late, and a quick tap used to measure as a long one
+  // and be thrown away - the main reason taps on the board felt unreliable.
   const wasTap = !state.dragMoved &&
-                 touchDuration < TAP_MAX_DURATION &&
                  !longPressTriggered &&
                  inputState !== InputState.PINCH_ZOOM;
 
@@ -573,9 +599,52 @@ function getCellUnderPoint(e) {
   const hits = raycaster.intersectObjects(cells);
 
   if (hits.length > 0) {
+    lastHitPoint = hits[0].point;
     return hits[0].object.userData;
   }
+  lastHitPoint = null;
   return null;
+}
+
+let lastHitPoint = null;
+
+/**
+ * With a tower in hand, a touch that lands on the path or the boards goes to
+ * the closest buildable tile instead, if one is within reach of the finger.
+ * Tiles are around 20px wide on a phone, so near misses are common; the
+ * preview still shows where the tower will go before anything is built.
+ */
+function snapToBuildable(cell) {
+  const state = getState();
+  const { grid, selectedTower, COLS, ROWS } = state;
+  if (!cell || !selectedTower || !grid) return cell;
+  const here = grid[cell.y]?.[cell.x];
+  if (!here || here.tower || here.type === 'ground') return cell;
+  const hw = COLS / 2, hh = ROWS / 2;
+  const px = lastHitPoint ? lastHitPoint.x : cell.x - hw + 0.5;
+  const pz = lastHitPoint ? lastHitPoint.z : cell.y - hh + 0.5;
+  let best = null, bestD = 0.95 * 0.95;   // within about one tile of the finger
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = cell.x + dx, y = cell.y + dy;
+      const c = grid[y]?.[x];
+      if (!c || c.type !== 'ground' || c.tower) continue;
+      const ddx = (x - hw + 0.5) - px, ddz = (y - hh + 0.5) - pz;
+      const d = ddx * ddx + ddz * ddz;
+      if (d < bestD) { bestD = d; best = { x, y }; }
+    }
+  }
+  return best || cell;
+}
+
+/** Move the placement preview to the tile under a sliding finger. */
+function aimAt(touch) {
+  const cell = snapToBuildable(getCellUnderPoint(touch));
+  if (!cell) return;
+  if (previewCell?.x === cell.x && previewCell?.y === cell.y) return;
+  previewFromTouch = true;
+  showPreview(cell.x, cell.y, true);
+  buzz('tick');
 }
 
 /**
@@ -583,11 +652,12 @@ function getCellUnderPoint(e) {
  * @param {Event} e - Mouse or touch event
  */
 function handleTap(e) {
-  const cell = getCellUnderPoint(e);
+  const isTouch = 'identifier' in e;
   const state = getState();
+  const raw = getCellUnderPoint(e);
+  const cell = isTouch ? snapToBuildable(raw) : raw;
 
   if (cell) {
-    const isTouch = 'identifier' in e;
     if (isTouch && state.selectedTower) {
       const sameCell = previewCell?.x === cell.x && previewCell?.y === cell.y;
       if (!sameCell) {
@@ -595,6 +665,7 @@ function handleTap(e) {
         // tap on the same tile also confirms.
         previewFromTouch = true;
         showPreview(cell.x, cell.y, true);
+        buzz('tick');
         return;
       }
     }

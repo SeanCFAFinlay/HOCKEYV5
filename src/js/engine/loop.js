@@ -1,6 +1,7 @@
 // Main game loop with fixed timestep
 // Uses accumulator pattern for deterministic physics
 
+import { setGameActive } from '../ui/mobile.js';
 import { getState, setLastTime, addAnimTime, setWaveActive, setRunning, setAutoWave, setAutoWaveTimer, updateRunStats } from './state.js';
 import { emit, GameEvents } from './events.js';
 import { updateEnemies } from '../systems/enemies.js';
@@ -289,6 +290,7 @@ export function startGameLoop() {
   setRunning(true);
   setLastTime(lastFrameTime);
   enableAutoQuality(true);
+  setGameActive(true);
 
   // Start the loop
   frameId = requestAnimationFrame(gameLoop);
@@ -304,6 +306,7 @@ export function stopGameLoop() {
   }
   setRunning(false);
   enableAutoQuality(false);
+  setGameActive(false);
 }
 
 /**
