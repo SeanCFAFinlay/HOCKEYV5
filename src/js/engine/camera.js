@@ -19,6 +19,15 @@ let targetAngle = Math.PI / 4;
 let targetHeight = 18;
 let targetDist = 28;
 
+// Where the camera looks, on the floor. Two fingers slide it around the board;
+// it is kept within the board so the arena can't be lost off screen.
+let targetLookX = 0;
+let targetLookZ = 0;
+let lookX = 0;
+let lookZ = 0;
+let panLimitX = 6;
+let panLimitZ = 5;
+
 // ── Cinematic state machine ───────────────────────────────────────────────
 
 /**
@@ -243,6 +252,8 @@ export function updateCamera(dt = 0.016) {
   const newAngle = settle(camAngle, targetAngle, angleLerpFactor);
   const newHeight = settle(camHeight, targetHeight, lerpFactor);
   const newDist = settle(camDist, targetDist, lerpFactor);
+  lookX = settle(lookX, targetLookX, lerpFactor);
+  lookZ = settle(lookZ, targetLookZ, lerpFactor);
 
   // Update state (using direct state update for performance)
   state.camAngle = newAngle;
@@ -250,9 +261,9 @@ export function updateCamera(dt = 0.016) {
   state.camDist = newDist;
 
   // Calculate camera position from spherical coordinates
-  let x = Math.sin(newAngle) * newDist;
+  let x = lookX + Math.sin(newAngle) * newDist;
   let y = newHeight;
-  let z = Math.cos(newAngle) * newDist;
+  let z = lookZ + Math.cos(newAngle) * newDist;
 
   // Apply screen shake
   if (shakeDuration > 0) {
@@ -273,7 +284,7 @@ export function updateCamera(dt = 0.016) {
   camera.position.set(x, y, z);
 
   // Apply lookAt — boss track pans to boss, otherwise look at origin
-  camera.lookAt(bossLookX, 0, bossLookZ);
+  camera.lookAt(lookX + bossLookX, 0, lookZ + bossLookZ);
 
   // Tall scenery on the camera's side of the arena (the corner floodlight
   // towers) stands between the camera and the board, so it is hidden. "On the
@@ -317,6 +328,40 @@ export function resetCam() {
   targetAngle = view.angle;
   targetDist = view.dist;
   targetHeight = view.height;
+  targetLookX = 0;
+  targetLookZ = 0;
+}
+
+/**
+ * Slide the view across the board by a screen-space amount (pixels), the way a
+ * map app pans: the floor under the fingers follows them.
+ * @param {number} dxPx
+ * @param {number} dyPx
+ * @param {number} viewportHeight - pixels, to turn pixels into floor units
+ */
+export function panCamera(dxPx, dyPx, viewportHeight) {
+  const state = getState();
+  if (cinematicMode === 'bosstrack') cancelCinematic();
+  // Floor units per pixel at the look point: the visible height of the floor
+  // there, over the screen's height. Good enough for a drag to track a finger.
+  const dist = Math.hypot(targetDist, targetHeight);
+  const fov = (state.camera?.fov || 55) * Math.PI / 180;
+  const unitsPerPx = (2 * dist * Math.tan(fov / 2)) / Math.max(1, viewportHeight || 600);
+  const a = state.camAngle ?? targetAngle;
+  // Screen right and screen "up" (away from the camera) on the floor.
+  const rx = Math.cos(a), rz = -Math.sin(a);
+  const fx = -Math.sin(a), fz = -Math.cos(a);
+  // The view is tilted, so a vertical drag covers more floor than a sideways one.
+  const tilt = dist / Math.max(1, targetHeight);
+  targetLookX -= (rx * dxPx - fx * dyPx * tilt) * unitsPerPx;
+  targetLookZ -= (rz * dxPx - fz * dyPx * tilt) * unitsPerPx;
+  targetLookX = Math.max(-panLimitX, Math.min(panLimitX, targetLookX));
+  targetLookZ = Math.max(-panLimitZ, Math.min(panLimitZ, targetLookZ));
+}
+
+/** Where the camera is looking on the floor (for tests and debugging). */
+export function getCameraLook() {
+  return { x: targetLookX, z: targetLookZ };
 }
 
 /**
@@ -365,8 +410,16 @@ export function computeDefaultView(cols, rows, aspect, fovDeg = 55) {
   const c = cols || 12;
   const r = rows || 10;
   if (!(aspect > 0) || aspect >= 0.8) {
-    const dist = computeFitDistance(c, r, aspect);
-    return { angle: Math.PI / 4, dist, height: dist * 0.55 };
+    let dist = computeFitDistance(c, r, aspect);
+    // A phone held sideways is short and very wide: framed for the whole
+    // stadium, the rink filled about half the screen and its tiles were tiny.
+    // Come in closer and look down a little more steeply, so the playing
+    // surface fills the space between the top bar and the tower bar.
+    if (aspect > 1.7 && shortLandscape()) dist *= 0.8;
+    // Desktop framing was tuned while a first-frame easing bug left the camera
+    // about 10% further out than this formula says. Keep that tuned view.
+    else dist *= 1.1;
+    return { angle: Math.PI / 4, dist, height: dist * (shortLandscape() && aspect > 1.7 ? 0.68 : 0.55) };
   }
 
   // How far the camera must be from the rink's near edge for its full width
@@ -377,6 +430,10 @@ export function computeDefaultView(cols, rows, aspect, fovDeg = 55) {
   let dist = 8;
   while (dist < 40 && Math.hypot(dist - c / 2, dist * STEEPNESS) < needed) dist += 0.25;
   return { angle: Math.PI / 2, dist, height: Math.min(dist * STEEPNESS, 34) };
+}
+
+function shortLandscape() {
+  return typeof window !== 'undefined' && window.innerHeight > 0 && window.innerHeight < 500;
 }
 
 /**
@@ -490,6 +547,10 @@ export function initCameraState() {
   // Use map-calculated values from init3D if available, otherwise sensible defaults
   targetDist = state.camDist || 14;
   targetHeight = state.camHeight || 8;
+  targetLookX = lookX = state.camLookX || 0;
+  targetLookZ = lookZ = state.camLookZ || 0;
+  panLimitX = (state.COLS || 12) / 2;
+  panLimitZ = (state.ROWS || 10) / 2;
   cancelCinematic();
 
   state.camAngle = targetAngle;

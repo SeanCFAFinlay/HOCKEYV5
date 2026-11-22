@@ -6,6 +6,8 @@
 
 import { setPostProcessingQuality, getComposer } from '../engine/postprocessing.js';
 import { icon } from './icons.js';
+import { setQualityTier, resetQualityTier } from '../rendering/quality.js';
+import { setAutoQualityPinned } from '../engine/auto-quality.js';
 import { resetAllProgress } from '../systems/storage.js';
 import { setVolume } from '../engine/audio.js';
 import { setAmbientUserVolume } from '../engine/ambient.js';
@@ -15,6 +17,7 @@ import { setAmbientUserVolume } from '../engine/ambient.js';
 const STORAGE_KEY = 'hockeyTD_settings';
 
 const QUALITY_PRESETS = {
+  auto:   {},
   low:    { bloom: false, shadows: false, vignette: false, particles: 'low' },
   medium: { bloom: true,  shadows: false, vignette: false, particles: 'medium' },
   high:   { bloom: true,  shadows: true,  vignette: true,  particles: 'high' },
@@ -22,7 +25,11 @@ const QUALITY_PRESETS = {
 };
 
 export const DEFAULT_SETTINGS = {
-  graphicsQuality:   'high',
+  // 'auto' lets the game pick from the device and step down if it struggles.
+  // A tier is only forced once the player picks one (graphicsChosen): older
+  // saves stored 'high' for everybody without anyone having chosen it.
+  graphicsQuality:   'auto',
+  graphicsChosen:    false,
   shadows:           true,
   bloom:             true,
   particles:         'medium',
@@ -52,7 +59,9 @@ export function getSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const merged = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    if (!merged.graphicsChosen) merged.graphicsQuality = 'auto';
+    return merged;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -98,12 +107,29 @@ function _applyAudio(settings) {
 }
 
 function _applyQuality(settings) {
-  setPostProcessingQuality(settings.graphicsQuality);
-  // Sync individual toggles to renderer shadow map
+  const tier = settings.graphicsQuality;
+  // Auto: the device decides (rendering/quality.js) and the frame-time monitor
+  // may step it down. Nothing here overrides it.
+  if (!settings.graphicsChosen || tier === 'auto') {
+    try { setAutoQualityPinned(false); } catch { /* ignore */ }
+    return;
+  }
+  // A chosen tier sets the renderer for the next arena (resolution, shadows,
+  // lights) and the screen effects right away, and the monitor leaves it alone.
+  try { setQualityTier(tier === 'ultra' ? 'high' : tier); } catch { /* ignore */ }
+  try { setAutoQualityPinned(true); } catch { /* ignore */ }
+  setPostProcessingQuality(tier);
+  // Shadows on a live board: switching the map alone leaves every material
+  // compiled for the old setting (dark bands), so recompile them too.
   try {
     const state = globalThis.__gameState;
-    if (state && state.renderer) {
-      state.renderer.shadowMap.enabled = !!settings.shadows;
+    const want = !!settings.shadows;
+    if (state && state.renderer && state.renderer.shadowMap.enabled !== want) {
+      state.renderer.shadowMap.enabled = want;
+      state.scene?.traverse?.(obj => {
+        const mats = Array.isArray(obj.material) ? obj.material : (obj.material ? [obj.material] : []);
+        for (const mat of mats) mat.needsUpdate = true;
+      });
     }
   } catch { /* renderer not ready */ }
 }
@@ -203,7 +229,7 @@ function _buildGraphicsSection(settings) {
   const presetGroup = document.createElement('div');
   presetGroup.className = 'settings-preset-group';
 
-  ['Low', 'Medium', 'High', 'Ultra'].forEach(tier => {
+  ['Auto', 'Low', 'Medium', 'High'].forEach(tier => {
     const btn = document.createElement('button');
     btn.className = 'settings-preset-btn' + (settings.graphicsQuality === tier.toLowerCase() ? ' active' : '');
     btn.textContent = tier;
@@ -406,7 +432,10 @@ function _formatSliderValue(val, unit) {
 function _onPresetClick(tier) {
   const current = getSettings();
   const presetOverrides = QUALITY_PRESETS[tier] || {};
-  const updated = { ...current, graphicsQuality: tier, ...presetOverrides };
+  const updated = { ...current, graphicsQuality: tier, graphicsChosen: tier !== 'auto', ...presetOverrides };
+  if (tier === 'auto') {
+    try { resetQualityTier(); } catch { /* ignore */ }
+  }
 
   saveSettings(updated);
   applySettings(updated);

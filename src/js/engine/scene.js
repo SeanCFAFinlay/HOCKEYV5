@@ -348,6 +348,10 @@ export function init3D() {
   stateRef.camDist = camDist;
   stateRef.camHeight = camHeight;
   stateRef.camDefaultAngle = defaultView.angle;
+  // Targets first: updateCamera() eases from the current values towards the
+  // targets, which still held the previous arena's view, so the first frame
+  // dragged the new framing ~15% of the way back towards it.
+  initCameraState();
   updateCamera();
 
   // Build arena based on theme

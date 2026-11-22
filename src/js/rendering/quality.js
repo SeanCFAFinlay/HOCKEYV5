@@ -85,6 +85,11 @@ export function setQualityTier(name) {
   return true;
 }
 
+/** Back to choosing from the device on the next arena. */
+export function resetQualityTier() {
+  activeTier = null;
+}
+
 export function applyRendererQuality(renderer) {
   const tier = getQualityTier();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, tier.maxPixelRatio));

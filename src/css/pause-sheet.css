@@ -219,13 +219,61 @@
   }
 }
 
-/* Short landscape phones: the sheet must not become taller than the screen. */
+/* Short landscape phones: everything, Resume included, fits on one screen.
+   The sheet goes wide instead of tall: the two switches side by side, the
+   three buttons in one row, Resume across the bottom. */
 @media (max-height: 460px) {
   .pause-overlay {
-    align-items: flex-start;
+    padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+             calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  }
+
+  .pause-sheet {
+    width: min(620px, 100%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .pause-title,
+  .pause-wave,
+  .pause-actions,
+  .pause-resume {
+    grid-column: 1 / -1;
+  }
+
+  .pause-title {
+    font-size: 1.15rem;
+  }
+
+  .pause-wave {
+    margin-top: -6px;
+    font-size: 0.8rem;
   }
 
   .pause-stats {
     display: none;
+  }
+
+  .pause-row {
+    min-height: 48px;
+    padding: 8px 12px;
+  }
+
+  .pause-actions {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .pause-btn.danger {
+    grid-column: auto;
+  }
+
+  .pause-btn {
+    min-height: 44px;
+  }
+
+  .pause-resume {
+    min-height: 48px;
   }
 }

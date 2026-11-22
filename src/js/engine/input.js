@@ -2,7 +2,7 @@
 // Mobile-first input state machine with improved gesture handling
 
 import { getState, setDragging, setDragMoved, setLastPosition, setTouchStart } from './state.js';
-import { rotateCamera, zoomIn, zoomOut, setCameraZoom } from './camera.js';
+import { rotateCamera, zoomIn, zoomOut, setCameraZoom, panCamera } from './camera.js';
 import { handleCellTap, wouldBlockPath } from '../systems/towers.js';
 import { onResize } from './scene.js';
 import { showUpgrade } from '../ui/upgrade-sheet.js';
@@ -26,15 +26,40 @@ const DRAG_THRESHOLD = 8; // Pixels - must move this far to count as drag (mouse
 // silently turn into camera drags.
 const TOUCH_DRAG_THRESHOLD = 16;
 const LONG_PRESS_DURATION = 550; // ms - hold on a tower for its detail view
-const PINCH_SENSITIVITY = 0.04;
 const DRAG_SENSITIVITY = 0.008;
 const HEIGHT_SENSITIVITY = 0.05;
+// One-finger drags turn the camera OR tilt it, whichever way the finger first
+// went clearly further. Doing both at once made every drag wobble.
+const AXIS_LOCK_RATIO = 1.4;
+// Two-finger twist below this (radians) is treated as noise, so a pinch or a
+// slide doesn't also slowly spin the board.
+const TWIST_DEADZONE = 0.12;
+
+// The Settings "Camera speed" slider. Read from storage rather than imported,
+// so this module stays free of the settings panel and its dependencies.
+let cameraSpeed = 1;
+function readCameraSpeed() {
+  try {
+    const v = Number(JSON.parse(localStorage.getItem('hockeyTD_settings') || '{}').cameraSensitivity);
+    cameraSpeed = Number.isFinite(v) && v > 0 ? Math.max(0.5, Math.min(2, v)) : 1;
+  } catch { cameraSpeed = 1; }
+}
 
 // Input state
 let inputState = InputState.IDLE;
 let touchStartPos = { x: 0, y: 0 };
 let touchStartTime = 0;
 let pinchStartDist = 0;
+let dragAxis = null;
+// Phones follow a touch with imitation mouse events. Those used to reach the
+// mouse handlers: "mouse left the board" cancelled the tower being placed, so
+// tapping Build in the build strip often found nothing left to build.
+let lastTouchAt = 0;
+const MOUSE_AFTER_TOUCH_MS = 1000;
+const isCompatMouse = () => Date.now() - lastTouchAt < MOUSE_AFTER_TOUCH_MS;          // 'x' | 'y' once a one-finger drag commits
+// Two-finger gesture: start values, so zoom/twist are measured from the start
+// (no drift) and pan from the previous frame.
+let pinch = null;
 let longPressTimer = null;
 let longPressTriggered = false;
 let lastTouchCell = null;
@@ -355,6 +380,7 @@ function handleLongPress() {
 
 function onTouchStart(e) {
   e.preventDefault();
+  lastTouchAt = Date.now();
 
   // Check if touch is on UI
   if (isTouchOverUI(e.touches[0])) {
@@ -369,6 +395,8 @@ function onTouchStart(e) {
     touchStartTime = Date.now();
     longPressTriggered = false;
     inputState = InputState.AWAITING_TAP;
+    dragAxis = null;
+    readCameraSpeed();
 
     setDragging(true);
     setDragMoved(false);
@@ -389,11 +417,35 @@ function onTouchStart(e) {
     pinchStartDist = getTouchDistance(e);
     setTouchStart(pinchStartDist);
     setDragMoved(true); // Pinch is never a tap
+    const st = getState();
+    const mid = getTouchMid(e);
+    pinch = {
+      dist: Math.max(1, pinchStartDist),
+      angle: getTouchAngle(e),
+      camDist: st.camDist,
+      camHeight: st.camHeight,
+      midX: mid.x,
+      midY: mid.y,
+      twisting: false,
+      lastTwist: 0
+    };
   }
+}
+
+function getTouchMid(e) {
+  return {
+    x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+    y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+  };
+}
+
+function getTouchAngle(e) {
+  return Math.atan2(e.touches[1].clientY - e.touches[0].clientY, e.touches[1].clientX - e.touches[0].clientX);
 }
 
 function onTouchMove(e) {
   e.preventDefault();
+  lastTouchAt = Date.now();
   const state = getState();
 
   if (inputState === InputState.UI_BLOCKED) return;
@@ -423,7 +475,14 @@ function onTouchMove(e) {
         aimAt(touch);
         return;
       }
-      inputState = InputState.CAMERA_DRAG;
+      if (inputState !== InputState.CAMERA_DRAG) {
+        inputState = InputState.CAMERA_DRAG;
+        dragAxis = Math.abs(dx) >= Math.abs(dy) * AXIS_LOCK_RATIO ? 'x'
+          : Math.abs(dy) >= Math.abs(dx) * AXIS_LOCK_RATIO ? 'y' : 'xy';
+        // Start from here, so crossing the threshold doesn't jump the camera.
+        setLastPosition(touch.clientX, touch.clientY);
+        return;
+      }
     }
 
     // If dragging, update camera
@@ -431,27 +490,55 @@ function onTouchMove(e) {
       const moveDx = touch.clientX - state.lastX;
       const moveDy = touch.clientY - state.lastY;
 
-      rotateCamera(-moveDx * DRAG_SENSITIVITY);
-      const newHeight = Math.max(5, Math.min(30, state.camHeight - moveDy * HEIGHT_SENSITIVITY));
-      setCameraZoom(state.camDist, newHeight);
+      if (dragAxis !== 'y') rotateCamera(-moveDx * DRAG_SENSITIVITY * cameraSpeed);
+      if (dragAxis !== 'x') {
+        const newHeight = Math.max(5, Math.min(30, state.camHeight - moveDy * HEIGHT_SENSITIVITY * cameraSpeed));
+        setCameraZoom(state.camDist, newHeight);
+      }
 
       setLastPosition(touch.clientX, touch.clientY);
     }
   }
-  // Two-finger pinch zoom
-  else if (e.touches.length === 2 && inputState === InputState.PINCH_ZOOM) {
-    const currentDist = getTouchDistance(e);
-    const pinchDelta = currentDist - state.touchStart;
+  // Two fingers: pinch to zoom, slide to move around the board, twist to turn.
+  else if (e.touches.length === 2 && inputState === InputState.PINCH_ZOOM && pinch) {
+    const scale = pinch.dist / Math.max(1, getTouchDistance(e));
+    // Distance and height scale together, so zooming keeps the viewing angle.
+    setCameraZoom(pinch.camDist * scale, pinch.camHeight * scale);
 
-    const newDist = Math.max(8, Math.min(40, state.camDist - pinchDelta * PINCH_SENSITIVITY));
-    setCameraZoom(newDist, state.camHeight);
-    setTouchStart(currentDist);
+    const mid = getTouchMid(e);
+    const vh = state.renderer?.domElement?.clientHeight || window.innerHeight;
+    panCamera(mid.x - pinch.midX, mid.y - pinch.midY, vh);
+    pinch.midX = mid.x;
+    pinch.midY = mid.y;
+
+    let twist = getTouchAngle(e) - pinch.angle;
+    twist = Math.atan2(Math.sin(twist), Math.cos(twist));
+    if (!pinch.twisting && Math.abs(twist) > TWIST_DEADZONE) {
+      pinch.twisting = true;
+      pinch.lastTwist = twist;
+    }
+    if (pinch.twisting) {
+      rotateCamera(-(twist - pinch.lastTwist));
+      pinch.lastTwist = twist;
+    }
   }
 }
 
 function onTouchEnd(e) {
   cancelLongPress();
+  lastTouchAt = Date.now();
   const state = getState();
+
+  // One finger of a pinch lifted: keep the gesture finished, not a fresh drag
+  // from wherever the remaining finger happens to be.
+  if (e.touches && e.touches.length > 0) {
+    if (inputState === InputState.PINCH_ZOOM) {
+      inputState = InputState.UI_BLOCKED;
+      pinch = null;
+    }
+    return;
+  }
+  pinch = null;
 
   if (inputState === InputState.UI_BLOCKED) {
     inputState = InputState.IDLE;
@@ -498,6 +585,7 @@ function onTouchCancel(e) {
 
 function onMouseDown(e) {
   if (e.button !== 0) return; // Only left click
+  if (isCompatMouse()) return;
 
   // Check if click is on UI
   if (isTouchOverUI(e)) {
@@ -515,6 +603,7 @@ function onMouseDown(e) {
 }
 
 function onMouseMove(e) {
+  if (isCompatMouse()) return;
   const state = getState();
 
   // Update placement preview when hovering (not dragging)
@@ -549,6 +638,7 @@ function onMouseMove(e) {
 }
 
 function onMouseUp(e) {
+  if (isCompatMouse()) return;
   const state = getState();
 
   if (inputState === InputState.UI_BLOCKED) {
@@ -567,9 +657,11 @@ function onMouseUp(e) {
 }
 
 function onMouseLeave() {
+  if (isCompatMouse()) return;
   inputState = InputState.IDLE;
   setDragging(false);
-  hidePreview();
+  // A preview placed by touch stays until it is built or cancelled.
+  if (!previewFromTouch) hidePreview();
 }
 
 function onWheel(e) {

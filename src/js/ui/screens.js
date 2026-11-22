@@ -36,6 +36,7 @@ import { initAbilityBar, hideAbilityBar } from './ability-bar.js';
 import { matchBonuses } from '../systems/perks.js';
 import { refreshUpgradesButton } from './perks-screen.js';
 import { showArenaLoader, hideArenaLoader } from './arena-loader.js';
+import { warmUpShaders } from '../rendering/warmup.js';
 
 export function renderThemeCards() {
   const container = document.getElementById('themeCards');
@@ -265,6 +266,12 @@ export function startGame(idx, mode = 'campaign') {
 
       loader.step('Filling the stands', 80);
       await nextFrame();
+
+      // Compile every enemy, tower and shot shader now, under the loader,
+      // rather than freezing the game the first time each one appears.
+      loader.step('Warming up', 90);
+      await nextFrame();
+      warmUpShaders();
 
       // Initialize UI
       initHUD();

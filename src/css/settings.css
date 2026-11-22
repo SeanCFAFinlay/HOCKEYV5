@@ -471,6 +471,15 @@
   z-index: 50;
 }
 
+/* A sideways phone puts the Upgrades card at the very top right, under the
+   gear. Leave the gear its own corner. */
+@media (max-height: 500px) and (orientation: landscape) {
+  #menuScreen .upgrades-btn {
+    width: auto;
+    margin-right: 64px;
+  }
+}
+
 /* ── Volume placeholder note ──────────────────────────────────────────── */
 
 .settings-note {

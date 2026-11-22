@@ -1,9 +1,13 @@
 /**
  * SC-5.5: Frame-time monitoring and automatic quality reduction.
  *
- * If the average frame time exceeds 33ms (30fps) for 5 consecutive seconds,
- * the quality tier is downgraded one step. Auto-reduction fires at most once
- * per session.
+ * When the smoothed frame time stays above 33ms (under 30fps) for about four
+ * seconds, the quality tier steps down one notch. It can step down twice
+ * (high -> medium -> low), then as a last resort drops the render resolution.
+ *
+ * It used to need five seconds in which *every* frame was slow. A phone running
+ * at a juddery 25-40fps still has the odd quick frame, which reset the count,
+ * so the safety net almost never caught the phones it was written for.
  */
 
 import { getState } from './state.js';
@@ -13,10 +17,20 @@ import { applyRendererQuality, getQualityName, getQualityTier, setQualityTier } 
 // ── Module state ──────────────────────────────────────────────────────────────
 
 let _enabled = false;
-let _hasReducedOnce = false;
-let _consecutiveSlowSeconds = 0;
+let _hasReducedOnce = false;      // true once there is nothing left to reduce
+let _consecutiveSlowSeconds = 0;  // seconds the smoothed frame time has been slow
+let _smoothedMs = 16;
+let _steps = 0;
+let _resolutionDropped = false;
+let _pinned = false;
+let _sinceEnabled = 0;
+// The first moments of an arena are always rough (textures uploading, the
+// first frames of a fresh scene) and say nothing about how it will play.
+const GRACE_SECONDS = 1.5;
 const SLOW_THRESHOLD_MS = 33;
-const SLOW_WINDOW_SECONDS = 5;
+const SLOW_WINDOW_SECONDS = 4;
+const MAX_TIER_STEPS = 2;
+const SMOOTHING_SECONDS = 1;
 
 // ── Tier order for downgrade ──────────────────────────────────────────────────
 
@@ -36,9 +50,9 @@ function _nextLowerTier(current) {
  */
 export function enableAutoQuality(enabled) {
   _enabled = !!enabled;
-  if (!_enabled) {
-    _consecutiveSlowSeconds = 0;
-  }
+  _sinceEnabled = 0;
+  _smoothedMs = 16;
+  _consecutiveSlowSeconds = 0;
 }
 
 /**
@@ -48,21 +62,38 @@ export function enableAutoQuality(enabled) {
 export function resetAutoQuality() {
   _hasReducedOnce = false;
   _consecutiveSlowSeconds = 0;
+  _smoothedMs = 16;
+  _steps = 0;
+  _resolutionDropped = false;
 }
 
 /**
  * Per-frame update. Call from the main game loop.
  * @param {number} dt - delta time in seconds
  */
+/**
+ * The player picked a graphics level in Settings: respect it and stop
+ * stepping down on their behalf.
+ * @param {boolean} pinned
+ */
+export function setAutoQualityPinned(pinned) {
+  _pinned = !!pinned;
+}
+
 export function updateAutoQuality(dt) {
-  if (!_enabled || _hasReducedOnce) return;
+  if (!_enabled || _hasReducedOnce || _pinned) return;
 
+  _sinceEnabled += dt;
+  if (_sinceEnabled < GRACE_SECONDS) return;
   const frameMs = dt * 1000;
+  _smoothedMs += (frameMs - _smoothedMs) * Math.min(1, dt / SMOOTHING_SECONDS);
 
-  if (frameMs > SLOW_THRESHOLD_MS) {
+  if (_smoothedMs > SLOW_THRESHOLD_MS) {
     _consecutiveSlowSeconds += dt;
   } else {
-    _consecutiveSlowSeconds = 0;
+    // Recovering bleeds the count off rather than wiping it, so a brief
+    // calm patch doesn't hide a phone that is struggling overall.
+    _consecutiveSlowSeconds = Math.max(0, _consecutiveSlowSeconds - dt);
   }
 
   if (_consecutiveSlowSeconds >= SLOW_WINDOW_SECONDS) {
@@ -76,17 +107,28 @@ function _triggerQualityReduction() {
   const current = getQualityName();
   const next = _nextLowerTier(current);
 
-  if (!next) {
-    // Already at lowest tier — nothing to do
+  _consecutiveSlowSeconds = 0;
+  _smoothedMs = 16;   // judge the new setting on its own frames
+
+  if (!next || _steps >= MAX_TIER_STEPS) {
+    // Lowest tier already: render fewer pixels as the last resort.
+    if (!_resolutionDropped) {
+      _resolutionDropped = true;
+      try {
+        const { renderer } = getState();
+        if (renderer && renderer.getPixelRatio?.() > 1) {
+          renderer.setPixelRatio(1);
+          console.warn('[AutoQuality] Still slow at the lowest tier - rendering at pixel ratio 1');
+        }
+      } catch { /* ignore */ }
+    }
     _hasReducedOnce = true;
-    _consecutiveSlowSeconds = 0;
     return;
   }
 
   setQualityTier(next);
   applyActiveQuality(next);
-  _hasReducedOnce = true;
-  _consecutiveSlowSeconds = 0;
+  _steps++;
 
   console.warn(
     `[AutoQuality] Average frame time exceeded ${SLOW_THRESHOLD_MS}ms for ` +
