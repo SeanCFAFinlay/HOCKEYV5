@@ -1,10 +1,25 @@
 // Projectile creation and movement
 
 import { getState } from '../engine/state.js';
-import { handleHit } from './damage.js';
+import { handleHit, hurtEnemy } from './damage.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
 import { attachTrail, removeTrail } from '../rendering/trails.js';
-import { createProjectileMesh } from '../rendering/projectile-meshes.js';
+import { createShotMesh } from '../rendering/projectile-models.js';
+import { muzzleFlash, landingMarker, clearMarker, burstDebris } from './impact-fx.js';
+import { createImpact } from './particles.js';
+
+// Lobbed area shells (splash towers with a 'lob' flight) are true ballistic
+// shots: aimed at where the target will be when they land, and they burst
+// there whether or not it is still standing on the spot. The lead is capped so
+// a shell never lands absurdly far from where the target is now.
+const MAX_LEAD = 2.2;
+
+// Sniper rounds carry on through their target and can hit enemies lined up
+// behind it, for a share of the damage.
+const PIERCE_EXTRA_HITS = 2;
+const PIERCE_DAMAGE = 0.5;
+const PIERCE_REACH = 2.6;      // tiles travelled after the first hit
+const PIERCE_RADIUS = 0.42;    // how close an enemy must be to the line
 
 // Trail particle pool for reuse
 const trailPool = [];
@@ -79,9 +94,11 @@ const MAX_TRAIL_DOTS = 5;
  *
  * What the shot looks like and how it travels both come from the theme's
  * visual profile (config/visual-profiles.js -> projectiles): `mesh` picks the
- * shape, `flight` picks the motion. Hit detection stays a straight homing line
- * for every flight style — arcs, curves and wobble are applied to the rendered
- * mesh only, so changing how a projectile looks can never change game balance.
+ * shape (or `model`, a themed model from rendering/projectile-models.js),
+ * `flight` picks the motion. Most shots home on their target in a straight
+ * line, with arcs, curves and wobble applied to the rendered mesh only. Two
+ * exceptions are gameplay, not looks: lobbed area shells fly ballistically to
+ * a predicted landing point, and sniper rounds pierce (see constants above).
  */
 export function createProjectile(tw, target, sx, sz) {
   const state = getState();
@@ -123,9 +140,10 @@ export function createProjectile(tw, target, sx, sz) {
   }
   if (flight === 'slide') startY = SLIDE_Y;
 
-  const mesh = createProjectileMesh(profile.mesh, color, size);
+  const mesh = createShotMesh(state.theme, profile, color, size);
   mesh.position.set(startX, startY, startZ);
   scene.add(mesh);
+  muzzleFlash(startX, startY, startZ, color, dirX, dirZ, flight === 'slide' ? 0.6 : (profile.beam ? 0.8 : 1));
 
   // Tower reaction: glow flash, recoil kick, and turn the turret onto the target.
   if (tw.baseGlow) tw.firingFlash = 1.0;
@@ -162,11 +180,20 @@ export function createProjectile(tw, target, sx, sz) {
     trailColor: color,
     trailKind: profile.trail,
     impactKind: profile.impact,
+    debris: profile.debris || null,
+    debrisColor: profile.debrisColor,
+    dirX,
+    dirZ,
+    ballistic: false,
+    pierceLeft: td.role === 'SNIPER' ? PIERCE_EXTRA_HITS : 0,
+    piercing: false,
     curve: profile.curve || 0,
     beam: !!profile.beam,
     trail: [],
     trailTimer: 0
   };
+
+  if (tw.splash && flight === 'lob') aimBallistic(projectile, target, flat);
 
   attachTrail(projectile, color);
   placeProjectileMesh(projectile, flat);
@@ -284,6 +311,89 @@ function placeProjectileMesh(p, remaining) {
   p.rz = z;
 }
 
+/**
+ * Turn a lobbed splash shot into a shell aimed at where its target will be.
+ * The target's velocity comes from its last fixed step (prevX/prevZ).
+ */
+function aimBallistic(p, target, flat) {
+  const FIXED_STEP = 1 / 60;
+  const vx = (target.x - (target.prevX ?? target.x)) / FIXED_STEP;
+  const vz = (target.z - (target.prevZ ?? target.z)) / FIXED_STEP;
+  // Two passes: time of flight depends on the distance, which depends on the lead.
+  let lx = target.x;
+  let lz = target.z;
+  let t = flat / p.speed;
+  for (let k = 0; k < 2; k++) {
+    lx = target.x + vx * t;
+    lz = target.z + vz * t;
+    const ldx = lx - target.x;
+    const ldz = lz - target.z;
+    const lead = Math.hypot(ldx, ldz);
+    if (lead > MAX_LEAD) {
+      lx = target.x + (ldx / lead) * MAX_LEAD;
+      lz = target.z + (ldz / lead) * MAX_LEAD;
+    }
+    t = Math.hypot(lx - p.x, lz - p.z) / p.speed;
+  }
+  p.ballistic = true;
+  p.tx = lx;
+  p.tz = lz;
+  // Shells burst at ground level, flyers caught in the blast included.
+  p.ty = target.flying ? 1.0 : 0.25;
+  p.arc = 0.9 + Math.hypot(lx - p.x, lz - p.z) * 0.32;
+  p.marker = landingMarker(lx, lz, p.tower.splash, p.trailColor, t);
+}
+
+/** Start a sniper round's run on past its first target. */
+function startPierce(p) {
+  const ux = p.dirX || 0;
+  const uz = p.dirZ || 1;
+  p.piercing = true;
+  p.pux = ux;
+  p.puz = uz;
+  p.pierceRun = 0;
+  p.pierceHits = new Set([p.target]);
+  p.flight = 'tracer';
+  // Aim the mesh far down the line so lookAt keeps it pointing forward.
+  p.tx = p.x + ux * 100;
+  p.tz = p.z + uz * 100;
+  p.ty = p.y;
+}
+
+/** Advance a piercing round; returns false once it is spent. */
+function stepPierce(p, dt, enemies) {
+  const move = p.speed * dt;
+  p.x += p.pux * move;
+  p.z += p.puz * move;
+  p.t += dt;
+  p.pierceRun += move;
+  for (const e of enemies) {
+    if (p.pierceLeft <= 0) break;
+    if (p.pierceHits.has(e)) continue;
+    const ex = e.x - p.x;
+    const ez = e.z - p.z;
+    if (ex * ex + ez * ez > PIERCE_RADIUS * PIERCE_RADIUS) continue;
+    p.pierceHits.add(e);
+    p.pierceLeft--;
+    hurtEnemy(e, (p.tower.dmg || 0) * PIERCE_DAMAGE, false);
+    createImpact(e.x, 0.5, e.z, p.trailColor);
+    burstDebris(e.x, 0.5, e.z, p.debris || 'sparks', p.debrisColor ?? p.trailColor, 3, { dirX: p.pux, dirZ: p.puz, spread: 0.4 });
+  }
+  return p.pierceLeft > 0 && p.pierceRun < PIERCE_REACH;
+}
+
+function retireProjectile(p, i, projectiles, scene) {
+  // Geometry and materials are shared across shots: remove, never dispose.
+  if (p.mesh) scene.remove(p.mesh);
+  if (p.trail) {
+    p.trail.forEach(dot => returnTrailParticle(dot, scene));
+  }
+  if (p.marker) clearMarker(p.marker);
+  // SC-3.3: Begin ribbon trail fade
+  removeTrail(p);
+  projectiles.splice(i, 1);
+}
+
 export function updateProjectiles(dt) {
   const state = getState();
   const { projectiles, enemies, scene } = state;
@@ -291,8 +401,17 @@ export function updateProjectiles(dt) {
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
 
-    // Update target position if still alive
-    if (enemies.includes(p.target)) {
+    if (p.piercing) {
+      if (!stepPierce(p, dt, enemies)) {
+        retireProjectile(p, i, projectiles, scene);
+        continue;
+      }
+      placeProjectileMesh(p, 50);
+      continue;
+    }
+
+    // Update target position if still alive (a ballistic shell keeps its aim)
+    if (!p.ballistic && enemies.includes(p.target)) {
       p.tx = p.target.x;
       p.ty = p.target.y;
       p.tz = p.target.z;
@@ -305,15 +424,15 @@ export function updateProjectiles(dt) {
     const move = p.speed * dt;
 
     if (dist <= move) {
+      p.x = p.tx;
+      p.y = p.ty;
+      p.z = p.tz;
       handleHit(p);
-      // Geometry and materials are shared across shots: remove, never dispose.
-      if (p.mesh) scene.remove(p.mesh);
-      if (p.trail) {
-        p.trail.forEach(dot => returnTrailParticle(dot, scene));
+      if (p.pierceLeft > 0 && !p.tower.splash && !p.tower.chain) {
+        startPierce(p);
+        continue;
       }
-      // SC-3.3: Begin ribbon trail fade
-      removeTrail(p);
-      projectiles.splice(i, 1);
+      retireProjectile(p, i, projectiles, scene);
       continue;
     }
 

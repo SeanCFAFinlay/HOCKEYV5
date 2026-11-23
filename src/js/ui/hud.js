@@ -461,6 +461,9 @@ function getAbilityBadges(entry) {
   if (entry.flying || tags.has('air')) badges.push('wings');
   if (entry.armor || tags.has('armor')) badges.push('shield');
   if (entry.fire || tags.has('fire')) badges.push('flame');
+  // Enemies that act on others (config/enemy-extras.js).
+  if (tags.has('splitter')) badges.push('split');
+  if (entry.role === 'HEALER') badges.push('medcross');
   return badges.map(name => icon(name)).join('');
 }
 

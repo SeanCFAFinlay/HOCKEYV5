@@ -346,6 +346,91 @@ function hkEnforcer(m, proto, c) {
   }
 }
 
+function hkSplitPuck(m, proto, c) {
+  // A puck already cracked in three, taped back together: the seams glow, and
+  // one more hit sends the wedges skating off on their own. A Puck Chip
+  // (mini) is the same puck without the tape.
+  const rubber = P(c.color, { gloss: 0.55 });
+  const seam = M.glow(c.accent);
+  const r = 0.84, h = 0.52, top = 0.22, y = top - h / 2;
+  m.add(G.cyl(r * 0.92, r * 0.92, h * 0.9, 20), seam, { p: [0, y, 0], shadow: false });   // hot core through the cracks
+  for (let i = 0; i < 3; i++) {
+    const a = i * TAU / 3;
+    const wedge = new THREE.CylinderGeometry(r, r, h, 10, 1, false, a - Math.PI / 3 + 0.1, TAU / 3 - 0.2);
+    m.add(wedge, rubber, { p: [Math.sin(a) * 0.1, y, Math.cos(a) * 0.1] });
+    // The crack behind this wedge, glowing along the top face.
+    const ca = a + Math.PI / 3;
+    m.add(G.box(0.1, 0.03, r * 1.02), seam, { p: [Math.sin(ca) * r * 0.5, top - 0.005, Math.cos(ca) * r * 0.5], r: [0, ca, 0], shadow: false });
+  }
+  eyes(m, { x: 0.3, y: 0.3, z: 0.5, r: 0.25, brow: 0.3 });
+  if (!proto.mini) {
+    const tape = P(0xf4f8ff, { gloss: 0.3, glow: 0.12 });
+    for (const a of [0.55, -0.55]) m.add(G.rbox(0.2, 0.05, 1.5, 0.02), tape, { p: [0, top + 0.02, -0.18], r: [0, a, 0] });
+    m.add(G.rbox(0.36, 0.1, 0.06, 0.02), M.glow(0xffffff), { p: [0, -0.12, 0.86], shadow: false });
+    for (const s of [-1, 1]) {
+      const arm = part(m, { k: 'swing', ax: 'x', amp: 0.9, ph: s > 0 ? Math.PI : 0 }, { p: [s * 0.88, -0.05, 0] });
+      arm.add(G.capsule(0.08, 0.38, 6), rubber, { p: [0, -0.36, 0] });
+      arm.add(G.sphere(0.13, 8, 6), seam, { p: [0, -0.38, 0.02], shadow: false });
+    }
+  }
+  const white = P(0xf4f8ff, { gloss: 0.6 });
+  for (const s of [-1, 1]) leg(m, s, { x: 0.36, hip: -0.28, len: 0.4, mat: rubber, boot: white, blade: MT(), amp: proto.mini ? 1.0 : 0.8 });
+}
+
+function hkGoalie(m, proto, c) {
+  // The last line: leg pads like doors, a blocker held up like a riot shield,
+  // a white caged mask with a team stripe.
+  const k = skater(m, proto, { jersey: c.color, trim: 0xf2f6ff, pants: 0x101b3d, glove: 0xf2f6ff, helmet: 0xf4f6fa, cage: true, pads: true, bulk: 1.4, lean: 0.12, stride: 0.35 });
+  const { up, b, hy, hz } = k;
+  const pad = P(0xf4f6fa, { gloss: 0.5, glow: 0.14 });
+  const accent = P(c.accent, { gloss: 0.6, glow: 0.3 });
+  const wood = P(0xe2bd7c, { gloss: 0.4, glow: 0.1 });
+  for (const s of [-1, 1]) {
+    up.add(G.rbox(0.4, 0.74, 0.24, 0.09), pad, { p: [s * 0.22 * b, -0.3, 0.3] });                    // leg pads
+    for (const py of [-0.1, -0.42]) up.add(G.rbox(0.42, 0.07, 0.26, 0.03), accent, { p: [s * 0.22 * b, py, 0.31], shadow: false });
+  }
+  // Blocker: a big rectangle on the stick hand, face out.
+  up.add(G.rbox(0.62, 0.82, 0.12, 0.06), accent, { p: [0.58 * b, 0.42, 0.5] });
+  up.add(G.rbox(0.4, 0.6, 0.04, 0.03), pad, { p: [0.58 * b, 0.42, 0.57], shadow: false });
+  // Trapper on the other hand.
+  up.add(G.sphere(0.26, 12, 8), pad, { p: [-0.6 * b, 0.4, 0.42], s: [1, 1.15, 0.7] });
+  up.add(G.rbox(0.3, 0.12, 0.2, 0.04), accent, { p: [-0.6 * b, 0.68, 0.44] });
+  // Goalie stick: shaft down to the ice, wide paddle, blade flat.
+  up.add(G.cyl(0.045, 0.045, 0.7, 6), wood, { p: [0.42 * b, -0.18, 0.66] });
+  up.add(G.rbox(0.12, 0.34, 0.05, 0.02), wood, { p: [0.42 * b, -0.48, 0.66] });
+  up.add(G.rbox(0.6, 0.12, 0.05, 0.02), M.matte(0x16181d), { p: [0.2 * b, -0.64, 0.68] });
+  up.add(G.rbox(0.08, 0.06, 0.62, 0.02), accent, { p: [0, hy + 0.34, hz - 0.02], shadow: false }); // mask stripe
+}
+
+function hkTrainer(m, proto, c) {
+  // The bench's medic: team tracksuit, cap, a first-aid box at the hip and a
+  // squeeze bottle held up high.
+  const k = skater(m, proto, { jersey: c.color, trim: c.accent, pants: 0x1d2a3a, glove: 0xf0b98a, bulk: 1.0, lean: 0.15, stride: 0.6 });
+  const { up, jersey, skin, hy, hz } = k;
+  const green = M.glow(c.accent);
+  const navy = P(0x1d2a3a, { gloss: 0.5, glow: 0.1 });
+  const white = P(0xf6f9ff, { gloss: 0.6, glow: 0.15 });
+  up.add(new THREE.SphereGeometry(0.32, 14, 8, 0, TAU, 0, Math.PI * 0.5), navy, { p: [0, hy + 0.04, hz] });   // cap
+  up.add(G.rbox(0.36, 0.04, 0.28, 0.02), navy, { p: [0, hy + 0.07, hz + 0.32] });
+  for (const z of [0.255, -0.255]) {                                                                // green cross, chest and back
+    up.add(G.box(0.3, 0.09, 0.03), green, { p: [0, 0.4, z], shadow: false });
+    up.add(G.box(0.09, 0.3, 0.03), green, { p: [0, 0.4, z], shadow: false });
+  }
+  // Left hand: the first-aid box.
+  const kitArm = part(up, { k: 'swing', ax: 'x', amp: 0.4, ph: 0 }, { p: [-0.42, 0.56, 0] });
+  kitArm.add(G.capsule(0.08, 0.46, 6), jersey, { p: [0, -0.44, 0] });
+  kitArm.add(G.rbox(0.2, 0.36, 0.46, 0.05), white, { p: [-0.12, -0.6, 0.02] });
+  kitArm.add(G.box(0.03, 0.08, 0.26), green, { p: [-0.23, -0.6, 0.02], shadow: false });
+  kitArm.add(G.box(0.03, 0.24, 0.09), green, { p: [-0.23, -0.6, 0.02], shadow: false });
+  // Right hand: the bottle, raised.
+  const bottleArm = part(up, { k: 'swing', ax: 'x', amp: 0.25, ph: Math.PI, base: -2.5 }, { p: [0.42, 0.56, 0] });
+  bottleArm.add(G.capsule(0.08, 0.46, 6), jersey, { p: [0, -0.44, 0] });
+  bottleArm.add(G.sphere(0.1, 8, 6), skin, { p: [0, -0.48, 0] });
+  bottleArm.add(G.cyl(0.11, 0.11, 0.34, 10), M.glass(c.accent, 0.7), { p: [0, -0.62, 0] });
+  bottleArm.add(G.cyl(0.07, 0.11, 0.08, 10), white, { p: [0, -0.82, 0] });
+  bottleArm.add(G.cone(0.03, 0.14, 6), white, { p: [0, -0.92, 0], r: [Math.PI, 0, 0] });
+}
+
 // ── Soccer: the balls fight back ────────────────────────────────────────────
 
 // The twelve vertices of an icosahedron: where a football's pentagons sit.
@@ -500,6 +585,82 @@ function scBossBall(m, proto, c) {
     for (let i = 0; i < 4; i++) arm.add(G.capsule(0.055, 0.22, 5), P(0xffffff, { gloss: 0.5 }), { p: [s * 0.08 + (i - 1.5) * 0.095, -1.0, 0.02] });
     bootLeg(m, s, { x: 0.38, hip: -0.68, len: 0.14, r: 0.17, sock: red, boot: dark, amp: 0.45, bootL: 0.56 });
   }
+}
+
+function scClusterBall(m, proto, c) {
+  // Three balls stuffed in a training-ground net bag, drawstring pulled tight:
+  // burst the bag and they all run. A Mini Ball (mini) is one escapee.
+  const base = P(c.color, { gloss: 0.6, glow: 0.2 });
+  const black = P(0x14161a, { gloss: 0.5 });
+  const white = P(0xf6f6f2, { gloss: 0.6, glow: 0.12 });
+  if (proto.mini) {
+    football(m, { r: 0.72, y: 0.0, base, patch: black });
+    eyes(m, { x: 0.26, y: 0.18, z: 0.58, r: 0.25, socket: M.glow(0x14161a), brow: 0.2 });
+    for (const s of [-1, 1]) bootLeg(m, s, { x: 0.28, hip: -0.52, sock: white, boot: black, amp: 1.0 });
+    return;
+  }
+  // football() centres on x = z = 0, so each ball is built in its own group.
+  for (const [x, y, z] of [[-0.4, -0.2, 0.22], [0.4, -0.2, 0.22], [0, 0.32, -0.12]]) {
+    football(m.group({ p: [x, y, z] }), { r: 0.46, base, patch: black });
+  }
+  const net = M.matte(0xe8edf0);
+  net.wireframe = true;
+  m.add(G.sphere(0.98, 10, 7), net, { p: [0, -0.02, 0.02], shadow: false });
+  m.add(G.torus(0.16, 0.05, 5, 12), white, { p: [0, 0.94, -0.06], r: [HALF, 0, 0] });              // drawstring
+  m.add(G.cone(0.1, 0.3, 6), white, { p: [0, 1.06, -0.06], r: [Math.PI, 0, 0] });
+  // The top ball keeps watch.
+  eyes(m, { x: 0.17, y: 0.4, z: 0.28, r: 0.16, socket: M.glow(0x14161a), brow: 0.25 });
+  for (const s of [-1, 1]) bootLeg(m, s, { x: 0.36, hip: -0.56, len: 0.2, r: 0.13, sock: white, boot: black, amp: 0.85 });
+}
+
+function scGoalkeeper(m, proto, c) {
+  // The number one: cap pulled down, both gloves up and spread like a wall.
+  const shirt = P(c.color, { gloss: 0.6, glow: 0.2 });
+  const lime = P(c.accent, { gloss: 0.55, glow: 0.28 });
+  const white = P(0xf4f4f4, { gloss: 0.5, glow: 0.15 });
+  const dark = M.matte(0x101418);
+  football(m, { r: 0.76, y: 0.02, base: shirt, patch: lime, cap: 0.38 });
+  m.add(G.dome(0.58, 18), lime, { p: [0, 0.5, 0], s: [1, 0.55, 1] });                                // cap
+  m.add(G.rbox(0.62, 0.05, 0.42, 0.02), lime, { p: [0, 0.55, 0.62], r: [-0.12, 0, 0] });
+  eyes(m, { x: 0.27, y: 0.24, z: 0.62, r: 0.21, socket: M.glow(0x14161a), brow: 0.45 });
+  m.add(G.rbox(0.12, 0.42, 0.04, 0.02), white, { p: [0, 0.05, -0.79], shadow: false });               // the 1 on the back
+  for (const s of [-1, 1]) {
+    const arm = part(m, { k: 'swing', ax: 'z', amp: 0.12, ph: s > 0 ? 0 : Math.PI }, { p: [s * 0.66, 0.0, 0.2] });
+    arm.add(G.tube([[0, 0, 0], [s * 0.18, 0.05, 0.12], [s * 0.22, 0.05, 0.32]], 0.09, 6), shirt);
+    arm.add(G.rbox(0.62, 0.62, 0.16, 0.08), white, { p: [s * 0.24, 0.16, 0.42] });                 // palm, face out
+    arm.add(G.rbox(0.64, 0.24, 0.2, 0.08), lime, { p: [s * 0.24, -0.2, 0.42] });                   // wrist strap
+    for (let i = 0; i < 4; i++) arm.add(G.capsule(0.07, 0.34, 6), white, { p: [s * 0.24 + (i - 1.5) * 0.14, 0.42, 0.42] });
+    arm.add(G.capsule(0.08, 0.3, 6), white, { p: [s * 0.24 - s * 0.32, 0.1, 0.42], r: [0, 0, s * 0.9] });   // thumb
+    bootLeg(m, s, { x: 0.32, hip: -0.52, sock: lime, boot: dark, amp: 0.6 });
+  }
+}
+
+function scPhysio(m, proto, c) {
+  // On with the magic sponge: a headband with a green cross, a bucket of
+  // glowing water in one hand and a dripping sponge held up in the other.
+  const white = P(c.color, { gloss: 0.6, glow: 0.14 });
+  const green = P(c.accent, { gloss: 0.5, glow: 0.3 });
+  const glow = M.glow(c.accent);
+  const tin = MT(0xc4ccd6, { rough: 0.35 });
+  football(m, { r: 0.72, y: 0.02, base: white, patch: green, cap: 0.38 });
+  m.add(G.torus(0.62, 0.065, 6, 26), P(0xf8f8f8, { gloss: 0.4, glow: 0.2 }), { p: [0, 0.4, 0], r: [HALF, 0, 0] });   // headband
+  m.add(G.box(0.26, 0.08, 0.04), glow, { p: [0, 0.42, 0.64], r: [-0.55, 0, 0], shadow: false });
+  m.add(G.box(0.08, 0.26, 0.04), glow, { p: [0, 0.42, 0.64], r: [-0.55, 0, 0], shadow: false });
+  eyes(m, { x: 0.26, y: 0.14, z: 0.6, r: 0.2, socket: M.glow(0x14161a) });
+  m.add(G.torus(0.12, 0.03, 5, 12, Math.PI), M.glow(0x14161a), { p: [0, -0.16, 0.7], r: [0, 0, Math.PI], shadow: false });   // smile
+  // Bucket arm.
+  const bucketArm = part(m, { k: 'swing', ax: 'x', amp: 0.35, ph: 0 }, { p: [-0.72, 0.0, 0.1] });
+  bucketArm.add(G.capsule(0.08, 0.36, 6), white, { p: [0, -0.34, 0] });
+  bucketArm.add(G.torus(0.2, 0.02, 4, 12, Math.PI), tin, { p: [0, -0.36, 0.06], r: [0, HALF, 0] });  // handle
+  bucketArm.add(G.sleeve(0.24, 0.18, 0.34, 14), tin, { p: [0, -0.52, 0.06] });
+  bucketArm.add(G.cyl(0.18, 0.18, 0.03, 14), tin, { p: [0, -0.68, 0.06] });
+  bucketArm.add(G.cyl(0.22, 0.22, 0.02, 14), glow, { p: [0, -0.4, 0.06], shadow: false });           // water
+  // Sponge arm, held up.
+  const spongeArm = part(m, { k: 'swing', ax: 'x', amp: 0.3, ph: Math.PI, base: -2.3 }, { p: [0.72, 0.0, 0.1] });
+  spongeArm.add(G.capsule(0.08, 0.36, 6), white, { p: [0, -0.34, 0] });
+  spongeArm.add(G.rbox(0.32, 0.2, 0.24, 0.07), P(0xffd84a, { gloss: 0.2, glow: 0.2 }), { p: [0, -0.48, 0] });
+  for (const x of [-0.08, 0.06]) spongeArm.add(G.sphere(0.04, 6, 5), glow, { p: [x, -0.44, 0.14], shadow: false });
+  for (const s of [-1, 1]) bootLeg(m, s, { x: 0.3, hip: -0.52, sock: white, boot: green, amp: 0.85 });
 }
 
 // ── Space: the outpost's own machines, gone rogue ───────────────────────────
@@ -677,6 +838,89 @@ function spBossDrone(m, proto, c) {
   for (const s of [-1, 1]) m.add(G.cyl(0.09, 0.09, 0.5, 8), dark, { p: [s * 0.78, -0.1, 0.4], r: [HALF, 0, 0] });
 }
 
+function spSwarmPod(m, proto, c) {
+  // A brood carrier: a low chassis loaded with seamed pods, an eye already
+  // awake in each one. A Nanodrone (mini) is one hatched pod on needle legs.
+  const shell = P(c.color, { gloss: 0.7, glow: 0.25 });
+  const dark = M.matte(0x101827);
+  const eye = M.glow(c.accent);
+  if (proto.mini) {
+    m.add(G.sphere(0.56, 14, 10), shell, { p: [0, -0.05, 0], s: [1, 0.85, 1.1] });
+    m.add(G.torus(0.56, 0.04, 4, 18), eye, { p: [0, -0.05, 0], r: [HALF, 0, 0], s: [1, 1.1, 1], shadow: false });
+    m.add(G.sphere(0.22, 10, 8), eye, { p: [0, 0.02, 0.56], s: [1, 1, 0.5], shadow: false });
+    let i = 0;
+    for (const z of [0.25, -0.25]) for (const s of [-1, 1]) botLeg(m, { x: s * 0.34, z, mat: dark, foot: shell, ph: (i++ % 3 === 0) ? 0 : Math.PI, amp: 0.8, reach: 0.42, hip: -0.25 });
+    return;
+  }
+  m.add(G.rbox(1.15, 0.28, 1.25, 0.1), dark, { p: [0, -0.32, 0] });
+  m.add(G.torus(0.66, 0.045, 6, 22), eye, { p: [0, -0.2, 0], r: [HALF, 0, 0], shadow: false });
+  for (const [x, y, z, r] of [[0, 0.3, -0.05, 0.42], [0.42, -0.02, 0.32, 0.3], [-0.42, -0.02, 0.32, 0.3], [0.42, -0.02, -0.36, 0.3], [-0.42, -0.02, -0.36, 0.3]]) {
+    m.add(G.sphere(r, 12, 10), shell, { p: [x, y, z], s: [1, 1.15, 1] });
+    m.add(G.torus(r * 1.01, 0.03, 4, 16), eye, { p: [x, y, z], r: [HALF, 0, 0], shadow: false });   // hatch seam
+    m.add(G.sphere(r * 0.3, 8, 6), eye, { p: [x, y + r * 0.25, z + r * 0.9], s: [1, 1, 0.5], shadow: false });
+  }
+  let i = 0;
+  for (const z of [0.4, -0.4]) for (const s of [-1, 1]) botLeg(m, { x: s * 0.55, z, mat: dark, foot: shell, ph: (i++ % 3 === 0) ? 0 : Math.PI, amp: 0.6, r: 0.08, reach: 0.4, hip: -0.32 });
+}
+
+function spShieldDrone(m, proto, c) {
+  // A walking barrier: a curved energy screen held out front on two arms, a
+  // dome emitter on its back pulsing to keep it lit.
+  const shell = P(c.color, { gloss: 0.75, glow: 0.22 });
+  const dark = M.matte(0x0f1626);
+  const steel = MT(0xb9c2d6, { rough: 0.35 });
+  m.add(G.rbox(0.9, 0.6, 0.8, 0.18), shell, { p: [0, -0.05, -0.12] });
+  m.add(G.rbox(0.56, 0.12, 0.08, 0.04), M.glow(c.accent), { p: [0, 0.08, 0.3], shadow: false });   // sensor slit
+  const screen = new THREE.SphereGeometry(1.0, 18, 8, HALF - 0.85, 1.7, HALF - 0.62, 1.24);
+  const glass = M.glass(c.accent, 0.4);
+  glass.side = THREE.DoubleSide;
+  m.add(screen, glass, { p: [0, 0.02, -0.22], shadow: false });
+  m.add(G.torus(1.0, 0.035, 4, 24, 1.7), M.glow(c.accent), { p: [0, 0.6, -0.22], r: [HALF, 0, HALF - 0.85], s: [0.81, 0.81, 1], shadow: false });
+  m.add(G.torus(1.0, 0.035, 4, 24, 1.7), M.glow(c.accent), { p: [0, -0.56, -0.22], r: [HALF, 0, HALF - 0.85], s: [0.81, 0.81, 1], shadow: false });
+  for (const s of [-1, 1]) m.add(G.tube([[s * 0.4, 0.0, 0.0], [s * 0.62, 0.02, 0.2], [s * 0.72, 0.02, 0.42]], 0.06, 6), steel);   // screen arms
+  // Emitter dome.
+  m.add(G.cyl(0.3, 0.34, 0.12, 14), dark, { p: [0, 0.3, -0.2] });
+  m.add(G.dome(0.26, 14), M.glass(c.accent, 0.55), { p: [0, 0.36, -0.2] });
+  const core = part(m, { k: 'pulse', f: 4, amp: 0.25 }, { p: [0, 0.44, -0.2] });
+  core.add(G.sphere(0.12, 8, 6), M.glow(0xe0f0ff), { shadow: false });
+  let i = 0;
+  for (const z of [0.12, -0.42]) for (const s of [-1, 1]) botLeg(m, { x: s * 0.42, z, mat: dark, foot: steel, ph: (i++ % 3 === 0) ? 0 : Math.PI, amp: 0.45, r: 0.1, reach: 0.3, hip: -0.3 });
+}
+
+function spRepairDrone(m, proto, c) {
+  // The outpost's medic bot: a white pill body balanced on one ball wheel, a
+  // green cross screen, a wrench in one claw and a mending beam in the other.
+  const shell = P(c.color, { gloss: 0.8, glow: 0.15 });
+  const dark = M.matte(0x101827);
+  const steel = MT(0xb9c2d6, { rough: 0.3 });
+  const green = M.glow(c.accent);
+  const wheel = part(m, { k: 'roll', rad: 0.3 }, { p: [0, -0.7, 0] });
+  wheel.add(G.sphere(0.3, 12, 10), dark);
+  wheel.add(G.torus(0.3, 0.035, 4, 18), green, { r: [0, HALF, 0], shadow: false });
+  for (const s of [-1, 1]) m.add(G.rbox(0.08, 0.4, 0.24, 0.03), steel, { p: [s * 0.34, -0.58, 0] });   // fork
+  m.add(G.capsule(0.4, 1.0, 14), shell, { p: [0, -0.48, 0] });
+  m.add(G.rbox(0.44, 0.36, 0.08, 0.05), dark, { p: [0, 0.08, 0.37] });                                 // screen
+  m.add(G.box(0.26, 0.08, 0.03), green, { p: [0, 0.08, 0.42], shadow: false });
+  m.add(G.box(0.08, 0.26, 0.03), green, { p: [0, 0.08, 0.42], shadow: false });
+  m.add(G.torus(0.4, 0.035, 5, 20), green, { p: [0, -0.2, 0], r: [HALF, 0, 0], shadow: false });
+  m.add(G.dome(0.3, 14), M.glass(c.accent, 0.5), { p: [0, 0.42, 0], s: [1, 0.7, 1] });
+  m.add(G.cyl(0.02, 0.02, 0.36, 5), dark, { p: [0.14, 0.7, -0.1] });
+  const tip = part(m, { k: 'pulse', f: 5, amp: 0.35 }, { p: [0.14, 0.9, -0.1] });
+  tip.add(G.sphere(0.07, 8, 6), green, { shadow: false });
+  for (const s of [-1, 1]) {
+    const arm = part(m, { k: 'swing', ax: 'x', amp: 0.3, ph: s > 0 ? 0 : Math.PI, base: -1.2 }, { p: [s * 0.42, 0.0, 0] });
+    arm.add(G.cyl(0.06, 0.06, 0.4, 6), steel, { p: [0, -0.2, 0] });
+    if (s < 0) {
+      arm.add(G.box(0.08, 0.3, 0.06), steel, { p: [0, -0.5, 0] });                                       // wrench
+      arm.add(G.torus(0.09, 0.035, 5, 10, Math.PI * 1.4), steel, { p: [0, -0.68, 0], r: [0, HALF, -0.5] });
+    } else {
+      arm.add(G.cone(0.08, 0.2, 8), dark, { p: [0, -0.5, 0], r: [Math.PI, 0, 0] });                       // mending nozzle
+      arm.add(G.sphere(0.07, 8, 6), green, { p: [0, -0.62, 0], shadow: false });
+      arm.add(G.cone(0.1, 0.3, 8), M.energy(c.accent, 0.6), { p: [0, -0.78, 0], r: [Math.PI, 0, 0], shadow: false });
+    }
+  }
+}
+
 // ── Gaits ───────────────────────────────────────────────────────────────────
 //
 // How a body moves as a whole (rendering/enemy-anim.js):
@@ -704,20 +948,38 @@ const BUILTIN = {
     e1: [hkPuck, GAIT.run], e2: [hkHotPuck, GAIT.run], e3: [hkFlyingPuck, GAIT.hover],
     e4: [hkHeavyPuck, GAIT.stomp], e5: [hkInfernoPuck, GAIT.stomp], e6: [hkFlyingFire, GAIT.soar],
     e7: [hkBossPuck, GAIT.stomp], e8: [hkSpeedSkater, GAIT.skate],
-    e9: [hkDefenseman, { ...GAIT.skate, rock: 0.1, yaw: 0.06, step: 1.8 }], e10: [hkEnforcer, { ...GAIT.skate, rock: 0.14, step: 1.8 }]
+    e9: [hkDefenseman, { ...GAIT.skate, rock: 0.1, yaw: 0.06, step: 1.8 }], e10: [hkEnforcer, { ...GAIT.skate, rock: 0.14, step: 1.8 }],
+    e11: [hkSplitPuck, { ...GAIT.run, step: 2.8, squash: 0.06 }], e12: [hkGoalie, { ...GAIT.skate, step: 1.9, rock: 0.08, yaw: 0.04 }],
+    e13: [hkTrainer, { ...GAIT.skate, step: 1.7, rock: 0.16 }]
   },
   soccer: {
     e1: [scBall, GAIT.run], e2: [scFireBall, GAIT.run], e3: [scFlyingBall, GAIT.soar],
-    e4: [scHeavyBall, GAIT.stomp], e5: [scInfernoBall, GAIT.stomp], e6: [scFlyingFire, GAIT.soar], e7: [scBossBall, GAIT.stomp]
+    e4: [scHeavyBall, GAIT.stomp], e5: [scInfernoBall, GAIT.stomp], e6: [scFlyingFire, GAIT.soar], e7: [scBossBall, GAIT.stomp],
+    e11: [scClusterBall, { ...GAIT.waddle, step: 2.6, bob: 0.08, squash: 0.06 }], e12: [scGoalkeeper, { ...GAIT.stomp, step: 2, rock: 0.12 }],
+    e13: [scPhysio, { ...GAIT.run, step: 2.4, nod: 0.05 }]
   },
   space: {
     e1: [spDrone, GAIT.scuttle], e2: [spFireDrone, GAIT.waddle], e3: [spFlyingDrone, GAIT.hover],
-    e4: [spHeavyDrone, GAIT.trundle], e5: [spInfernoDrone, GAIT.stomp], e6: [spFlyingFire, { ...GAIT.soar, hover: 0.05, lean: 0.05 }], e7: [spBossDrone, GAIT.stomp]
+    e4: [spHeavyDrone, GAIT.trundle], e5: [spInfernoDrone, GAIT.stomp], e6: [spFlyingFire, { ...GAIT.soar, hover: 0.05, lean: 0.05 }], e7: [spBossDrone, GAIT.stomp],
+    e11: [spSwarmPod, { ...GAIT.scuttle, step: 3, bob: 0.04 }], e12: [spShieldDrone, { ...GAIT.stomp, step: 2, rock: 0.06 }],
+    e13: [spRepairDrone, { ...GAIT.trundle, rock: 0.06, nod: 0.06 }]
   }
 };
 
 // Ids by role, for an enemy that arrives without a known id.
-const ROLE_ID = { SWARM: 'e1', FIRE: 'e2', FLYING: 'e3', ARMORED: 'e4', ELITE: 'e5', FLYING_FIRE: 'e6', BOSS: 'e7', SPEEDSTER: 'e8', BRUISER: 'e10' };
+const ROLE_ID = {
+  SWARM: 'e1', FIRE: 'e2', FLYING: 'e3', ARMORED: 'e4', ELITE: 'e5', FLYING_FIRE: 'e6', BOSS: 'e7', SPEEDSTER: 'e8', BRUISER: 'e10',
+  SPLITTER: 'e11', SHIELDER: 'e12', HEALER: 'e13', SPLITLING: 'e11'
+};
+
+// How the support enemies (config/enemy-extras.js) carry themselves when a
+// world doesn't say. A splitling moves like a quicker, smaller splitter.
+const EXTRA_GAITS = {
+  SPLITTER: { ...GAIT.waddle, step: 2.6, bob: 0.08, squash: 0.06 },
+  SPLITLING: { ...GAIT.scuttle, step: 3.8, bob: 0.06 },
+  SHIELDER: { ...GAIT.stomp, step: 1.9, rock: 0.08 },
+  HEALER: { ...GAIT.waddle, step: 2.2, bob: 0.07, nod: 0.04 }
+};
 
 // The kit themes model their own enemies; these say how each one carries itself.
 const KIT_GAITS = {
@@ -771,8 +1033,11 @@ function bake(group) {
 function buildTemplate(enemy, sz, theme, visual, kit) {
   const group = new THREE.Group();
   const role = (enemy.role || 'SWARM').toUpperCase();
+  // A splitling is modelled as a small splitter: builders only ever see the
+  // splitter role (and `mini`), and its own smaller `sz` does the rest.
+  const buildRole = role === 'SPLITLING' ? 'SPLITTER' : role;
   // The builders write wings/flames/crownGem onto the "enemy" they are given.
-  const proto = { role: enemy.role, nm: enemy.nm, type: enemy.type, fire: enemy.fire, flying: enemy.flying, boss: enemy.boss, armor: enemy.armor, sz: enemy.sz };
+  const proto = { role: buildRole, nm: enemy.nm, type: role === 'SPLITLING' ? 'e11' : enemy.type, fire: enemy.fire, flying: enemy.flying, boss: enemy.boss, armor: enemy.armor, sz: enemy.sz, mini: role === 'SPLITLING' };
   const known = new Set(Object.keys(proto));
   const ctx = { visual, color: visual?.color ?? 0x888888, accent: visual?.accent ?? visual?.color ?? 0xffffff };
   let gait;
@@ -782,11 +1047,11 @@ function buildTemplate(enemy, sz, theme, visual, kit) {
     gait = kit.enemyGaits?.[role] || KIT_GAITS[theme]?.[role];
   } else {
     const set = BUILTIN[theme] || BUILTIN.soccer;
-    const entry = set[enemy.type] || set[ROLE_ID[role]] || set.e1;
+    const entry = set[proto.type] || set[ROLE_ID[role]] || set.e1;
     entry[0](modeller(group, sz), proto, ctx);
-    gait = entry[1];
+    gait = role === 'SPLITLING' ? null : entry[1];
   }
-  if (!gait) gait = enemy.flying ? GAIT.hover : GAIT.run;
+  if (!gait) gait = EXTRA_GAITS[role] || (enemy.flying ? GAIT.hover : GAIT.run);
   delete group.userData.animParts;
 
   // Tag what the builder handed back, so a clone can find its own copies.

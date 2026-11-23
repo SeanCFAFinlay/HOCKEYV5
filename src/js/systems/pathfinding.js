@@ -32,8 +32,10 @@ export function findPathGrid(sx, sy, gx, gy) {
   // Check cache
   const cacheKey = `${sx},${sy}-${gx},${gy}`;
   if (pathCache.has(cacheKey)) {
-    // Return a copy to prevent mutation
-    return pathCache.get(cacheKey).map(p => [...p]);
+    // Return a copy to prevent mutation. "No path" is cached too, as null:
+    // a second enemy asking from the same blocked cell used to crash here.
+    const cached = pathCache.get(cacheKey);
+    return cached ? cached.map(p => [...p]) : null;
   }
 
   // Compute path

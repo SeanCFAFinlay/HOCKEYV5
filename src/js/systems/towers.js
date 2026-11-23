@@ -190,6 +190,14 @@ export function updateTowers(dt, gameTime) {
     // turret eases toward this angle in rendering/animations.js.
     if (target) tw.aimAngle = Math.atan2(target.x - tx, target.z - tz);
 
+    // Scorched by a fire enemy dying beside it (systems/enemy-abilities.js):
+    // it keeps aiming but holds fire until the flames die down.
+    if (tw.scorchImmune > 0) tw.scorchImmune -= dt;
+    if (tw.scorchT > 0) {
+      tw.scorchT -= dt;
+      if (tw.scorchT > 0) continue;
+    }
+
     // Skip firing if still on cooldown.
     if (tw.cooldown > 0) continue;
 

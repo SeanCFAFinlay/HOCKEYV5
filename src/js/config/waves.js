@@ -17,7 +17,7 @@ const THEME_RULES = {
   [WaveTheme.SWARM]: {
     label: 'Swarm',
     tags: ['swarm', 'speed'],
-    fallbackRoles: ['SWARM', 'SPEEDSTER'],
+    fallbackRoles: ['SWARM', 'SPEEDSTER', 'SPLITTER'],
     budget: 7.5,
     countScale: 1.28,
     boss: false
@@ -25,7 +25,7 @@ const THEME_RULES = {
   [WaveTheme.TANK_RUSH]: {
     label: 'Heavy',
     tags: ['armor', 'tank', 'bruiser'],
-    fallbackRoles: ['ARMORED', 'BRUISER', 'ELITE'],
+    fallbackRoles: ['ARMORED', 'BRUISER', 'ELITE', 'SHIELDER'],
     budget: 5.2,
     countScale: 0.78,
     boss: false
@@ -64,8 +64,8 @@ const THEME_RULES = {
   },
   [WaveTheme.MIXED]: {
     label: 'Mixed',
-    tags: ['ground', 'swarm', 'fire', 'armor', 'air'],
-    fallbackRoles: ['SWARM', 'FIRE', 'FLYING', 'ARMORED', 'BRUISER', 'ELITE', 'FLYING_FIRE'],
+    tags: ['ground', 'swarm', 'fire', 'armor', 'air', 'support'],
+    fallbackRoles: ['SWARM', 'FIRE', 'FLYING', 'ARMORED', 'BRUISER', 'ELITE', 'FLYING_FIRE', 'SPLITTER', 'SHIELDER', 'HEALER'],
     budget: 6.2,
     countScale: 1,
     boss: false
@@ -81,7 +81,13 @@ const ROLE_COST = {
   ARMORED: 2.25,
   FLYING_FIRE: 2.25,
   ELITE: 2.8,
-  BOSS: 8
+  BOSS: 8,
+  // Enemies that act on others (config/enemy-extras.js). A splitter costs its
+  // children too; shield and heal make everything around them tougher.
+  SPLITTER: 2.6,
+  SHIELDER: 2.4,
+  HEALER: 2.3,
+  SPLITLING: 0.4
 };
 
 /**
@@ -154,6 +160,7 @@ function spendBudget(composition, candidates, budget, wave, theme) {
 
 function addSupportPressure(composition, enemies, wave, difficulty) {
   const support = enemies.filter(e =>
+    !e.spawnOnly && !e.split &&
     (e.role === 'SWARM' || e.threatTags?.includes('swarm')) &&
     (e.unlockWave || 1) <= wave &&
     !e.boss
@@ -167,6 +174,7 @@ function addSupportPressure(composition, enemies, wave, difficulty) {
 
 function getCandidates(enemies, wave, rule) {
   return enemies.filter(enemy => {
+    if (enemy.spawnOnly) return false;
     if ((enemy.unlockWave || 1) > wave) return false;
     if (enemy.bossWaveOnly && !rule.boss) return false;
     if (enemy.boss && !rule.boss) return false;

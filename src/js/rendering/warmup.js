@@ -12,7 +12,8 @@
 import { getState } from '../engine/state.js';
 import { createEnemyMesh, returnEnemyMesh } from './enemy-meshes.js';
 import { createTowerMesh } from './tower-meshes.js';
-import { createProjectileMesh } from './projectile-meshes.js';
+import { createShotMesh } from './projectile-models.js';
+import { burstDebris, muzzleFlash, landingMarker, clearImpactFx } from '../systems/impact-fx.js';
 import { getVisualProfile } from '../config/visual-profiles.js';
 import { getComposer, isPostProcessingEnabled } from '../engine/postprocessing.js';
 
@@ -35,11 +36,18 @@ export function warmUpShaders() {
         type: ed.id, configId: ed.id, nm: ed.nm, role: ed.role,
         slot: ed.slot || ed.role?.toLowerCase(), speed: ed.speed,
         sz: ed.sz || 1, fire: !!ed.fire, flying: !!ed.flying, boss: !!ed.boss,
+        speedClass: ed.speedClass, aura: ed.aura || null,
         x: 0, y: 0.2, z: 0, hp: 1, maxHp: 1, mesh: null
       };
       try {
         e.mesh = createEnemyMesh(e);
-        if (e.mesh) { scene.add(e.mesh); enemies.push(e); }
+        if (e.mesh) {
+          // Hidden parts are skipped by the renderer, so the shield bubble
+          // would otherwise compile the first time a shielder protects someone.
+          if (e.shieldBubble) e.shieldBubble.visible = true;
+          scene.add(e.mesh);
+          enemies.push(e);
+        }
       } catch { /* one odd enemy must not stop the match from starting */ }
     }
 
@@ -54,13 +62,23 @@ export function warmUpShaders() {
         const profile = visuals.projectiles?.[td.projectile] || Object.values(visuals.projectiles || {})[0];
         if (profile) {
           const color = profile.color ?? new THREE.Color(td.clr).getHex();
-          const shot = createProjectileMesh(profile.mesh, color, profile.size || 1);
+          const shot = createShotMesh(state.theme, profile, color, profile.size || 1);
           shot.position.set(0, 1, 0);
           scene.add(shot);
           shots.push(shot);
         }
       } catch { /* ignore */ }
     }
+
+    // One of each effect family (systems/impact-fx.js): solid and flat debris,
+    // glowing sparks, a muzzle flash and a landing marker.
+    try {
+      burstDebris(0, 1, 0, 'chunks', 0xffffff, 1);
+      burstDebris(0, 1, 0, 'paper', 0xffffff, 1);
+      burstDebris(0, 1, 0, 'embers', 0xffffff, 1);
+      muzzleFlash(0, 1, 0, 0xffffff, 0, 1);
+      landingMarker(0, 0, 1, 0xffffff, 1);
+    } catch { /* effects are optional */ }
 
     // Draw one frame exactly the way the game loop does. renderer.compile()
     // is not enough: the post-processing pipeline draws the scene into an
@@ -76,7 +94,9 @@ export function warmUpShaders() {
   } catch (err) {
     console.warn('[warmup] skipped:', err);
   } finally {
+    try { clearImpactFx(); } catch { /* ignore */ }
     for (const e of enemies) {
+      if (e.shieldBubble) e.shieldBubble.visible = false;
       scene.remove(e.mesh);
       try { returnEnemyMesh(e); } catch { /* ignore */ }
     }

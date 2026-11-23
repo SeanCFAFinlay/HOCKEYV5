@@ -103,14 +103,17 @@ export const visuals = {
   // Keys are the shared projectile ids; see config/visual-profiles.js for the
   // mesh and flight vocabularies.
   projectiles: {
-    ball: { mesh: 'ball', flight: 'slide', trail: 'dust', impact: 'spark', color: 0x2dd4bf, speed: 9.5, size: 0.9 },
-    curveBall: { mesh: 'laser', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xc9a6ff, speed: 13 },
-    headButt: { mesh: 'ring', flight: 'ring', trail: 'shock', impact: 'ring', color: 0xff4fa3, speed: 8.5 },
-    tackle: { mesh: 'orb', flight: 'lob', trail: 'frost', impact: 'freeze', color: 0xffb62e, speed: 9.5 },
-    glove: { mesh: 'star', flight: 'punch', trail: 'gold', impact: 'slam', color: 0x6ea8ff, speed: 8.8, size: 1.1 },
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xa3ff3d, speed: 15 },
-    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85 },
-    legend: { mesh: 'ball', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
+    // Ball return: bowling balls. Disco ball: a laser. Jukebox: a flung
+    // record. Nacho pump: cheesy chips. Claw machine: a prize capsule. Neon
+    // sign: lightning. Pizza oven: a blazing slice. Trophy: the golden ball.
+    ball: { mesh: 'ball', model: 'bowlBall', debris: 'ecto', debrisColor: 0x2dd4bf, flight: 'slide', trail: 'dust', impact: 'spark', color: 0x2dd4bf, speed: 9.5, size: 0.9 },
+    curveBall: { mesh: 'laser', debris: 'sparks', debrisColor: 0xc9a6ff, flight: 'tracer', trail: 'line', impact: 'spark', color: 0xc9a6ff, speed: 13 },
+    headButt: { mesh: 'ring', model: 'record', debris: 'ecto', debrisColor: 0xff4fa3, flight: 'ring', trail: 'shock', impact: 'ring', color: 0xff4fa3, speed: 8.5 },
+    tackle: { mesh: 'orb', model: 'nacho', debris: 'drops', debrisColor: 0xffc21a, flight: 'lob', trail: 'frost', impact: 'freeze', color: 0xffb62e, speed: 9.5 },
+    glove: { mesh: 'star', model: 'capsuleToy', debris: 'ecto', debrisColor: 0x6ea8ff, flight: 'punch', trail: 'gold', impact: 'slam', color: 0x6ea8ff, speed: 8.8, size: 1.1 },
+    chain: { mesh: 'bolt', debris: 'sparks', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xa3ff3d, speed: 15 },
+    flare: { mesh: 'plasma', model: 'pizzaSlice', debris: 'embers', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85 },
+    legend: { mesh: 'ball', model: 'goldBall', debris: 'sparks', debrisColor: 0xffc928, flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
   },
   // Keys are enemy roles, lower case.
   enemies: {
@@ -120,7 +123,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0x24348f, accent: 0x7dff6a },
     elite: { body: 'bug', color: 0x5a2390, accent: 0xff3df0 },
     flying_fire: { body: 'bug', color: 0xffe39a, accent: 0x3a1030 },
-    boss: { body: 'bug', color: 0xf6f1e6, accent: 0xffd700 }
+    boss: { body: 'bug', color: 0xf6f1e6, accent: 0xffd700 },
+    splitter: { body: 'bug', color: 0xffc6e6, accent: 0x3dfff0 },
+    splitling: { body: 'bug', color: 0xffc6e6, accent: 0x3dfff0 },
+    shielder: { body: 'bug', color: 0xc9b8ff, accent: 0x3b82f6 },
+    healer: { body: 'bug', color: 0xfff2d0, accent: 0x7dff6a }
   },
   towers: { family: 'bowling', base: 0x1c1236, metal: 0xd7dde5, levelGlow: 0xb388ff }
 };
@@ -578,7 +585,112 @@ function kingPin(m, enemy, c) {
   enemy.crownGem = m.add(G.sphere(0.1, 8, 6), M.glow(0xff2a2a), { p: [0, 0.87, 0.36], shadow: false });
 }
 
+/** Radius of the pin profile at height y (0-1.9). */
+function pinRadius(y) {
+  for (let i = 1; i < PIN.length; i++) {
+    const [r0, y0] = PIN[i - 1], [r1, y1] = PIN[i];
+    if (y <= y1) return r0 + (r1 - r0) * ((y - y0) / (y1 - y0 || 1));
+  }
+  return 0;
+}
+
+/** One solid band of the pin between heights lo and hi, capped both ends. */
+function pinSlice(lo, hi, seg = 20) {
+  const pts = [[0, lo], [pinRadius(lo), lo]];
+  for (const [r, y] of PIN) if (y > lo && y < hi) pts.push([r, y]);
+  pts.push([pinRadius(hi), hi], [0, hi]);
+  return G.lathe(pts, seg);
+}
+
+function splitPin(m, enemy, c) {
+  // A pin already cracked into three chunks that hover apart on a seam of
+  // ghost-light: knock it down and it scatters into Pinlets.
+  const body = M.paint(c.color, { gloss: 0.8, glow: 0.3 });
+  const seam = M.glow(c.accent);
+  const stripe = M.paint(0xff2d55, { gloss: 0.8, glow: 0.4 });
+  if (enemy.mini) {
+    // A Pinlet: a whole little pin, big face, arms up.
+    pinBody(m, body, stripe, { fat: 1.15 });
+    face(m, { y: -0.18, z: 0.55, s: 1.15, pupil: c.accent });
+    for (const s of [-1, 1]) m.add(G.capsule(0.11, 0.42, 8), body, { p: [s * 0.5, -0.3, 0.1], r: [0.3, 0, -s * 0.9] });
+    return;
+  }
+  const pieces = [[0, 0.62, [0, 0, 0], [0, 0, 0]], [0.62, 1.24, [0.06, 0.15, 0], [0, 0.3, 0.12]], [1.24, 1.9, [-0.05, 0.3, 0], [0, -0.4, -0.16]]];
+  pieces.forEach(([lo, hi, off, rot], i) => {
+    const g = m.group({ p: off, r: rot });
+    g.add(pinSlice(lo, hi), body, { p: [0, -0.95, 0] });
+    if (i === 2) for (const y of [1.3, 1.43]) g.add(G.torus(0.2, 0.04, 6, 18), stripe, { p: [0, -0.95 + y, 0], r: [HALF, 0, 0] });
+    if (i === 1) face(g, { y: -0.08, z: 0.47, pupil: c.accent });
+    // Jagged glowing edge on top of each lower chunk.
+    if (i < 2) {
+      const r = pinRadius(hi) + 0.02;
+      g.add(G.torus(r, 0.04, 5, 12), seam, { p: [0, -0.95 + hi, 0], r: [HALF, 0, 0], shadow: false });
+      g.add(G.cyl(r * 0.9, r * 0.9, 0.06, 12), M.energy(c.accent, 0.7), { p: [0, -0.95 + hi + 0.06, 0], shadow: false });
+    }
+  });
+  // Ghost wisps leaking from the cracks.
+  for (const s of [-1, 1]) m.add(G.capsule(0.09, 0.4, 8), body, { p: [s * 0.48, -0.25, 0.1], r: [0.3, 0, -s * 1.0] });
+  m.add(G.sphere(0.6, 14, 8), M.energy(c.accent, 0.3), { p: [0, -0.92, 0], s: [1, 0.12, 1], shadow: false });
+}
+
+function bumperGhost(m, enemy, c) {
+  // A broad sheet ghost pushing a lane bumper rail in front of it like a riot
+  // shield: everything behind the bumper is protected.
+  const sheet = M.paint(c.color, { gloss: 0.5, glow: 0.4 });
+  const pad = M.paint(c.accent, { gloss: 0.6, glow: 0.35 });
+  const white = M.paint(0xf4f1ff, { gloss: 0.6, glow: 0.3 });
+  const chrome = CHROME();
+  m.add(G.lathe([[0.82, 0], [0.8, 0.15], [0.82, 0.45], [0.74, 0.85], [0.6, 1.2], [0.36, 1.5], [0, 1.62]], 20), sheet, { p: [0, -0.88, -0.1] });
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2;
+    m.add(G.cone(0.22, 0.36, 6), sheet, { p: [Math.cos(a) * 0.68, -0.9, -0.1 + Math.sin(a) * 0.68], r: [Math.PI, 0, 0] });
+  }
+  face(m, { y: 0.32, z: 0.5, s: 1.1, pupil: c.accent, angry: true });
+  // The bumper: two padded rails on chrome posts, with white chevrons.
+  for (const y of [-0.6, -0.12]) {
+    m.add(G.capsule(0.19, 1.9, 12), pad, { p: [0.95, y, 0.82], r: [0, 0, HALF] });
+    for (const x of [-0.6, -0.2, 0.2, 0.6]) m.add(G.box(0.08, 0.3, 0.06), white, { p: [x, y, 1.0], r: [0, 0, 0.5] });
+  }
+  for (const x of [-0.62, 0.62]) {
+    m.add(G.cyl(0.05, 0.05, 0.85, 8), chrome, { p: [x, -0.5, 0.78] });
+    m.add(G.cyl(0.12, 0.14, 0.06, 10), chrome, { p: [x, -0.92, 0.78] });
+  }
+  // Arms reaching round to grip the top rail.
+  for (const s of [-1, 1]) m.add(G.tube([[s * 0.7, 0.05, -0.05], [s * 0.82, 0.0, 0.4], [s * 0.6, -0.05, 0.78]], 0.1, 6), sheet);
+}
+
+function candleWraith(m, enemy, c) {
+  // A melting wax candle with a ghost face, its wick burning with a green
+  // healing flame.
+  const wax = M.paint(c.color, { gloss: 0.6, glow: 0.3 });
+  const shroud = M.paint(0x3a1f5c, { gloss: 0.3, glow: 0.2 });
+  shroud.side = THREE.DoubleSide;
+  m.add(G.lathe([[0.42, 0], [0.44, 0.05], [0.44, 1.35], [0.4, 1.4], [0.3, 1.38], [0.32, 1.33], [0, 1.33]], 18), wax, { p: [0, -0.88, 0] });
+  // Drips running down from the rim.
+  for (const [a, len] of [[0.3, 0.5], [1.2, 0.3], [2.4, 0.6], [3.4, 0.35], [4.4, 0.55], [5.4, 0.28]]) {
+    m.add(G.capsule(0.08, len, 8), wax, { p: [Math.sin(a) * 0.43, 0.5 - len, Math.cos(a) * 0.43] });
+  }
+  // Tattered cloak round the shoulders and down the back.
+  const cloak = new THREE.LatheGeometry([[0.5, 0], [0.62, -0.35], [0.72, -0.8], [0.78, -1.15]].map(([r, y]) => new THREE.Vector2(r, y)), 14, Math.PI * 0.6, Math.PI * 0.8);
+  m.add(cloak, shroud, { p: [0, 0.25, 0] });
+  m.add(G.torus(0.47, 0.07, 6, 18), shroud, { p: [0, 0.25, 0], r: [HALF, 0, 0] });
+  face(m, { y: -0.05, z: 0.43, pupil: c.accent });
+  // Wick and green flame.
+  m.add(G.cyl(0.03, 0.03, 0.18, 6), M.matte(0x1a1a1a), { p: [0, 0.54, 0] });
+  flamesOn(m, enemy, [[0, 0.58, 0, 0.6, 0.18], [0, 0.58, 0, 0.36, 0.1]], 0x2fd94a);
+  m.add(G.sphere(0.12, 8, 6), M.glow(c.accent), { p: [0, 0.7, 0], shadow: false });
+  // Ghostly arms, one cupping the flame.
+  m.add(G.capsule(0.08, 0.55, 8), wax, { p: [0.4, 0.05, 0.12], r: [0.5, 0, -0.5] });     // raised to the flame
+  m.add(G.capsule(0.08, 0.5, 8), wax, { p: [-0.4, 0.05, 0.12], r: [0.3, 0, 2.1] });       // trailing
+  m.add(G.sphere(0.6, 14, 8), M.energy(c.accent, 0.3), { p: [0, -0.92, 0], s: [1, 0.12, 1], shadow: false });
+}
+
+const HALF = Math.PI / 2;
+
 const ENEMIES = {
+  SPLITTER: splitPin,
+  SHIELDER: bumperGhost,
+  HEALER: candleWraith,
   SWARM: ghostPin,
   FIRE: burningPin,
   FLYING: lanePhantom,
@@ -586,6 +698,52 @@ const ENEMIES = {
   ELITE: crackedPin,
   FLYING_FIRE: flamingSkull,
   BOSS: kingPin
+};
+
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius, nose along +Z. See rendering/projectile-models.js.
+
+const PROJECTILES = {
+  bowlBall(m, { color }) {
+    // A glossy ball, finger holes forward, swirl round its equator.
+    bowlingBall(m, 0.9, M.paint(color, { gloss: 0.97, glow: 0.3 }), M.glow(0x05030a));
+    m.add(G.torus(0.88, 0.06, 5, 24), M.glow(0xf4f1ff, 0.8), { r: [0.4, 0, 0.3] });
+  },
+  record(m, { color }) {
+    // A vinyl single flung from the jukebox, spinning flat.
+    m.add(G.cyl(1.0, 1.0, 0.08, 28), M.paint(0x0c0c10, { gloss: 0.95, glow: 0.05 }), { r: [0.3, 0, 0] });
+    m.add(G.torus(0.72, 0.02, 4, 28), M.paint(0x3a3a48, { gloss: 0.9 }), { r: [HALF + 0.3, 0, 0] });
+    m.add(G.cyl(0.38, 0.38, 0.1, 18), M.paint(color, { gloss: 0.6, glow: 0.5 }), { r: [0.3, 0, 0] });
+    m.add(G.cyl(0.07, 0.07, 0.12, 8), M.glow(0x05030a), { r: [0.3, 0, 0] });
+  },
+  nacho(m) {
+    // A tortilla chip loaded with molten cheese.
+    m.add(G.plate([[-0.75, -0.55], [0.75, -0.55], [0, 0.85]], 0.14), M.paint(0xe6ab45, { gloss: 0.2, glow: 0.15 }), { r: [HALF - 0.3, 0, 0] });
+    const cheese = M.paint(0xffc21a, { gloss: 0.9, glow: 0.45 });
+    m.add(G.sphere(0.45, 12, 8), cheese, { p: [0, 0.18, -0.1], s: [1.2, 0.5, 1] });
+    m.add(G.capsule(0.12, 0.45, 8), cheese, { p: [0.3, -0.25, 0.1] });
+  },
+  capsuleToy(m, { color }) {
+    // A prize capsule from the claw machine: coloured half, clear half, a toy inside.
+    m.add(G.dome(0.85), M.paint(color, { gloss: 0.9, glow: 0.35 }), { r: [-HALF, 0, 0] });
+    m.add(G.dome(0.85), M.glass(0xe8f4ff, 0.45), { r: [HALF, 0, 0] });
+    m.add(G.torus(0.85, 0.06, 5, 24), M.paint(0xf4f1ff, { gloss: 0.6 }));
+    m.add(G.star(0.4, 0.17, 0.2), M.paint(0xffd23d, { gloss: 0.6, glow: 0.4 }), { p: [0, 0, -0.3] });
+  },
+  pizzaSlice(m) {
+    // A blazing slice straight out of the oven, tip first.
+    m.add(G.plate([[-0.7, -0.8], [0.7, -0.8], [0, 1.0]], 0.12), M.paint(0xffd76a, { gloss: 0.6, glow: 0.4 }), { r: [HALF, 0, 0] });
+    m.add(G.capsule(0.16, 1.5, 8), M.paint(0xc98a3a, { gloss: 0.2, glow: 0.2 }), { p: [0.75, 0, -0.8], r: [0, 0, HALF] });   // crust
+    for (const [x, z] of [[-0.2, -0.4], [0.25, -0.35], [0, 0.2]]) m.add(G.cyl(0.16, 0.16, 0.06, 10), M.paint(0xb3202a, { glow: 0.2 }), { p: [x, 0.08, z] });
+  },
+  goldBall(m) {
+    const gold = M.metal(0xffc83a, { rough: 0.22 });
+    gold.emissive = new THREE.Color(0x6b4300);
+    gold.emissiveIntensity = 0.6;
+    bowlingBall(m, 0.9, gold, M.matte(0x3a2400));
+    m.add(G.star(0.36, 0.15, 0.08), M.glow(0xffffff), { p: [0.88, 0, 0], r: [0, HALF, 0] });
+  }
 };
 
 // ── Arena ───────────────────────────────────────────────────────────────────
@@ -831,6 +989,14 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0xeafff0, accent: ctx.accent ?? 0xff2d55 });
+  },
+
+  /** Themed shot models; false for names this kit doesn't know. */
+  buildProjectile(name, m, ctx) {
+    const build = PROJECTILES[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
   },
 
   paintFloor,

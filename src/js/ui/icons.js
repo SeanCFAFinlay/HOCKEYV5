@@ -41,6 +41,8 @@ const PATHS = {
   // ── Soccer towers ────────────────────────────────────────────────────────
   ball: '<circle class="ln" cx="12" cy="12" r="8"/><path class="ln" d="m12 8 3 2-1 3.5h-4L9 10Z"/><path class="ln" d="m12 8V4.2M15 10l3.3-1.8M14 13.5l2.4 3M10 13.5l-2.4 3M9 10 5.7 8.2"/>',
   medcross: '<rect class="ln" x="4" y="4" width="16" height="16" rx="3"/><path class="ln" d="M12 8v8M8 12h8"/>',
+  // One body breaking into three: the splitter's wave badge.
+  split: '<circle class="ln" cx="12" cy="8" r="4"/><circle class="fl" cx="5.5" cy="18" r="2.5"/><circle class="fl" cx="12" cy="19" r="2.5"/><circle class="fl" cx="18.5" cy="18" r="2.5"/><path class="ln" d="M10 11.5 7 15.5M12 12v4M14 11.5l3 4"/>',
   foot: '<path class="ln" d="M7 4c3 0 5 2 6 5l1.5 4c.5 1.5-.5 3-2 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"/><path class="ln" d="M14.5 13H18M15.5 16H18"/>',
   glove: '<path class="ln" d="M8 21v-5l-2-2a2 2 0 0 1 3-3l1 1V6a1.5 1.5 0 0 1 3 0v3l1-1a2 2 0 0 1 3 3v4a5 5 0 0 1-5 5Z"/>',
   cycle: '<path class="ln" d="M20 12a8 8 0 0 1-14 5.7M4 12a8 8 0 0 1 14-5.7"/><path class="ln" d="M18 3v3.3h-3.3M6 21v-3.3h3.3"/>',

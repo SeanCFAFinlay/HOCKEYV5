@@ -108,19 +108,19 @@ export const visuals = {
   // mesh and flight vocabularies.
   projectiles: {
     // A thrown bookmark: one bright red streak.
-    ball: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xff5a6e, speed: 13 },
+    ball: { mesh: 'tracer', model: 'bookmark', debris: 'paper', debrisColor: 0xf3e6c4, flight: 'tracer', trail: 'line', impact: 'spark', color: 0xff5a6e, speed: 13 },
     // A flick of ink off the nib, very fast and very straight.
-    curveBall: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xe8e2ff, speed: 15 },
+    curveBall: { mesh: 'tracer', model: 'quillDart', debris: 'drops', debrisColor: 0x2a1f4a, flight: 'tracer', trail: 'line', impact: 'spark', color: 0xe8e2ff, speed: 15 },
     // A blob of ink, lobbed.
-    headButt: { mesh: 'orb', flight: 'lob', trail: 'dust', impact: 'ring', color: 0x6b5cff, speed: 8.5, size: 1.2 },
+    headButt: { mesh: 'orb', model: 'inkBlob', debris: 'drops', debrisColor: 0x3a2a9a, flight: 'lob', trail: 'dust', impact: 'ring', color: 0x6b5cff, speed: 8.5, size: 1.2 },
     // A soft ring of "shhh".
-    tackle: { mesh: 'ring', flight: 'ring', trail: 'frost', impact: 'freeze', color: 0xc8b8ff, speed: 9 },
+    tackle: { mesh: 'ring', debris: 'paper', debrisColor: 0xc8b8ff, flight: 'ring', trail: 'frost', impact: 'freeze', color: 0xc8b8ff, speed: 9 },
     // The bookend's weight.
-    glove: { mesh: 'block', flight: 'punch', trail: 'dust', impact: 'slam', color: 0xd9a441, speed: 8.8, size: 1.2 },
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0x7ff5e6, speed: 15 },
-    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff7a1f, speed: 11, size: 0.85 },
+    glove: { mesh: 'block', model: 'hardback', debris: 'paper', debrisColor: 0xf3e6c4, flight: 'punch', trail: 'dust', impact: 'slam', color: 0xd9a441, speed: 8.8, size: 1.2 },
+    chain: { mesh: 'bolt', debris: 'sparks', debrisColor: 0x7ff5e6, flight: 'bolt', trail: 'electric', impact: 'chain', color: 0x7ff5e6, speed: 15 },
+    flare: { mesh: 'plasma', debris: 'embers', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff7a1f, speed: 11, size: 0.85 },
     // The stamp's verdict.
-    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xff4d6d, speed: 11.5, size: 1.3 }
+    legend: { mesh: 'star', model: 'overdueStamp', debris: 'paper', debrisColor: 0xff4d6d, flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xff4d6d, speed: 11.5, size: 1.3 }
   },
   // Keys are enemy roles, lower case.
   enemies: {
@@ -130,7 +130,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0x24346e, accent: 0xd9a441 },
     elite: { body: 'bug', color: 0xbff8ee, accent: 0x7a3a8a },
     flying_fire: { body: 'bug', color: 0xead7a8, accent: 0xff7a1f },
-    boss: { body: 'bug', color: 0x4a1f5e, accent: 0x7dffb0 }
+    boss: { body: 'bug', color: 0x4a1f5e, accent: 0x7dffb0 },
+    splitter: { body: 'bug', color: 0xe6eef8, accent: 0xc8102e },
+    splitling: { body: 'bug', color: 0xf6f0e0, accent: 0x2a1f3a },
+    shielder: { body: 'bug', color: 0x4a4f5a, accent: 0xd9a441 },
+    healer: { body: 'bug', color: 0x2f9a5a, accent: 0x9dffc0 }
   },
   towers: { family: 'library', base: 0x2a160c, metal: 0xd4a24a, levelGlow: 0x8f7bff }
 };
@@ -851,7 +855,130 @@ function overdueTome(m, enemy, c) {
   }
 }
 
+function loosePage(m, c) {
+  // A single loose page folded into a little tent, scurrying on two inky legs.
+  const paper = M.paint(c.color, { gloss: 0.25, glow: 0.22 });
+  paper.side = THREE.DoubleSide;
+  const ink = M.paint(c.accent, { gloss: 0.6 });
+  for (const s of [-1, 1]) {
+    m.add(G.box(0.05, 1.0, 1.15), paper, { p: [s * 0.3, -0.18, 0], r: [0, 0, s * 0.55] });
+    for (let i = 0; i < 4; i++) m.add(G.box(0.012, 0.04, 0.7 - (i === 3 ? 0.3 : 0)), ink, { p: [s * (0.24 + i * 0.1), 0.1 - i * 0.16, 0], r: [0, 0, s * 0.55], shadow: false });
+  }
+  m.add(G.box(0.1, 0.05, 1.15), paper, { p: [0, 0.27, 0] });                                      // the crease
+  m.add(G.cone(0.1, 0.2, 4), M.paint(0xe0475a, { gloss: 0.4, glow: 0.4 }), { p: [0.3, 0.35, -0.45], r: [0, 0, -0.6] });   // dog-ear
+  eyes(m, { x: 0.18, y: -0.1, z: 0.6, r: 0.16 });
+  legs(m, ink, ink, { x: 0.2, hip: -0.62, len: 0.3, r: 0.06, amp: 1 });
+}
+
+function paperStack(m, enemy, c) {
+  // A teetering stack of loose sheets tied up with red string, a paperclip
+  // on top. Every sheet is already sliding: one hit and they all go.
+  if (enemy.mini) return loosePage(m, c);
+  const paper = M.paint(c.color, { gloss: 0.25, glow: 0.18 });
+  const edge = PAGES();
+  const string = M.paint(c.accent, { gloss: 0.5, glow: 0.3 });
+  const ink = M.paint(0x2a1f3a, { gloss: 0.6 });
+  for (let i = 0; i < 9; i++) {
+    const y = -0.62 + i * 0.16;
+    const sx = Math.sin(i * 2.3) * 0.08, sz = Math.cos(i * 1.7) * 0.08, ry = Math.sin(i * 1.3) * 0.22;
+    m.add(G.box(1.1, 0.13, 1.3), i % 2 ? paper : edge, { p: [sx, y, sz], r: [0, ry, Math.sin(i) * 0.03] });
+    m.add(G.box(1.12, 0.012, 1.32), ink, { p: [sx, y + 0.065, sz], r: [0, ry, Math.sin(i) * 0.03], shadow: false });
+  }
+  // One sheet sliding loose off the top, and one blowing away behind.
+  m.add(G.box(0.9, 0.03, 1.1), paper, { p: [0.4, 0.86, -0.1], r: [0.1, 0.5, -0.35] });
+  m.add(G.box(0.5, 0.02, 0.6), paper, { p: [-0.5, 0.75, -0.75], r: [0.7, 0.4, 0.5] });
+  // The string, tied in a cross, with a bow on top.
+  m.add(G.box(1.18, 1.5, 0.05), string, { p: [0, 0.03, 0] });
+  m.add(G.box(0.05, 1.5, 1.38), string, { p: [0, 0.03, 0] });
+  for (const s of [-1, 1]) m.add(G.torus(0.13, 0.035, 5, 12), string, { p: [s * 0.14, 0.86, 0], r: [0, 0, s * 0.5] });
+  // A paperclip.
+  m.add(G.torus(0.14, 0.025, 4, 14), M.metal(0xdfe6ee), { p: [-0.42, 0.62, 0.66], s: [0.7, 1.6, 1] });
+  // Face on the front edge.
+  eyes(m, { x: 0.24, y: 0.18, z: 0.68, r: 0.15, brow: -0.35, browMat: ink });
+  m.add(G.torus(0.08, 0.025, 5, 10, Math.PI), M.glow(0x7a1626), { p: [0, -0.05, 0.68], shadow: false });   // worried mouth
+  legs(m, ink, ink, { x: 0.32, hip: -0.68, len: 0.26, r: 0.07, amp: 0.8 });
+}
+
+function bookendKnight(m, enemy, c) {
+  // A cast-iron knight-head bookend come to life: a chess knight's horse head
+  // on a plinth, carrying its own L-shaped brass bookend as a tower shield.
+  const iron = M.paint(c.color, { gloss: 0.6, glow: 0.1 });
+  const brass = M.metal(c.accent, { rough: 0.3 });
+  brass.emissive = new THREE.Color(0x4a2a00);
+  brass.emissiveIntensity = 0.35;
+  const felt = M.matte(0x1f5a3a);
+  // Plinth body.
+  m.add(G.lathe([[0.55, 0], [0.58, 0.08], [0.48, 0.16], [0.4, 0.4], [0.36, 0.7], [0, 0.72]], 20), iron, { p: [0, -0.7, -0.1] });
+  m.add(G.cyl(0.6, 0.6, 0.06, 20), felt, { p: [0, -0.68, -0.1] });
+  // The horse head, chin tucked, facing forward.
+  m.add(G.sphere(0.32, 14, 10), iron, { p: [0, 0.18, -0.15], s: [0.9, 1.3, 1] });                  // neck
+  m.add(G.rbox(0.42, 0.34, 0.66, 0.12), iron, { p: [0, 0.5, 0.14], r: [0.45, 0, 0] });             // muzzle
+  m.add(G.sphere(0.27, 12, 10), iron, { p: [0, 0.58, -0.08] });                                    // brow
+  for (const s of [-1, 1]) {
+    m.add(G.cone(0.08, 0.26, 6), iron, { p: [s * 0.13, 0.9, -0.12], r: [-0.2, 0, -s * 0.2] });      // ears
+    m.add(G.sphere(0.06, 8, 6), M.glow(0x16121c), { p: [s * 0.08, 0.26, 0.38], shadow: false });  // nostrils
+  }
+  // Mane: a crest of brass plates down the back of the neck.
+  for (let i = 0; i < 5; i++) m.add(G.box(0.06, 0.18, 0.12), brass, { p: [0, 0.78 - i * 0.16, -0.34 - i * 0.03], r: [-0.3 - i * 0.12, 0, 0] });
+  eyes(m, { x: 0.2, y: 0.62, z: 0.12, r: 0.09, color: 0xfff27a, brow: 0.5, browMat: brass });
+  // The shield: the brass bookend's upright plate, held in front, with a
+  // book stamped into it and a gilt rim.
+  const shield = part(m, { k: 'swing', ax: 'x', amp: 0.1, ph: 0 }, { p: [0.08, -0.1, 0.62] });
+  shield.add(G.rbox(1.3, 1.4, 0.08, 0.06), brass);
+  shield.add(G.rbox(1.38, 0.1, 0.5, 0.03), brass, { p: [0, -0.7, -0.2] });                         // the foot of the L
+  shield.add(G.rbox(1.14, 1.24, 0.03, 0.04), M.paint(0x24346e, { gloss: 0.6, glow: 0.15 }), { p: [0, 0, 0.05] });
+  for (let i = 0; i < 4; i++) {
+    const x = -0.36 + i * 0.24;
+    shield.add(G.rbox(0.18, 0.8 - (i % 2) * 0.12, 0.04, 0.02), M.paint(BINDINGS[(i * 3) % 8], { gloss: 0.5, glow: 0.12 }), { p: [x, -0.1 - (i % 2) * 0.06, 0.08] });
+    shield.add(G.box(0.18, 0.04, 0.05), GILT(), { p: [x, 0.12 - (i % 2) * 0.12, 0.09] });
+  }
+  // A hoof gripping the edge, and a stubby leg pair under the plinth.
+  m.add(G.tube([[0.3, 0.1, -0.05], [0.55, 0.0, 0.25], [0.66, 0.05, 0.55]], 0.08, 6), iron);
+  legs(m, iron, felt, { x: 0.26, hip: -0.7, len: 0.22, r: 0.1, amp: 0.5 });
+}
+
+function gluePot(m, enemy, c) {
+  // A pot of bookbinder's glue, white glue running down its sides, a brush
+  // stuck in the top and a green label with a cross: it mends spines.
+  const pot = M.paint(c.color, { gloss: 0.7, glow: 0.2 });
+  const glue = M.paint(0xfbf8ee, { gloss: 0.95, glow: 0.3 });
+  const heal = M.glow(c.accent);
+  const wood = OAK();
+  m.add(G.lathe([[0, 0], [0.52, 0], [0.6, 0.08], [0.62, 0.5], [0.58, 0.95], [0.48, 1.05], [0.5, 1.12], [0, 1.12]], 22), pot, { p: [0, -0.86, 0] });
+  m.add(G.torus(0.5, 0.06, 6, 22), pot, { p: [0, 0.26, 0], r: [HALF_PI, 0, 0] });
+  m.add(G.cyl(0.46, 0.46, 0.04, 20), glue, { p: [0, 0.25, 0] });
+  // Glue running over the lip and down the sides.
+  for (const [a, len] of [[0.3, 0.5], [1.4, 0.3], [2.5, 0.65], [3.6, 0.4], [4.7, 0.55], [5.6, 0.35]]) {
+    m.add(G.capsule(0.07, len, 8), glue, { p: [Math.sin(a) * 0.57, 0.28 - len, Math.cos(a) * 0.57] });
+  }
+  // The label: cream, with a glowing green cross.
+  m.add(G.sleeve(0.625, 0.62, 0.36, 22, 1), PAGES(), { p: [0, -0.4, 0] });
+  m.add(G.box(0.3, 0.09, 0.03), heal, { p: [0, -0.4, 0.64], shadow: false });
+  m.add(G.box(0.09, 0.3, 0.03), heal, { p: [0, -0.4, 0.64], shadow: false });
+  // The brush, standing in the glue, bristles dripping.
+  const brush = part(m, { k: 'swing', ax: 'z', amp: 0.15, f: 1, ph: 0 }, { p: [0.1, 0.25, -0.1] });
+  brush.add(G.cyl(0.05, 0.06, 0.8, 8), wood, { p: [0, 0.45, 0], r: [0, 0, -0.25] });
+  brush.add(G.cyl(0.075, 0.075, 0.12, 8), M.metal(0xd4a24a), { p: [-0.03, 0.08, 0], r: [0, 0, -0.25] });
+  brush.add(G.sphere(0.1, 8, 6), glue, { p: [-0.005, 0.0, 0], s: [1, 1.4, 1] });
+  // A soft green halo hovering over the pot.
+  const halo = part(m, { k: 'pulse', f: 3, amp: 0.25 }, { p: [0, 0.55, 0] });
+  halo.add(G.torus(0.32, 0.035, 6, 20), M.energy(c.accent, 0.6), { r: [HALF_PI, 0, 0], shadow: false });
+  // Face, and stubby arms holding a strip of binding tape.
+  eyes(m, { x: 0.2, y: 0.02, z: 0.6, r: 0.13 });
+  m.add(G.torus(0.08, 0.025, 5, 10, Math.PI), M.glow(0x3a1f4a), { p: [0, -0.14, 0.62], r: [0, 0, Math.PI], shadow: false });
+  for (const s of [-1, 1]) {
+    const arm = part(m, { k: 'swing', ax: 'x', amp: 0.35, ph: s > 0 ? Math.PI : 0 }, { p: [s * 0.6, -0.2, 0.05] });
+    arm.add(G.tube([[0, 0, 0], [s * 0.12, -0.05, 0.18], [s * 0.05, 0.05, 0.34]], 0.05, 6), pot);
+    arm.add(G.sphere(0.08, 8, 6), pot, { p: [s * 0.05, 0.06, 0.36] });
+  }
+  m.add(G.box(0.9, 0.08, 0.02), M.paint(0x7dffb0, { gloss: 0.5, glow: 0.5 }), { p: [0, -0.12, 0.42] });
+  legs(m, pot, M.paint(0x2a1f3a, { gloss: 0.6 }), { x: 0.26, hip: -0.84, len: 0.1, r: 0.08, amp: 0.8 });
+}
+
 const ENEMIES = {
+  SPLITTER: paperStack,
+  SHIELDER: bookendKnight,
+  HEALER: gluePot,
   SWARM: footnote,
   FIRE: matchbook,
   FLYING: paperback,
@@ -1154,6 +1281,49 @@ function buildSurround(scene, hw, hh) {
   return out;
 }
 
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius, nose along +Z (see rendering/projectile-models.js).
+
+const SHOTS = {
+  bookmark(m) {
+    // A steel bookmark blade, point first, its red ribbon streaming behind.
+    m.add(G.plate([[-0.35, -1.2], [0.35, -1.2], [0.35, 0.9], [0, 1.5], [-0.35, 0.9]], 0.08), M.metal(0xdfe6ee, { rough: 0.2 }), { r: [HALF_PI, 0, 0] });
+    m.add(G.box(0.5, 0.12, 0.3), GILT(), { p: [0, 0, -1.0] });
+    m.add(G.tube([[0, 0, -1.2], [0.25, 0.05, -1.7], [-0.2, -0.05, -2.2], [0.1, 0, -2.6]], 0.14, 5), M.paint(0xe0475a, { gloss: 0.5, glow: 0.45 }));
+  },
+  quillDart(m) {
+    // A flick off the quill: a steel nib dripping ink, a wisp of feather.
+    m.add(G.cone(0.32, 1.1, 8), M.metal(0xd4a24a, { rough: 0.25 }), { p: [0, 0, 0.7], r: [HALF_PI, 0, 0] });
+    m.add(G.sphere(0.3, 8, 6), INK(), { p: [0, 0, 1.1], s: [1, 1, 1.4] });
+    const feather = M.paint(0xe8e2ff, { gloss: 0.4, glow: 0.4 });
+    feather.side = THREE.DoubleSide;
+    m.add(G.plate([[0, 0], [0.5, -0.6], [0.45, -1.8], [0, -2.4], [-0.3, -1.6], [-0.35, -0.6]], 0.04), feather, { p: [0, 0, 0.2], r: [HALF_PI, 0, 0] });
+    m.add(G.cyl(0.06, 0.06, 2.6, 5), M.paint(0xf3e6c4, { glow: 0.2 }), { p: [0, 0, -0.9], r: [HALF_PI, 0, 0] });
+  },
+  inkBlob(m) {
+    // A blob of ink, lobbed, wobbling and flinging droplets.
+    const ink = M.paint(0x3a2a9a, { gloss: 0.95, glow: 0.3 });
+    m.add(G.sphere(1, 14, 10), ink, { s: [1, 0.9, 1.1] });
+    m.add(G.cone(0.55, 1.2, 10), ink, { p: [0, 0.1, -1.1], r: [-HALF_PI, 0, 0] });
+    for (const [x, y, z, k] of [[0.8, 0.5, 0.3, 0.28], [-0.7, 0.6, -0.4, 0.22], [0.3, -0.7, -0.8, 0.2]]) m.add(G.sphere(k, 8, 6), ink, { p: [x, y, z] });
+    m.add(G.sphere(0.25, 8, 6), M.glow(0xb8aaff), { p: [-0.35, 0.55, 0.6], shadow: false });
+  },
+  hardback(m) {
+    // A heavy hardback, flung spine first.
+    book(m, { p: [0, 0, 0], r: [0, HALF_PI, 0], w: 2.2, t: 0.9, d: 1.7, cover: M.paint(0x7a1e22, { gloss: 0.5, glow: 0.12 }) });
+    m.add(G.rbox(0.9, 0.04, 0.5, 0.02), GILT(), { p: [0, 0.46, 0] });
+  },
+  overdueStamp(m) {
+    // The rubber stamp itself, pad first: red rubber, brass ferrule, wooden knob.
+    m.add(G.rbox(1.6, 1.0, 0.25, 0.06), M.paint(0xff4d6d, { gloss: 0.5, glow: 0.45 }), { p: [0, 0, 0.75] });
+    m.add(G.rbox(1.7, 1.1, 0.4, 0.08), WALNUT(), { p: [0, 0, 0.45] });
+    m.add(G.cyl(0.3, 0.4, 0.4, 12), BRASS(), { p: [0, 0, 0.05], r: [HALF_PI, 0, 0] });
+    m.add(G.cyl(0.2, 0.25, 0.9, 10), OAK(), { p: [0, 0, -0.55], r: [HALF_PI, 0, 0] });
+    m.add(G.sphere(0.48, 12, 10), OAK(), { p: [0, 0, -1.1] });
+  }
+};
+
 export const kit = {
   /**
    * @param {THREE.Group} turret - the part of the tower that turns to aim
@@ -1173,6 +1343,14 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0xf1e2bd, accent: ctx.accent ?? 0x2a1f3a });
+  },
+
+  /** Themed shot models: see rendering/projectile-models.js. */
+  buildProjectile(name, m, ctx) {
+    const build = SHOTS[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
   },
 
   paintFloor,

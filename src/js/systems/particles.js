@@ -4,6 +4,7 @@
 import { getState, addParticle, removeParticle } from '../engine/state.js';
 import { getQualityName } from '../rendering/quality.js';
 import { composeGeometry } from '../rendering/geo-utils.js';
+import { updateImpactFx, clearImpactFx } from './impact-fx.js';
 
 // Particle mesh pool
 const meshPool = [];
@@ -592,6 +593,9 @@ export function updateParticles(dt) {
   const state = getState();
   const { particles, scene } = state;
 
+  // Themed debris, muzzle flashes and landing markers (systems/impact-fx.js).
+  updateImpactFx(dt);
+
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
 
@@ -713,6 +717,7 @@ function _removeParticle(p, scene, particles, i) {
 // ── Clear / Stats ─────────────────────────────────────────────────────────
 
 export function clearAllParticles() {
+  clearImpactFx();
   const state = getState();
   const { particles, scene } = state;
 

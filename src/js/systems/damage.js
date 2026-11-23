@@ -9,6 +9,8 @@ import { cameraZoomPulse, triggerCameraShake } from '../engine/camera.js';
 import { getPower, powerValue } from '../config/powers.js';
 import { flashMesh, tickFlash } from '../rendering/hit-flash.js';
 import { applyChill, applyShock, applyStagger, applyBurn, applyExpose, applyKnockback, damageMultiplier } from './status.js';
+import { shieldMultiplier } from './enemy-abilities.js';
+import { burstDebris } from './impact-fx.js';
 
 // Hit flash duration
 const FLASH_DURATION = 0.1;
@@ -173,43 +175,74 @@ export function handleHit(p) {
   });
 }
 
+/**
+ * The burst a shot makes when it lands: a flash or blast from systems/particles.js
+ * for the impact kind, plus a spray of debris that belongs to the world — ice
+ * chips on the rink, crumbs in the kitchen, scraps of paper in the library.
+ *
+ * Profiles (config/visual-profiles.js and each theme's visuals.projectiles) may
+ * set `debris` (an impact-fx kind) and `debrisColor` to choose the spray; the
+ * impact kind supplies a sensible default otherwise.
+ */
 function createThemedImpact(p, isCrit = false) {
   const color = isCrit ? 0xffd700 : (p.trailColor || 0xffffff);
+  const dirX = p.dirX ?? 0;
+  const dirZ = p.dirZ ?? 0;
+  let debris = null;     // [kind, color, count]
   switch (p.impactKind) {
     case 'frost':
       // Puck strike: a sharp chip of ice.
       createImpact(p.x, p.y, p.z, 0xcdf6ff);
+      debris = ['ice', 0xdff7ff, 5];
       break;
     case 'freeze':
       // Ice spray: frost bursts out and spreads across the surface.
       createImpact(p.x, p.y, p.z, 0x9be8ff);
       spawnGroundRipple(p.x, p.z, 0xbdf3ff);
+      debris = ['ice', 0xbdf3ff, 6];
       break;
     case 'burn':
       createExplosion(p.x, p.y, p.z, true, color);
+      debris = ['embers', 0xff7a1f, 6];
       break;
     case 'ring':
     case 'gravity':
       // Area hits land with a shockwave rolling out along the ground.
       createExplosion(p.x, p.y, p.z, false, color);
       spawnGroundRipple(p.x, p.z, color);
+      debris = ['chunks', color, 8];
       break;
     case 'slam':
     case 'save':
       createImpact(p.x, p.y, p.z, color);
       spawnGroundRipple(p.x, p.z, color);
+      debris = ['chunks', color, 5];
       break;
     case 'crit':
       createExplosion(p.x, p.y, p.z, false, 0xffd700);
       spawnGroundRipple(p.x, p.z, 0xffe680);
+      debris = ['sparks', 0xffe680, 8];
       break;
     case 'chain':
       createImpact(p.x, p.y, p.z, 0xffffff);
       createImpact(p.x, p.y, p.z, color);
+      debris = ['sparks', color, 4];
       break;
-    default:
+    case 'grassKick':
+      // A divot of turf kicked up.
       createImpact(p.x, p.y, p.z, color);
+      debris = ['dirt', 0x3f8f3a, 6];
+      break;
+    case 'plasma':
+      createImpact(p.x, p.y, p.z, color);
+      debris = ['ecto', color, 5];
+      break;
+    default:   // 'spark' and anything unnamed
+      createImpact(p.x, p.y, p.z, color);
+      debris = ['sparks', color, 4];
   }
+  if (p.debris) debris = [p.debris, p.debrisColor ?? color, debris?.[2] ?? 5];
+  if (debris) burstDebris(p.x, Math.max(0.2, p.y), p.z, debris[0], debris[1], debris[2] + (isCrit ? 4 : 0), { dirX, dirZ, spread: 0.7 });
 }
 
 /**
@@ -224,7 +257,8 @@ export function hurtEnemy(e, dmg, isCrit = false, opts = {}) {
   const armor = opts.pierce ? 0 : e.armor;
   // Tower hits get the player's permanent damage upgrade; abilities don't.
   const perk = opts.ability ? 1 : (getState().perkDamage || 1);
-  const actualDmg = dmg * perk * (1 - armor) * damageMultiplier(e);
+  // A shielder's aura blunts every hit on the enemies standing near it.
+  const actualDmg = dmg * perk * (1 - armor) * damageMultiplier(e) * shieldMultiplier(e);
   e.hp -= actualDmg;
 
   // Visual feedback - flash and scale

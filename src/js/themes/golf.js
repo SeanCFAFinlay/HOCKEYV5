@@ -103,14 +103,17 @@ export const visuals = {
   // Keys are the shared projectile ids; see config/visual-profiles.js for the
   // mesh and flight vocabularies.
   projectiles: {
-    ball: { mesh: 'ball', flight: 'lob', trail: 'dust', impact: 'spark', color: 0xffffff, speed: 9.5, size: 0.9 },
-    curveBall: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xfff3a0, speed: 13 },
-    headButt: { mesh: 'ring', flight: 'ring', trail: 'shock', impact: 'ring', color: 0xff6fb1, speed: 8.5 },
-    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x7ff5ff, speed: 9.5 },
-    glove: { mesh: 'ball', flight: 'punch', trail: 'gold', impact: 'slam', color: 0xd9b8ff, speed: 8.8, size: 1.2 },
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xf5ee4a, speed: 15 },
-    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85 },
-    legend: { mesh: 'ball', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
+    // Cannon: golf balls. Lighthouse: a beam. Windmill: a flung sail. Water
+    // hazard: a splash. Clown: its red nose. Loop: lightning. Volcano: lava
+    // rock. Cup: the golden ball.
+    ball: { mesh: 'ball', model: 'golfBall', debris: 'dirt', debrisColor: 0x2f8f43, flight: 'lob', trail: 'dust', impact: 'spark', color: 0xffffff, speed: 9.5, size: 0.9 },
+    curveBall: { mesh: 'tracer', debris: 'sparks', debrisColor: 0xfff3a0, flight: 'tracer', trail: 'line', impact: 'spark', color: 0xfff3a0, speed: 13 },
+    headButt: { mesh: 'ring', model: 'sails', debris: 'chunks', debrisColor: 0xff6fb1, flight: 'ring', trail: 'shock', impact: 'ring', color: 0xff6fb1, speed: 8.5 },
+    tackle: { mesh: 'shard', model: 'splash', debris: 'drops', debrisColor: 0x7ff5ff, flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x7ff5ff, speed: 9.5 },
+    glove: { mesh: 'ball', model: 'clownNose', debris: 'dirt', debrisColor: 0x2f8f43, flight: 'punch', trail: 'gold', impact: 'slam', color: 0xd9b8ff, speed: 8.8, size: 1.2 },
+    chain: { mesh: 'bolt', debris: 'sparks', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xf5ee4a, speed: 15 },
+    flare: { mesh: 'plasma', model: 'lavaRock', debris: 'embers', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85 },
+    legend: { mesh: 'ball', model: 'goldBall', debris: 'sparks', debrisColor: 0xffc928, flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
   },
   // Keys are enemy roles, lower case. No green bodies: the floor is green.
   enemies: {
@@ -120,7 +123,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0x3f5fb8, accent: 0xffd23f },
     elite: { body: 'bug', color: 0xc2591c, accent: 0xfff0c8 },
     flying_fire: { body: 'bug', color: 0xffb01f, accent: 0xff3d1f },
-    boss: { body: 'bug', color: 0x3a3c96, accent: 0x19d8ff }
+    boss: { body: 'bug', color: 0x3a3c96, accent: 0x19d8ff },
+    splitter: { body: 'bug', color: 0xfff1d6, accent: 0xff7a3a },
+    splitling: { body: 'bug', color: 0xfff1d6, accent: 0xff7a3a },
+    shielder: { body: 'bug', color: 0xd8b25a, accent: 0x3fd0ff },
+    healer: { body: 'bug', color: 0xff8fc4, accent: 0x5cff9a }
   },
   towers: { family: 'golf', base: 0x1b2140, metal: 0xd7dde5, levelGlow: 0x39ff88 }
 };
@@ -658,7 +665,107 @@ function parzilla(m, enemy, c) {
   throat.object.add(enemy.crownGem);
 }
 
+function eggClutch(m, enemy, c) {
+  // A waddling heap of cracked kaiju eggs, a baby already peeking out of the
+  // top one. A Hatchling (enemy.mini) is one baby in the bottom half of its shell.
+  const shell = M.paint(c.color, { gloss: 0.6, glow: 0.12 });
+  const skin = M.paint(c.accent, { gloss: 0.6, glow: 0.2 });
+  const speck = M.paint(0x3a3c96, { gloss: 0.4 });
+  const crack = M.glow(0xffe14d);
+  const bone = M.paint(0xfffbe6, { gloss: 0.5 });
+  // Stubby clawed feet under it all.
+  for (const s of [-1, 1]) {
+    m.add(G.sphere(0.2, 10, 8), skin, { p: [s * 0.3, -0.84, 0.12], s: [1, 0.6, 1.5] });
+    for (const dx of [-0.08, 0.08]) m.add(G.cone(0.04, 0.14, 5), bone, { p: [s * 0.3 + dx, -0.88, 0.42], r: [HALF_PI, 0, 0] });
+  }
+  if (enemy.mini) {
+    const cup = M.paint(c.color, { gloss: 0.6, glow: 0.12 });
+    cup.side = THREE.DoubleSide;
+    m.add(G.dome(0.62), cup, { p: [0, -0.15, 0], r: [Math.PI, 0, 0], s: [1, 1.1, 1] });   // lower half-shell
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      m.add(G.cone(0.12, 0.22, 4), cup, { p: [Math.cos(a) * 0.55, -0.06, Math.sin(a) * 0.55] });   // jagged rim
+    }
+    m.add(G.sphere(0.4, 12, 10), skin, { p: [0, 0.18, 0.08] });
+    m.add(G.sphere(0.24, 10, 8), skin, { p: [0, 0.12, 0.42], s: [1, 0.7, 1] });
+    for (const s of [-1, 1]) m.add(G.cone(0.035, 0.1, 5), bone, { p: [s * 0.09, -0.02, 0.56], r: [Math.PI, 0, 0] });
+    eyes(m, { x: 0.18, y: 0.32, z: 0.38, r: 0.13 });
+    return;
+  }
+  // Three eggs in a ring, one on top.
+  const eggs = [[0, -0.42, 0.32, 0], [-0.36, -0.42, -0.24, 0.2], [0.36, -0.42, -0.24, -0.2], [0, 0.28, -0.05, 0]];
+  eggs.forEach(([x, y, z, tilt], i) => {
+    m.add(G.sphere(0.44, 14, 12), shell, { p: [x, y, z], r: [0, 0, tilt], s: [0.85, 1.12, 0.85] });
+    for (let k = 0; k < 4; k++) {
+      const a = k * 1.7 + i, h = (k % 2 ? 0.15 : -0.12);
+      m.add(G.sphere(0.07, 6, 5), speck, { p: [x + Math.cos(a) * 0.36, y + h, z + Math.sin(a) * 0.36], s: [1, 1, 0.5] });
+    }
+    if (i < 3) {
+      // A glowing zig-zag crack across the front of each lower egg.
+      const fx = x * 1.15, fz = z + (z > 0 ? 0.37 : 0.05) + 0.02;
+      m.add(G.tube([[fx - 0.22, y + 0.05, fz], [fx - 0.1, y + 0.16, fz + 0.03], [fx, y + 0.02, fz + 0.04], [fx + 0.1, y + 0.18, fz + 0.03], [fx + 0.22, y + 0.06, fz]], 0.03, 4), crack, { shadow: false });
+    }
+  });
+  // The top egg has hatched open: a baby head pokes out.
+  m.add(G.torus(0.3, 0.06, 6, 12), crack, { p: [0, 0.62, -0.05], r: [HALF_PI, 0, 0], shadow: false });
+  m.add(G.sphere(0.3, 12, 10), skin, { p: [0, 0.78, 0.0] });
+  m.add(G.sphere(0.18, 10, 8), skin, { p: [0, 0.74, 0.26], s: [1, 0.7, 1] });
+  eyes(m, { x: 0.13, y: 0.88, z: 0.22, r: 0.1 });
+}
+
+function stegoShield(m, enemy, c) {
+  // A stegosaurus whose back plates glow like a force field: the plates are
+  // what shelter everything around it.
+  const skin = M.paint(c.color, { gloss: 0.5, glow: 0.16 });
+  const plate = M.paint(c.accent, { gloss: 0.8, glow: 0.7 });
+  const bone = M.paint(0xfffbe6, { gloss: 0.5 });
+  const dark = M.matte(0x2a1d10);
+  m.add(G.sphere(0.7, 16, 12), skin, { p: [0, -0.2, -0.1], s: [0.85, 0.72, 1.25] });
+  m.add(G.tube([[0, -0.25, 0.7], [0, -0.38, 0.95], [0, -0.42, 1.12]], 0.18, 7), skin);           // neck
+  m.add(G.sphere(0.22, 12, 10), skin, { p: [0, -0.4, 1.2], s: [0.85, 0.75, 1.3] });               // small head
+  eyes(m, { x: 0.13, y: -0.33, z: 1.32, r: 0.06 });
+  for (const s of [-1, 1]) {
+    for (const z of [0.45, -0.6]) {
+      m.add(G.cyl(0.15, 0.17, 0.5, 10), skin, { p: [s * 0.4, -0.7, z] });
+      m.add(G.cyl(0.18, 0.18, 0.07, 10), dark, { p: [s * 0.4, -0.92, z] });
+    }
+  }
+  // Tail with the four-spike thagomizer.
+  m.add(G.tube([[0, -0.2, -0.95], [0, -0.25, -1.3], [0, -0.1, -1.65]], 0.13, 7), skin);
+  for (const s of [-1, 1]) for (const z of [-1.45, -1.65]) m.add(G.cone(0.05, 0.32, 6), bone, { p: [s * 0.18, -0.02, z], r: [0, 0, -s * 1.1] });
+  // Two staggered rows of big glowing plates along the arched spine.
+  const spine = [[0.72, 0.1, -0.35, 0.8], [0.4, 0.33, -0.15, 1.15], [0.05, 0.42, 0.0, 1.35], [-0.32, 0.36, 0.2, 1.25], [-0.68, 0.16, 0.5, 0.95], [-1.0, -0.06, 0.85, 0.6]];
+  spine.forEach(([z, y, lean, s], i) => {
+    const x = (i % 2 ? 1 : -1) * 0.1;
+    spinePlate(m, plate, DIAMOND, [x, y + 0.02, z], lean, s, 0.07);
+  });
+}
+
+function medisaur(m, enemy, c) {
+  // A duck-billed dino with a glowing crest, hugging a first-aid kit.
+  const skin = M.paint(c.color, { gloss: 0.55, glow: 0.16 });
+  const crest = M.paint(c.accent, { gloss: 0.8, glow: 0.8 });
+  const white = M.paint(0xf7f9fb, { gloss: 0.6, glow: 0.12 });
+  const bone = M.paint(0xfffbe6, { gloss: 0.5 });
+  m.add(G.sphere(0.52, 14, 12), skin, { p: [0, -0.18, -0.08], s: [0.9, 1.05, 0.95] });
+  m.add(G.sphere(0.3, 12, 10), skin, { p: [0, 0.48, 0.18] });                                       // head
+  m.add(G.sphere(0.22, 12, 10), M.paint(0xffe4a8, { gloss: 0.5 }), { p: [0, 0.38, 0.48], s: [1.05, 0.5, 1.3] });   // duck bill
+  m.add(G.tube([[0, 0.66, 0.1], [0, 0.88, -0.1], [0, 0.95, -0.42], [0, 0.88, -0.62]], 0.09, 7), crest);           // crest
+  eyes(m, { x: 0.18, y: 0.58, z: 0.38, r: 0.09 });
+  tail(m, skin, { r: 0.24, len: 0.95, p: [0, -0.42, -0.85] });
+  bipedLegs(m, skin, bone, { x: 0.3, r: 0.22 });
+  // First-aid kit held to the chest: white box, handle, green cross.
+  m.add(G.rbox(0.56, 0.42, 0.22, 0.05), white, { p: [0, -0.16, 0.5] });
+  m.add(G.torus(0.1, 0.025, 5, 12, Math.PI), white, { p: [0, 0.05, 0.5] });
+  m.add(G.box(0.3, 0.09, 0.03), M.glow(c.accent), { p: [0, -0.16, 0.62], shadow: false });
+  m.add(G.box(0.09, 0.3, 0.03), M.glow(c.accent), { p: [0, -0.16, 0.62], shadow: false });
+  for (const s of [-1, 1]) m.add(G.tube([[s * 0.42, 0.05, 0.1], [s * 0.38, -0.08, 0.38], [s * 0.26, -0.12, 0.52]], 0.07, 5), skin);   // arms
+}
+
 const ENEMIES = {
+  SPLITTER: eggClutch,
+  SHIELDER: stegoShield,
+  HEALER: medisaur,
   SWARM: lizard,
   FIRE: magmasaur,
   FLYING: pterosaur,
@@ -666,6 +773,67 @@ const ENEMIES = {
   ELITE: tricerabrute,
   FLYING_FIRE: emberDrake,
   BOSS: parzilla
+};
+
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius, nose along +Z. See rendering/projectile-models.js.
+
+/** A dimpled ball: a sphere studded with shallow darker dimples. */
+function dimpledBall(m, mat, dimple, r = 0.85) {
+  m.add(G.sphere(r, 18, 14), mat);
+  for (let i = 0; i < 14; i++) {
+    const y = 1 - (i + 0.5) / 7, rr = Math.sqrt(Math.max(0, 1 - y * y)), a = i * 2.4;
+    m.add(G.sphere(r * 0.13, 6, 5), dimple, { p: [Math.cos(a) * rr * r * 0.92, y * r * 0.92, Math.sin(a) * rr * r * 0.92] });
+  }
+}
+
+const PROJECTILES = {
+  golfBall(m) {
+    dimpledBall(m, M.paint(0xf7f9fb, { gloss: 0.6, glow: 0.25 }), M.paint(0xdfe5ec, { gloss: 0.3, glow: 0.1 }));
+  },
+  sails(m, { color }) {
+    // A windmill's four-bladed sail cross, spinning flat as it skims along.
+    const g = m.group({ r: [0.35, 0, 0] });
+    const cloth = M.paint(0xfff6e0, { gloss: 0.3, glow: 0.25 }), edge = M.glow(color);
+    g.add(G.sphere(0.22, 10, 8), M.metal(0xdfe6ee));
+    for (let i = 0; i < 4; i++) {
+      const blade = g.group({ r: [0, i * HALF_PI + 0.3, 0] });
+      blade.add(G.box(0.12, 0.1, 1.3), M.paint(0xf7f4ee), { p: [0, 0, 0.65] });
+      blade.add(G.box(0.5, 0.06, 0.95), cloth, { p: [0.28, 0, 0.78] });
+      blade.add(G.box(0.08, 0.08, 0.95), edge, { p: [0.54, 0, 0.78] });
+    }
+  },
+  splash(m, { color }) {
+    const water = M.paint(color, { gloss: 1, glow: 0.45 });
+    m.add(G.sphere(0.6, 14, 10), water, { p: [0, 0, 0.2] });
+    m.add(G.cone(0.58, 1.3, 14), water, { p: [0, 0, -0.62], r: [-HALF_PI, 0, 0] });
+    m.add(G.sphere(0.16, 8, 6), M.glow(0xffffff), { p: [0.22, 0.3, 0.5] });
+  },
+  clownNose(m) {
+    // The clown's big red honker, launched.
+    m.add(G.sphere(0.85, 16, 12), M.paint(0xff2d3d, { gloss: 0.95, glow: 0.35 }));
+    m.add(G.sphere(0.2, 8, 6), M.glow(0xffffff), { p: [0.3, 0.42, 0.55] });
+  },
+  lavaRock(m) {
+    // A lump of volcanic rock, glowing through its cracks.
+    const rock = M.paint(0x3a2622, { gloss: 0.1 });
+    rock.flatShading = true;
+    m.add(G.sphere(0.8, 7, 5), rock, { s: [1, 0.85, 1.1] });
+    const hot = M.glow(0xffb03a);
+    m.add(G.tube([[-0.5, 0.5, 0.4], [-0.1, 0.65, 0.2], [0.2, 0.55, 0.5], [0.6, 0.35, 0.4]], 0.08, 4), hot);
+    m.add(G.tube([[-0.6, -0.2, 0.6], [-0.2, 0.1, 0.8], [0.3, -0.1, 0.75]], 0.07, 4), hot);
+    m.add(G.sphere(0.6, 10, 8), M.energy(0xff6a1a, 0.4), { p: [0, 0, -0.6], shadow: false });
+  },
+  goldBall(m) {
+    // The champion's golden ball, with a star stamped on it.
+    const gold = M.metal(0xffc83a, { rough: 0.22 });
+    gold.emissive = new THREE.Color(0x6b4300);
+    gold.emissiveIntensity = 0.6;
+    dimpledBall(m, gold, gold);
+    m.add(G.star(0.4, 0.17, 0.08), M.glow(0xffffff), { p: [0.84, 0, 0], r: [0, HALF_PI, 0] });
+    m.add(G.star(0.4, 0.17, 0.08), M.glow(0xffffff), { p: [-0.84, 0, 0], r: [0, HALF_PI, 0] });
+  }
 };
 
 // ── Arena ───────────────────────────────────────────────────────────────────
@@ -883,6 +1051,14 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0xa855f7, accent: ctx.accent ?? 0xffe14d });
+  },
+
+  /** Themed shot models; false for names this kit doesn't know. */
+  buildProjectile(name, m, ctx) {
+    const build = PROJECTILES[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
   },
 
   paintFloor,

@@ -104,19 +104,19 @@ export const visuals = {
   // mesh and flight vocabularies.
   projectiles: {
     // A flicked edamame bean.
-    ball: { mesh: 'orb', flight: 'lob', trail: 'dust', impact: 'spark', color: 0x9bd43a, speed: 11, size: 0.62 },
+    ball: { mesh: 'orb', flight: 'lob', trail: 'dust', impact: 'spark', color: 0x9bd43a, speed: 11, size: 0.62, model: 'edamame', debris: 'crumbs', debrisColor: 0x9bd43a },
     // A thrown blade: one long glint.
-    curveBall: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xe6f2ff, speed: 14 },
+    curveBall: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xe6f2ff, speed: 14, model: 'blade', debris: 'sparks', debrisColor: 0xe6f2ff },
     // A rice ball, lobbed.
-    headButt: { mesh: 'ball', flight: 'lob', trail: 'dust', impact: 'ring', color: 0xffd9e0, speed: 8.5, size: 1.25 },
+    headButt: { mesh: 'ball', flight: 'lob', trail: 'dust', impact: 'ring', color: 0xffd9e0, speed: 8.5, size: 1.25, model: 'onigiri', debris: 'crumbs', debrisColor: 0xfbf7ee },
     // Shaved ice.
-    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x8fe6ff, speed: 9.5 },
+    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x8fe6ff, speed: 9.5, debris: 'ice' },
     // The mallet head.
-    glove: { mesh: 'block', flight: 'punch', trail: 'dust', impact: 'slam', color: 0xd99a4e, speed: 8.8, size: 1.2 },
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xc9a6ff, speed: 15 },
-    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85 },
-    // A lucky star off the cat's paw.
-    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
+    glove: { mesh: 'block', flight: 'punch', trail: 'dust', impact: 'slam', color: 0xd99a4e, speed: 8.8, size: 1.2, model: 'mallet', debris: 'crumbs', debrisColor: 0xfff6e8 },
+    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xc9a6ff, speed: 15, debris: 'sparks', debrisColor: 0xd9c2ff },
+    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85, debris: 'embers' },
+    // A lucky gold koban off the cat's paw.
+    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3, model: 'koban', debris: 'sparks', debrisColor: 0xffd447 }
   },
   // Keys are enemy roles, lower case.
   enemies: {
@@ -126,7 +126,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0xd8452e, accent: 0xffd9c2 },
     elite: { body: 'bug', color: 0xe9a93c, accent: 0xff5a4a },
     flying_fire: { body: 'bug', color: 0x6fbf3a, accent: 0xff8a1f },
-    boss: { body: 'bug', color: 0xa6427f, accent: 0xffd447 }
+    boss: { body: 'bug', color: 0xa6427f, accent: 0xffd447 },
+    splitter: { body: 'bug', color: 0xff6a1a, accent: 0x16261c },
+    splitling: { body: 'bug', color: 0xff7f24, accent: 0x16261c },
+    shielder: { body: 'bug', color: 0x1f1d2e, accent: 0xffcc33 },
+    healer: { body: 'bug', color: 0xb8322a, accent: 0x7cff9a }
   },
   towers: { family: 'sushi', base: 0x2a1c16, metal: 0xd7dde5, levelGlow: 0xff7a6b }
 };
@@ -702,6 +706,99 @@ function octopus(m, enemy, c) {
   }
 }
 
+function roeBomb(m, enemy, c) {
+  const roe = M.paint(c.color, { gloss: 0.95, glow: 0.4 });
+  const shine = M.glow(0xfff1d6);
+  if (enemy.mini) {
+    // One roe pearl, loose and running: a glossy orange bead on little legs.
+    m.add(G.sphere(0.62, 18, 14), roe, { p: [0, -0.22, 0] });
+    m.add(G.sphere(0.24, 10, 8), M.paint(0xffb347, { gloss: 0.9, glow: 0.7 }), { p: [0, -0.2, -0.12] });   // the yolk inside
+    m.add(G.sphere(0.12, 8, 6), shine, { p: [0.24, 0.16, 0.4], shadow: false });
+    eyes(m, { x: 0.2, y: -0.12, z: 0.55, r: 0.14, brow: -0.3, browMat: M.matte(0x7a2a10) });
+    legs(m, M.paint(c.accent, { gloss: 0.5 }), M.paint(c.accent, { gloss: 0.5 }), { x: 0.22, hip: -0.68, len: 0.2, r: 0.06 });
+    return;
+  }
+  // A gunkan maki heaped far too high with salmon roe, a lit fuse stuck in
+  // the top. When it pops, the pearls run.
+  const nori = NORI();
+  m.add(G.cyl(0.6, 0.6, 0.72, 22), nori, { p: [0, -0.45, 0] });
+  m.add(G.cyl(0.56, 0.56, 0.06, 22), RICE(), { p: [0, -0.07, 0] });
+  m.add(G.torus(0.6, 0.03, 5, 22), M.paint(0x2c4a34, { gloss: 0.4 }), { p: [0, -0.62, 0], r: [HALF_PI, 0, 0] });
+  // The heap of pearls, bulging over the rim.
+  const pearls = [[0, 0.62, 0, 0.2]];
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU; pearls.push([Math.cos(a) * 0.5, 0.0 + (i % 2) * 0.05, Math.sin(a) * 0.5, 0.17]); }
+  for (let i = 0; i < 7; i++) { const a = (i / 7) * TAU + 0.4; pearls.push([Math.cos(a) * 0.32, 0.26, Math.sin(a) * 0.32, 0.18]); }
+  for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU + 0.8; pearls.push([Math.cos(a) * 0.15, 0.48, Math.sin(a) * 0.15, 0.17]); }
+  pearls.forEach(([x, y, z, r]) => m.add(G.sphere(r, 10, 8), roe, { p: [x, y, z] }));
+  for (const [x, y, z] of [[0.15, 0.72, 0.1], [-0.3, 0.38, 0.25], [0.35, 0.12, 0.38]]) m.add(G.sphere(0.05, 6, 5), shine, { p: [x, y, z], shadow: false });
+  // Two pearls already escaping down the side.
+  m.add(G.sphere(0.15, 10, 8), roe, { p: [0.45, -0.35, 0.45] });
+  m.add(G.sphere(0.13, 10, 8), roe, { p: [-0.6, -0.6, 0.15] });
+  // The fuse, its spark throbbing.
+  m.add(G.tube([[0, 0.7, 0], [0.06, 0.9, -0.05], [0.02, 1.05, -0.12]], 0.035, 5), M.paint(0xe8d3a0, { gloss: 0.3 }));
+  const spark = part(m, { k: 'pulse', f: 9, amp: 0.35 }, { p: [0.02, 1.08, -0.12] });
+  spark.add(G.sphere(0.09, 8, 6), M.glow(0xfff27a), { shadow: false });
+  eyes(m, { x: 0.22, y: -0.32, z: 0.58, r: 0.15, brow: 0.4, browMat: M.matte(0x0a120c) });
+  m.add(G.torus(0.09, 0.025, 5, 10, Math.PI), M.glow(0xffffff), { p: [0, -0.56, 0.6], r: [0, 0, Math.PI], shadow: false });
+  legs(m, nori, RED(), { x: 0.28, hip: -0.78, len: 0.14, r: 0.07 });
+}
+
+function bentoGuard(m, enemy, c) {
+  // A lacquered bento box marching behind its own lid, held up like a riot
+  // shield; lunch peeks out of the top.
+  const lacquer = M.paint(c.color, { gloss: 0.92, glow: 0.12 });
+  const red = M.paint(0xc62a1a, { gloss: 0.9, glow: 0.15 });
+  const gold = M.metal(c.accent, { rough: 0.25 });
+  m.add(G.rbox(1.2, 0.95, 0.9, 0.08), lacquer, { p: [0, -0.32, -0.1] });
+  m.add(G.rbox(1.1, 0.06, 0.8, 0.02), red, { p: [0, 0.16, -0.1] });                                                    // the red inside
+  // Lunch, in its compartments.
+  m.add(G.rbox(0.48, 0.16, 0.7, 0.06), RICE(), { p: [-0.28, 0.24, -0.1] });
+  m.add(G.sphere(0.07, 8, 6), M.paint(0xd92b4a, { gloss: 0.6, glow: 0.3 }), { p: [-0.28, 0.34, -0.1] });                 // umeboshi
+  m.add(G.rbox(0.22, 0.18, 0.3, 0.04), M.paint(0xffd447, { gloss: 0.5, glow: 0.25 }), { p: [0.22, 0.25, 0.05] });         // tamago
+  m.add(G.rbox(0.24, 0.12, 0.3, 0.04), SALMON(), { p: [0.24, 0.22, -0.3] });
+  m.add(G.plate([[0, 0], [0.12, 0.2], [0, 0.42], [-0.12, 0.2]], 0.02), M.paint(0x4fa33f, { gloss: 0.6, glow: 0.2 }), { p: [0.0, 0.18, -0.1] });   // grass divider
+  // Eyes peering over the lid.
+  eyes(m, { x: 0.24, y: 0.0, z: 0.38, r: 0.13, brow: 0.45, browMat: M.matte(0x0a0a10) });
+  // The lid, held out in front: black lacquer, gold rim, a gold mon.
+  const lid = part(m, { k: 'swing', ax: 'x', amp: 0.06, ph: 0 }, { p: [0, -0.42, 0.55] });
+  lid.add(G.rbox(1.36, 0.82, 0.1, 0.05), lacquer, { r: [-0.08, 0, 0] });
+  lid.add(G.rbox(1.42, 0.88, 0.06, 0.03), gold, { p: [0, 0, -0.03], r: [-0.08, 0, 0] });
+  lid.add(G.torus(0.2, 0.035, 6, 20), gold, { p: [0, 0.0, 0.07] });
+  lid.add(G.cyl(0.11, 0.11, 0.03, 14), red, { p: [0, 0.0, 0.07], r: [HALF_PI, 0, 0] });
+  for (const s of [-1, 1]) lid.add(G.tube([[s * 0.5, 0, -0.06], [s * 0.6, 0.05, -0.35], [s * 0.62, 0.1, -0.55]], 0.05, 5), lacquer);   // arms
+  legs(m, lacquer, red, { x: 0.32, hip: -0.78, len: 0.12, r: 0.08 });
+}
+
+function misoMedic(m, enemy, c) {
+  // A bowl of miso soup on legs, steam rising green and healing, a ladle in
+  // hand to dish it out.
+  const bowl = M.paint(c.color, { gloss: 0.92, glow: 0.14 });
+  const inside = LACQUER();
+  const green = M.glow(c.accent);
+  m.add(G.lathe([[0.28, 0], [0.3, 0.06], [0.24, 0.1], [0.5, 0.25], [0.68, 0.55], [0.74, 0.86], [0.7, 0.88], [0.64, 0.6], [0.45, 0.3], [0, 0.22]], 24), bowl, { p: [0, -0.88, 0] });
+  m.add(G.cyl(0.66, 0.6, 0.06, 22), inside, { p: [0, -0.2, 0] });
+  m.add(G.cyl(0.67, 0.67, 0.03, 22), M.paint(0xd9a45a, { gloss: 0.7, glow: 0.25 }), { p: [0, -0.09, 0] });             // the soup
+  // Tofu, wakame and spring onion floating on it.
+  for (const [x, z, ry] of [[0.2, 0.15, 0.3], [-0.25, -0.1, 0.9], [0.05, -0.32, 0.1]]) m.add(G.rbox(0.18, 0.12, 0.18, 0.03), RICE(), { p: [x, -0.04, z], r: [0, ry, 0] });
+  for (const [x, z] of [[-0.3, 0.25], [0.35, -0.2]]) m.add(G.sphere(0.13, 8, 6), M.paint(0x2f5a2a, { gloss: 0.6 }), { p: [x, -0.07, z], s: [1.2, 0.2, 0.7] });
+  for (const [x, z] of [[0.0, 0.3], [0.38, 0.12], [-0.12, 0.05]]) m.add(G.torus(0.04, 0.015, 4, 8), M.paint(0x7cc242, { gloss: 0.5, glow: 0.3 }), { p: [x, -0.06, z], r: [HALF_PI, 0, 0] });
+  // A green cross painted on the bowl, under the eyes.
+  m.add(G.box(0.08, 0.24, 0.04), green, { p: [0, -0.62, 0.56], r: [-0.45, 0, 0], shadow: false });
+  m.add(G.box(0.24, 0.08, 0.04), green, { p: [0, -0.62, 0.56], r: [-0.45, 0, 0], shadow: false });
+  eyes(m, { x: 0.24, y: -0.32, z: 0.68, r: 0.12 });
+  // Healing steam, three puffs throbbing out of sync.
+  [[0.12, 0.25, 0.05, 0.16], [-0.18, 0.5, -0.05, 0.13], [0.05, 0.76, -0.12, 0.1]].forEach(([x, y, z, r], i) => {
+    const puff = part(m, { k: 'pulse', f: 2.5 + i * 0.7, amp: 0.2, ph: i * 2 }, { p: [x, y, z] });
+    puff.add(G.sphere(r, 10, 8), M.glow(c.accent, 0.85), { shadow: false });
+  });
+  // The ladle, held up.
+  const arm = part(m, { k: 'swing', ax: 'x', amp: 0.3, ph: 0 }, { p: [0.68, -0.3, 0.05] });
+  arm.add(G.cyl(0.04, 0.04, 0.3, 6), bowl, { p: [0.1, 0.05, 0], r: [0, 0, -0.9] });
+  arm.add(G.cyl(0.025, 0.025, 0.6, 6), WOOD(), { p: [0.22, 0.35, 0.05], r: [0.2, 0, -0.15] });
+  arm.add(G.sphere(0.12, 10, 8), WOOD(), { p: [0.28, 0.66, 0.1], s: [1, 0.55, 1] });
+  legs(m, bowl, inside, { x: 0.22, hip: -0.82, len: 0.1, r: 0.07 });
+}
+
 const ENEMIES = {
   SWARM: maki,
   FIRE: wasabi,
@@ -709,7 +806,50 @@ const ENEMIES = {
   ARMORED: crab,
   ELITE: tempuraSamurai,
   FLYING_FIRE: dragonRoll,
-  BOSS: octopus
+  BOSS: octopus,
+  SPLITTER: roeBomb,
+  SHIELDER: bentoGuard,
+  HEALER: misoMedic
+};
+
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius. Centred on the origin, nose along +Z.
+
+const PROJECTILES = {
+  // An edamame pod, three beans showing.
+  edamame(m) {
+    const pod = M.paint(0x8fcf3a, { gloss: 0.55, glow: 0.35 });
+    m.add(G.capsule(0.42, 2.0, 12), pod, { p: [0, 0, -1.0], r: [HALF_PI, 0, 0], s: [1.25, 1, 0.7] });
+    for (const z of [-0.55, 0, 0.55]) m.add(G.sphere(0.34, 10, 8), M.paint(0xa8e04a, { gloss: 0.6, glow: 0.4 }), { p: [0, 0.18, z], s: [1, 0.8, 1] });
+  },
+  // A thrown sashimi knife, point first.
+  blade(m) {
+    const blade = G.plate([[-0.2, -0.05], [1.3, -0.05], [0.9, 0.38], [-0.2, 0.38]], 0.06);
+    m.add(blade, M.metal(0xe6f2ff, { rough: 0.12 }), { p: [0, -0.1, 0], r: [0, -HALF_PI, 0] });
+    m.add(G.cyl(0.14, 0.15, 0.9, 8), M.paint(0xd9b27a, { gloss: 0.3 }), { p: [0, 0.07, -0.68], r: [HALF_PI, 0, 0] });
+    m.add(G.cyl(0.17, 0.17, 0.12, 8), M.paint(0x1a1513, { gloss: 0.8 }), { p: [0, 0.07, -0.22], r: [HALF_PI, 0, 0] });
+  },
+  // A rice ball, nori strip and all, lying flat so the triangle shows from above.
+  onigiri(m) {
+    onigiri(m.group({ r: [HALF_PI, 0, 0] }), 8);
+  },
+  // The mochi mallet's head: a wooden drum, face first.
+  mallet(m) {
+    const wood = M.paint(0xd99a4e, { gloss: 0.35, glow: 0.2 });
+    m.add(G.cyl(0.6, 0.6, 1.5, 16), wood, { r: [HALF_PI, 0, 0] });
+    for (const z of [-0.6, 0.6]) m.add(G.torus(0.6, 0.06, 5, 18), M.paint(0x5a3520, { gloss: 0.4 }), { p: [0, 0, z] });
+    m.add(G.cyl(0.58, 0.58, 0.04, 16), M.paint(0xfff6e8, { gloss: 0.3, glow: 0.3 }), { p: [0, 0, 0.76], r: [HALF_PI, 0, 0] });   // mochi on the face
+    m.add(G.cyl(0.12, 0.12, 0.8, 8), M.paint(0xe8d3a0, { gloss: 0.3 }), { p: [0, 0.95, 0] });
+  },
+  // A gold koban off the lucky cat's paw.
+  koban(m) {
+    const gold = M.paint(0xffcc33, { gloss: 0.95, glow: 0.45 });
+    m.add(G.cyl(0.75, 0.75, 0.18, 22), gold, { s: [0.8, 1, 1.25] });
+    m.add(G.torus(0.72, 0.06, 5, 22), M.paint(0xe0a020, { gloss: 0.9, glow: 0.35 }), { r: [HALF_PI, 0, 0], s: [0.8, 1.25, 1] });
+    for (const z of [-0.45, -0.25, 0.25, 0.45]) m.add(G.box(0.7, 0.04, 0.05), M.paint(0xe0a020, { gloss: 0.9, glow: 0.3 }), { p: [0, 0.1, z] });
+    m.add(G.cyl(0.16, 0.16, 0.04, 12), M.glow(0xe23a2a), { p: [0, 0.11, 0] });
+  }
 };
 
 // ── Arena ───────────────────────────────────────────────────────────────────
@@ -921,6 +1061,21 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0x1c2f22, accent: ctx.accent ?? 0xff8a6b });
+  },
+
+  /** Themed shot models (rendering/projectile-models.js); false for unknown names. */
+  buildProjectile(name, m, ctx) {
+    const build = PROJECTILES[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
+  },
+
+  enemyGaits: {
+    SPLITTER: { step: 2.6, bob: 0.08, rock: 0.12, squash: 0.08 },
+    SPLITLING: { step: 3.6, bob: 0.16, squash: 0.12, rock: 0.06 },
+    SHIELDER: { step: 2.4, bob: 0.04, rock: 0.05, lean: 0.03 },
+    HEALER: { step: 2.4, bob: 0.06, rock: 0.12, nod: 0.03 }
   },
 
   paintFloor,

@@ -106,14 +106,14 @@ export const visuals = {
   // Keys are the shared projectile ids; see config/visual-profiles.js for the
   // mesh and flight vocabularies.
   projectiles: {
-    ball: { mesh: 'ball', flight: 'tracer', trail: 'line', impact: 'spark', color: 0x9be04a, speed: 7.5, size: 0.6 },            // a pea
-    curveBall: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xdfeaff, speed: 13 },               // the cast hook
-    headButt: { mesh: 'sphere', flight: 'lob', trail: 'dust', impact: 'ring', color: 0x7a4a26, speed: 8.5, size: 1.25 },        // a seed bomb
-    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x8fe3ff, speed: 9.5 },                  // a jet of water
-    glove: { mesh: 'block', flight: 'punch', trail: 'dust', impact: 'slam', color: 0x52d273, speed: 8.8, size: 1.2 },           // the boot
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xc9b6ff, speed: 15 },
-    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff6a14, speed: 11, size: 0.85 },
-    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
+    ball: { mesh: 'ball', flight: 'tracer', trail: 'line', impact: 'spark', color: 0x9be04a, speed: 7.5, size: 0.6, model: 'pea', debris: 'leaves', debrisColor: 0x7cc242 },            // a pea
+    curveBall: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xdfeaff, speed: 13, model: 'hook', debris: 'drops', debrisColor: 0xa8dcff },               // the cast hook
+    headButt: { mesh: 'sphere', flight: 'lob', trail: 'dust', impact: 'ring', color: 0x7a4a26, speed: 8.5, size: 1.25, model: 'seedBomb', debris: 'dirt', debrisColor: 0x5a3a20 },        // a seed bomb
+    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x8fe3ff, speed: 9.5, model: 'drop', debris: 'ice' },                  // a jet of water
+    glove: { mesh: 'block', flight: 'punch', trail: 'dust', impact: 'slam', color: 0x52d273, speed: 8.8, size: 1.2, model: 'boot', debris: 'dirt', debrisColor: 0x4a3220 },           // the boot
+    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xc9b6ff, speed: 15, debris: 'sparks', debrisColor: 0xd6c8ff },
+    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff6a14, speed: 11, size: 0.85, debris: 'embers' },
+    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3, model: 'gnomeHat', debris: 'leaves', debrisColor: 0xffd24a }
   },
   // Keys are enemy roles, lower case. Nothing soil-brown: the floor is soil.
   enemies: {
@@ -123,7 +123,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0x2c86c9, accent: 0xffd23f },
     elite: { body: 'bug', color: 0x5a5682, accent: 0xffc928 },
     flying_fire: { body: 'bug', color: 0x23213a, accent: 0xff4a08 },
-    boss: { body: 'bug', color: 0xf3ead9, accent: 0xffd23f }
+    boss: { body: 'bug', color: 0xf3ead9, accent: 0xffd23f },
+    splitter: { body: 'bug', color: 0xe0357a, accent: 0xffd23f },
+    splitling: { body: 'bug', color: 0xf0609e, accent: 0x7a2c50 },
+    shielder: { body: 'bug', color: 0x3f3a78, accent: 0xb8b0f0 },
+    healer: { body: 'bug', color: 0xe8606e, accent: 0x7cff6a }
   },
   towers: { family: 'garden', base: 0x4a3220, metal: 0xd7dde5, levelGlow: 0xffd24a }
 };
@@ -700,6 +704,113 @@ function rabbit(m, enemy, c) {
   jewel.object.add(enemy.crownGem);
 }
 
+/** Six thin aphid legs that scurry; `k` sizes them, `top` is the hip height. */
+function aphidLegs(m, mat, { k = 1, top = -0.45 } = {}) {
+  for (const s of [-1, 1]) {
+    [0.45, 0.1, -0.3].forEach((z, i) => {
+      const leg = part(m, { k: 'swing', ax: 'x', amp: 0.45, ph: (i + (s > 0 ? 0 : 1)) * Math.PI }, { p: [s * 0.3 * k, top, z * k] });
+      leg.add(G.tube([[0, 0, 0], [s * 0.32 * k, top * -0.3 + 0.05, (i - 1) * -0.06], [s * 0.42 * k, -0.95 - top, (i - 1) * -0.12]], 0.035, 5), mat);
+    });
+  }
+}
+
+function aphidQueen(m, enemy, c) {
+  const body = M.paint(c.color, { gloss: 0.75, glow: 0.12 });
+  const leg = M.paint(0x5a1f3a, { gloss: 0.5 });
+  if (enemy.mini) {
+    // A newborn aphid: a soft pink pear on six legs, antennae waving.
+    m.add(G.sphere(0.6, 14, 12), body, { p: [0, -0.3, -0.12], s: [0.9, 0.8, 1.15] });
+    m.add(G.sphere(0.36, 12, 10), body, { p: [0, -0.18, 0.55] });
+    eyes(m, { x: 0.17, y: -0.06, z: 0.83, r: 0.12 });
+    for (const s of [-1, 1]) {
+      m.add(G.tube([[s * 0.1, 0.1, 0.7], [s * 0.35, 0.55, 0.6], [s * 0.55, 0.6, 0.2]], 0.03, 5), leg);
+      m.add(G.cyl(0.05, 0.07, 0.3, 6), leg, { p: [s * 0.22, 0.12, -0.6], r: [-0.7, 0, s * 0.3] });   // cornicles
+    }
+    aphidLegs(m, leg, { top: -0.5 });
+    return;
+  }
+  // The Aphid Queen: an abdomen so full of babies you can see them through
+  // the skin, a little gold crown, and a lot of legs.
+  const baby = M.paint(0xff8cbc, { gloss: 0.8, glow: 0.2 });
+  const gold = M.metal(c.accent, { rough: 0.25 });
+  m.add(G.sphere(0.72, 18, 14), body, { p: [0, -0.12, -0.3], s: [0.95, 0.9, 1.1] });
+  // Babies bulging out of her sides and back, each with two dots of eye.
+  [[0.48, 0.05, -0.2], [-0.48, 0.05, -0.2], [0.3, 0.42, -0.45], [-0.3, 0.42, -0.45], [0, 0.55, -0.05], [0, 0.25, -0.95], [0.42, -0.25, -0.65], [-0.42, -0.25, -0.65]].forEach(([x, y, z]) => {
+    m.add(G.sphere(0.2, 10, 8), baby, { p: [x, y, z] });
+  });
+  m.add(G.sphere(0.36, 12, 10), body, { p: [0, -0.28, 0.45] });                                                          // thorax
+  m.add(G.sphere(0.3, 12, 10), body, { p: [0, -0.12, 0.8] });                                                            // head
+  eyes(m, { x: 0.15, y: -0.02, z: 1.02, r: 0.1, color: 0xff3d5a, pupil: 0x000000 });
+  for (const s of [-1, 1]) {
+    m.add(G.tube([[s * 0.1, 0.12, 0.9], [s * 0.4, 0.62, 0.85], [s * 0.7, 0.75, 0.3]], 0.03, 5), leg);                  // antennae
+    m.add(G.cyl(0.06, 0.09, 0.4, 6), leg, { p: [s * 0.28, 0.3, -0.92], r: [-0.8, 0, s * 0.3] });                         // cornicles
+  }
+  // Crown.
+  m.add(G.torus(0.17, 0.04, 6, 16), gold, { p: [0, 0.2, 0.78], r: [HALF_PI, 0, 0] });
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * TAU;
+    m.add(G.cone(0.045, 0.18, 4), gold, { p: [Math.sin(a) * 0.17, 0.3, 0.78 + Math.cos(a) * 0.17] });
+  }
+  aphidLegs(m, leg, { top: -0.45 });
+}
+
+function pillBug(m, enemy, c) {
+  // A woodlouse in full plate: seven arched bands down its back and a wide
+  // front shield, its little legs a blur underneath.
+  const plate = M.paint(c.color, { gloss: 0.6, glow: 0.1 });
+  const plate2 = M.paint(0x5a539a, { gloss: 0.6, glow: 0.1 });
+  const edge = M.paint(c.accent, { gloss: 0.6, glow: 0.25 });
+  const dark = M.matte(0x231f33);
+  for (let i = 0; i < 7; i++) {
+    const z = -0.84 + i * 0.27, t = z / 1.0;
+    const r = 0.82 * Math.sqrt(Math.max(0.2, 1 - t * t));
+    m.add(G.dome(r, 18), i % 2 ? plate2 : plate, { p: [0, -0.62, z], s: [1, 1.05, 0.36] });
+    m.add(G.torus(r, 0.04, 5, 18, Math.PI), edge, { p: [0, -0.62, z + 0.06 * (r / 0.8)], s: [1, 1.05, 1] });            // the bright seam
+  }
+  // Front shield, broad and raised.
+  m.add(G.sphere(0.5, 14, 10), plate, { p: [0, -0.48, 0.82], s: [1.15, 0.7, 0.55] });
+  m.add(G.sphere(0.24, 10, 8), dark, { p: [0, -0.62, 1.05], s: [1.2, 0.7, 0.7] });                                      // face
+  eyes(m, { x: 0.13, y: -0.55, z: 1.17, r: 0.07, color: 0xffffff });
+  for (const s of [-1, 1]) {
+    m.add(G.tube([[s * 0.15, -0.6, 1.12], [s * 0.42, -0.38, 1.35], [s * 0.6, -0.75, 1.45]], 0.03, 5), dark);            // antennae
+    m.add(G.cone(0.06, 0.25, 5), plate2, { p: [s * 0.18, -0.6, -1.08], r: [-HALF_PI - 0.3, 0, s * 0.2] });               // tail prongs
+    for (let i = 0; i < 5; i++) {
+      const leg = part(m, { k: 'swing', ax: 'x', amp: 0.6, ph: (i + (s > 0 ? 0 : 0.5)) * 1.3 }, { p: [s * 0.55, -0.66, -0.55 + i * 0.27] });
+      leg.add(G.cone(0.05, 0.3, 4), dark, { p: [s * 0.04, -0.15, 0], r: [Math.PI, 0, -s * 0.25] });
+    }
+  }
+}
+
+function compostWorm(m, enemy, c) {
+  // A fat earthworm, humped mid-crawl, with a pot of glowing compost tea on
+  // its back and a sprout on its head. It feeds the others back to health.
+  const skin = M.paint(c.color, { gloss: 0.7, glow: 0.1 });
+  const band = M.paint(0xa8304a, { gloss: 0.7, glow: 0.12 });
+  const green = M.glow(c.accent);
+  const n = 9;
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1), z = -1.0 + t * 1.75;
+    const y = -0.7 + Math.sin(Math.min(1, t * 1.25) * Math.PI) * 0.5 + (t > 0.8 ? (t - 0.8) * 1.2 : 0);
+    m.add(G.sphere(0.26 - Math.abs(t - 0.55) * 0.08, 12, 10), i === 5 ? band : skin, { p: [0, y, z], s: [1, 0.95, 1.1] });
+  }
+  // Head: the last segment, with eyes and a grin.
+  const H = [0, -0.38, 0.86];
+  m.add(G.sphere(0.27, 12, 10), skin, { p: H });
+  eyes(m, { x: 0.11, y: H[1] + 0.08, z: H[2] + 0.22, r: 0.075 });
+  m.add(G.torus(0.08, 0.02, 5, 10, Math.PI), M.matte(0x6b2a2a), { p: [0, H[1] - 0.06, H[2] + 0.25], r: [0.2, 0, Math.PI] });
+  // A sprout on its head, the leaves lit green.
+  m.add(G.cyl(0.02, 0.025, 0.25, 5), LEAF(), { p: [0, H[1] + 0.35, H[2]] });
+  for (const s of [-1, 1]) m.add(G.sphere(0.11, 8, 6), green, { p: [s * 0.1, H[1] + 0.48, H[2]], s: [1, 0.35, 0.6], r: [0, 0, s * 0.4], shadow: false });
+  // The pot of compost tea riding on the hump.
+  m.add(G.lathe([[0.12, 0], [0.17, 0.02], [0.2, 0.22], [0.23, 0.24], [0.23, 0.3], [0, 0.3]], 14), TERRACOTTA(), { p: [0, -0.02, -0.25] });
+  m.add(G.cyl(0.2, 0.2, 0.03, 14), green, { p: [0, 0.27, -0.25], shadow: false });
+  // Spores of goodness drifting up from it, throbbing.
+  [[0.1, 0.5, -0.2, 0.06], [-0.12, 0.66, -0.3, 0.05], [0.05, 0.82, -0.22, 0.04]].forEach(([x, y, z, r], i) => {
+    const sp = part(m, { k: 'pulse', f: 3 + i, amp: 0.25, ph: i * 1.9 }, { p: [x, y, z] });
+    sp.add(G.sphere(r, 8, 6), green, { shadow: false });
+  });
+}
+
 const ENEMIES = {
   SWARM: slug,
   FIRE: caterpillar,
@@ -707,7 +818,65 @@ const ENEMIES = {
   ARMORED: snail,
   ELITE: mole,
   FLYING_FIRE: crow,
-  BOSS: rabbit
+  BOSS: rabbit,
+  SPLITTER: aphidQueen,
+  SHIELDER: pillBug,
+  HEALER: compostWorm
+};
+
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius. Centred on the origin, nose along +Z.
+
+const PROJECTILES = {
+  // A garden pea.
+  pea(m) {
+    m.add(G.sphere(0.8, 14, 10), M.paint(0x8fd63c, { gloss: 0.7, glow: 0.35 }));
+    m.add(G.sphere(0.2, 6, 5), M.glow(0xeaffc2), { p: [0.3, 0.38, 0.5] });
+  },
+  // The cast hook, a red-and-white float trailing on the line.
+  hook(m) {
+    const steel = M.metal(0xdfe6ee, { rough: 0.2 });
+    m.add(G.cyl(0.08, 0.08, 1.2, 6), steel, { p: [0, 0, 0.3], r: [HALF_PI, 0, 0] });
+    m.add(G.torus(0.32, 0.08, 6, 14, Math.PI), steel, { p: [0, -0.32, 0.9], r: [0, HALF_PI, 0] });
+    m.add(G.cone(0.12, 0.3, 5), steel, { p: [0, -0.5, 0.65], r: [-0.6, 0, 0] });                                         // barb
+    m.add(G.tube([[0, 0, -0.3], [0, 0.05, -0.9]], 0.03, 4), M.glow(0xffffff, 0.8));
+    m.add(G.sphere(0.36, 10, 8), M.paint(0xe5352b, { gloss: 0.8, glow: 0.3 }), { p: [0, 0.05, -1.15], s: [1, 1, 1.1] });
+    m.add(G.dome(0.37, 10), M.paint(0xffffff, { gloss: 0.8, glow: 0.2 }), { p: [0, 0.05, -1.15], r: [-HALF_PI, 0, 0], s: [1, 1.1, 1] });
+  },
+  // A seed bomb: a ball of clay and compost studded with seeds, sprouting.
+  seedBomb(m) {
+    m.add(G.sphere(0.8, 14, 10), M.paint(0x7a4a26, { gloss: 0.15, glow: 0.15 }));
+    const seed = M.paint(0xf3e2a8, { gloss: 0.5, glow: 0.25 });
+    for (const [x, y, z] of [[0.6, 0.3, 0.3], [-0.5, 0.4, 0.4], [0.2, -0.5, 0.55], [-0.3, -0.3, -0.65], [0.55, -0.2, -0.45], [0, 0.6, -0.5]]) {
+      m.add(G.sphere(0.13, 6, 5), seed, { p: [x, y, z], s: [1, 0.6, 1.4] });
+    }
+    m.add(G.cyl(0.05, 0.06, 0.45, 5), LEAF(), { p: [0, 0.95, 0] });
+    for (const s of [-1, 1]) m.add(G.sphere(0.2, 8, 6), M.paint(0x6fd24a, { gloss: 0.5, glow: 0.35 }), { p: [s * 0.18, 1.15, 0], s: [1, 0.35, 0.6], r: [0, 0, s * 0.5] });
+  },
+  // A drop off the watering can's rose.
+  drop(m) {
+    const water = M.paint(0x8fe3ff, { gloss: 0.95, glow: 0.5 });
+    m.add(G.sphere(0.6, 12, 10), water, { p: [0, 0, 0.2] });
+    m.add(G.cone(0.58, 1.1, 12), water, { p: [0, 0, -0.62], r: [-HALF_PI, 0, 0] });
+    m.add(G.sphere(0.16, 6, 5), M.glow(0xffffff), { p: [0.24, 0.3, 0.52] });
+  },
+  // The welly, toe first.
+  boot(m) {
+    const welly = M.paint(0x52d273, { gloss: 0.8, glow: 0.3 });
+    m.add(G.rbox(0.7, 1.3, 0.75, 0.25), welly, { p: [0, 0.25, -0.35] });                                                // shaft
+    m.add(G.rbox(0.72, 0.6, 1.4, 0.28), welly, { p: [0, -0.35, 0.15] });                                                // foot
+    m.add(G.rbox(0.76, 0.14, 1.46, 0.06), M.matte(0x2a2d33), { p: [0, -0.68, 0.15] });                                  // sole
+    m.add(G.torus(0.34, 0.07, 6, 16), M.paint(0xf7f4ec, { gloss: 0.5, glow: 0.2 }), { p: [0, 0.9, -0.35], r: [HALF_PI, 0, 0], s: [1, 1.1, 1] });
+  },
+  // The Gnome King's own golden hat, point first.
+  gnomeHat(m) {
+    const gold = M.paint(0xffc928, { gloss: 0.9, glow: 0.4 });
+    m.add(G.cone(0.75, 1.9, 16), gold, { p: [0, 0, 0.35], r: [HALF_PI, 0, 0] });
+    m.add(G.cyl(0.8, 0.8, 0.22, 16), gold, { p: [0, 0, -0.62], r: [HALF_PI, 0, 0] });                                 // brim
+    m.add(G.torus(0.66, 0.12, 6, 18), M.paint(0xe5352b, { gloss: 0.7, glow: 0.35 }), { p: [0, 0, -0.42] });              // band
+    m.add(G.sphere(0.16, 8, 6), M.glow(0x7cf0ff), { p: [0, 0.68, -0.32] });                                             // jewel
+  }
 };
 
 // ── Arena ───────────────────────────────────────────────────────────────────
@@ -960,6 +1129,21 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0xa8c414, accent: ctx.accent ?? 0xffd23f });
+  },
+
+  /** Themed shot models (rendering/projectile-models.js); false for unknown names. */
+  buildProjectile(name, m, ctx) {
+    const build = PROJECTILES[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
+  },
+
+  enemyGaits: {
+    SPLITTER: { step: 2.8, bob: 0.03, yaw: 0.1, rock: 0.06, squash: 0.06 },
+    SPLITLING: { step: 4, bob: 0.03, yaw: 0.16, rock: 0.05, lean: 0.05 },
+    SHIELDER: { step: 4.5, bob: 0.01, rock: 0.02, yaw: 0.04 },
+    HEALER: { step: 1.8, bob: 0.02, squash: 0.14, nod: 0.06, yaw: 0.05 }
   },
 
   paintFloor,

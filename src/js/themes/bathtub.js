@@ -103,14 +103,14 @@ export const visuals = {
   // Keys are the shared projectile ids; see config/visual-profiles.js for the
   // mesh and flight vocabularies.
   projectiles: {
-    ball: { mesh: 'orb', flight: 'tracer', trail: 'aqua', impact: 'spark', color: 0x8fe6ff, speed: 11, size: 0.6 },            // squirt of water
-    curveBall: { mesh: 'laser', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xd6f6ff, speed: 14 },                 // needle jet
-    headButt: { mesh: 'ball', flight: 'lob', trail: 'shock', impact: 'ring', color: 0xff5db1, speed: 8.5, size: 1.15 },         // bath bomb
-    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x9fe4ff, speed: 9.5 },                  // ice-cold spray
-    glove: { mesh: 'cone', flight: 'punch', trail: 'dust', impact: 'slam', color: 0xd9342b, speed: 8.8, size: 1.2 },            // the plunger itself
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xffe14d, speed: 15 },
-    flare: { mesh: 'orb', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xffd9b0, speed: 11, size: 0.8 },              // scalding steam
-    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
+    ball: { mesh: 'orb', flight: 'tracer', trail: 'aqua', impact: 'spark', color: 0x8fe6ff, speed: 11, size: 0.6, model: 'drop', debris: 'drops', debrisColor: 0xbff3ff },            // squirt of water
+    curveBall: { mesh: 'laser', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xd6f6ff, speed: 14, debris: 'drops', debrisColor: 0xd6f6ff },                 // needle jet
+    headButt: { mesh: 'ball', flight: 'lob', trail: 'shock', impact: 'ring', color: 0xff5db1, speed: 8.5, size: 1.15, model: 'bathBomb', debris: 'ecto', debrisColor: 0xffb8e2 },         // bath bomb
+    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x9fe4ff, speed: 9.5, model: 'iceCube', debris: 'ice' },                  // ice-cold spray
+    glove: { mesh: 'cone', flight: 'punch', trail: 'dust', impact: 'slam', color: 0xd9342b, speed: 8.8, size: 1.2, model: 'plunger', debris: 'drops', debrisColor: 0xbff3ff },            // the plunger itself
+    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xffe14d, speed: 15, debris: 'sparks', debrisColor: 0xfff27a },
+    flare: { mesh: 'orb', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xffd9b0, speed: 11, size: 0.8, model: 'steam', debris: 'embers' },              // scalding steam
+    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3, model: 'shampooRocket', debris: 'drops', debrisColor: 0xffd76a }
   },
   // Keys are enemy roles, lower case. No blue bodies: the floor is bathwater.
   enemies: {
@@ -120,7 +120,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0x55606e, accent: 0xe0a93a },
     elite: { body: 'bug', color: 0x2b2f3a, accent: 0xff3b3b },
     flying_fire: { body: 'bug', color: 0xd13bd6, accent: 0xffe14d },
-    boss: { body: 'bug', color: 0xffcf1f, accent: 0x1c2a5e }
+    boss: { body: 'bug', color: 0xffcf1f, accent: 0x1c2a5e },
+    splitter: { body: 'bug', color: 0xc59cff, accent: 0xff8a1f },
+    splitling: { body: 'bug', color: 0xfff27a, accent: 0xff9a3a },
+    shielder: { body: 'bug', color: 0x2fa66a, accent: 0xe0a93a },
+    healer: { body: 'bug', color: 0xff9fc0, accent: 0x5cff8a }
   },
   towers: { family: 'bathtub', base: 0x1d4a5a, metal: 0xd7dde5, levelGlow: 0x35c9e8 }
 };
@@ -634,6 +638,136 @@ function admiralQuack(m, enemy, c) {
   badge.object.add(enemy.crownGem);
 }
 
+/** A duckling riding on its mother: body, head, beak and two dots of eye. */
+function duckling(m, body, beak, [x, y, z], ry = 0) {
+  const g = m.group({ p: [x, y, z], r: [0, ry, 0] });
+  g.object.scale.setScalar(1.25);
+  g.add(G.sphere(0.2, 12, 10), body, { p: [0, 0, -0.04], s: [0.95, 0.8, 1.15] });
+  g.add(G.cone(0.08, 0.16, 6), body, { p: [0, 0.06, -0.26], r: [-0.9, 0, 0] });                  // tail tuft
+  g.add(G.sphere(0.15, 12, 10), body, { p: [0, 0.2, 0.12] });
+  g.add(G.sphere(0.08, 8, 6), beak, { p: [0, 0.17, 0.28], s: [1.2, 0.45, 1.2] });
+  for (const s of [-1, 1]) g.add(G.sphere(0.035, 6, 5), M.glow(0x111111), { p: [s * 0.075, 0.24, 0.24], shadow: false });
+  g.add(G.cone(0.04, 0.12, 5), body, { p: [0, 0.36, 0.1], r: [-0.4, 0, 0] });                    // fluff on top
+}
+
+function motherDuck(m, enemy, c) {
+  const body = M.paint(c.color, { gloss: 0.8, glow: 0.18 });
+  const beak = M.paint(c.accent, { gloss: 0.7, glow: 0.22 });
+  if (enemy.mini) {
+    // A duckling: big head, fluff on top, wings flapping to keep up.
+    duckBody(m, enemy, body, beak, { flap: true, k: 1 });
+    m.add(G.cone(0.1, 0.3, 6), body, { p: [0, 0.78, 0.32], r: [-0.4, 0, 0] });
+    m.add(G.cone(0.07, 0.22, 6), body, { p: [0.1, 0.74, 0.3], r: [-0.3, 0, -0.5] });
+    return;
+  }
+  // A lilac mother duck, a bonnet tied under her chin, and three ducklings
+  // riding on her back: hit her hard enough and they all jump off.
+  duckBody(m, enemy, body, beak, { flap: true });
+  const chick = M.paint(0xfff27a, { gloss: 0.8, glow: 0.22 });
+  const chickBeak = M.paint(0xff9a3a, { gloss: 0.7, glow: 0.2 });
+  duckling(m, chick, chickBeak, [-0.28, 0.14, -0.34], 0.25);
+  duckling(m, chick, chickBeak, [0.28, 0.14, -0.34], -0.25);
+  duckling(m, chick, chickBeak, [0, 0.2, -0.72]);
+  // A headscarf knotted in a big pink bow on top.
+  const pink = M.paint(0xff5db1, { gloss: 0.6, glow: 0.3 });
+  m.add(G.torus(0.4, 0.06, 6, 20), pink, { p: [0, 0.42, 0.3], r: [HALF_PI + 0.35, 0, 0] });
+  for (const s of [-1, 1]) m.add(G.cone(0.13, 0.3, 6), pink, { p: [s * 0.15, 0.78, 0.22], r: [0, 0, s * HALF_PI] });   // bow loops
+  m.add(G.sphere(0.08, 8, 6), pink, { p: [0, 0.78, 0.22] });
+}
+
+function tinTurtle(m, enemy, c) {
+  // A clockwork tin turtle: a great riveted dome of a shell, painted plates,
+  // a brass rim, and the key turning on top. Everything near it hides behind it.
+  const tin = M.paint(c.color, { gloss: 0.8, glow: 0.14 });
+  const plate = M.paint(0x9be35a, { gloss: 0.8, glow: 0.2 });
+  const brass = M.paint(c.accent, { gloss: 0.9, glow: 0.25 });
+  const skin = M.paint(0xa6b4c2, { gloss: 0.7, glow: 0.12 });
+  const C = [0, -0.48, -0.05], R = 0.88, SY = 0.95, SZ = 1.1;
+  m.add(G.dome(R, 22), tin, { p: C, s: [1, SY, SZ] });
+  m.add(G.cyl(R, R * 0.92, 0.12, 22), skin, { p: [C[0], C[1] - 0.06, C[2]], s: [1, 1, SZ] });   // underside
+  m.add(G.torus(R, 0.07, 6, 28), brass, { p: C, r: [HALF_PI, 0, 0], s: [1, SZ, 1] });              // rim
+  // Painted plates: one on the crown, a ring of six round it.
+  const on = (th, ph, r) => [C[0] + Math.sin(th) * Math.cos(ph) * R * r, C[1] + Math.cos(th) * R * SY * r, C[2] + Math.sin(th) * Math.sin(ph) * R * SZ * r];
+  m.add(G.sphere(0.3, 12, 8), plate, { p: on(0, 0, 0.98), s: [1, 0.3, 1.1] });
+  for (let i = 0; i < 6; i++) {
+    const ph = (i / 6) * TAU + 0.5;
+    m.add(G.sphere(0.22, 10, 8), plate, { p: on(0.85, ph, 0.97), s: 1 });
+  }
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * TAU;
+    m.add(G.sphere(0.05, 6, 5), brass, { p: [C[0] + Math.cos(a) * R, C[1] + 0.08, C[2] + Math.sin(a) * R * SZ] });   // rivets
+  }
+  // Head out front, peering.
+  m.add(G.capsule(0.13, 0.4, 10), skin, { p: [0, -0.55, 0.85], r: [1.2, 0, 0] });
+  m.add(G.sphere(0.25, 12, 10), skin, { p: [0, -0.38, 1.12], s: [1, 0.85, 1.1] });
+  for (const s of [-1, 1]) {
+    m.add(G.sphere(0.08, 8, 6), M.glow(0xffffff), { p: [s * 0.13, -0.28, 1.28], shadow: false });
+    m.add(G.sphere(0.04, 6, 5), M.glow(0x111111), { p: [s * 0.13, -0.28, 1.35], shadow: false });
+  }
+  // Four flippers, paddling.
+  [[1, 0.55], [-1, 0.55], [1, -0.6], [-1, -0.6]].forEach(([s, z], i) => {
+    const leg = part(m, { k: 'swing', ax: 'x', amp: 0.5, ph: (i === 0 || i === 3) ? 0 : Math.PI }, { p: [s * 0.6, -0.6, z] });
+    leg.add(G.cyl(0.11, 0.13, 0.32, 8), skin, { p: [s * 0.04, -0.16, 0] });
+    leg.add(G.sphere(0.15, 8, 6), skin, { p: [s * 0.06, -0.32, 0.05], s: [1, 0.45, 1.3] });
+  });
+  m.add(G.cone(0.08, 0.28, 6), skin, { p: [0, -0.6, -1.05], r: [-HALF_PI - 0.2, 0, 0] });        // tail
+  // The wind-up key.
+  const key = part(m, { k: 'spin', ax: 'z', sp: 3 }, { p: [0, 0.48, -0.3] });
+  key.add(G.cyl(0.035, 0.035, 0.2, 8), brass, { p: [0, 0, 0] });
+  for (const s of [-1, 1]) key.add(G.torus(0.11, 0.035, 6, 14), brass, { p: [s * 0.12, 0.17, 0], r: [0, 0, 0] });
+}
+
+function spongeMedic(m, enemy, c) {
+  // A bath sponge on stubby legs, in a nurse's cap, carrying a bottle of
+  // glowing green soap. It scrubs the fleet back into shape.
+  const sponge = M.paint(c.color, { gloss: 0.12, glow: 0.14 });
+  const pore = M.matte(0xb04a6a);
+  const white = M.paint(0xffffff, { gloss: 0.5, glow: 0.18 });
+  const green = M.glow(c.accent);
+  m.add(G.rbox(1.1, 1.05, 0.72, 0.16), sponge, { p: [0, -0.2, 0] });
+  m.add(G.rbox(1.12, 0.14, 0.74, 0.05), M.paint(0x2f8f5a, { gloss: 0.3, glow: 0.1 }), { p: [0, -0.68, 0] });   // scourer sole
+  for (const [x, y] of [[-0.36, -0.5], [0.38, -0.38], [-0.4, 0.12], [0.42, 0.18], [0.05, -0.55], [-0.18, -0.4], [0.24, -0.56]]) {
+    m.add(G.sphere(0.06, 6, 5), pore, { p: [x, y, 0.35], s: [1, 1, 0.4] });
+  }
+  for (const [x, y, z] of [[0.56, -0.1, 0.1], [-0.56, -0.3, -0.15], [0.56, -0.45, -0.2], [-0.56, 0.1, 0.12]]) {
+    m.add(G.sphere(0.06, 6, 5), pore, { p: [x, y, z], s: [0.4, 1, 1] });
+  }
+  eyes2(m, { x: 0.2, y: 0.02, z: 0.37 });
+  m.add(G.torus(0.12, 0.03, 5, 10, Math.PI), M.matte(0x6a1a2c), { p: [0, -0.18, 0.37], r: [0, 0, Math.PI] });   // smile
+  // Nurse's cap with a green cross.
+  m.add(G.rbox(0.62, 0.3, 0.42, 0.06), white, { p: [0, 0.46, 0.02], r: [-0.15, 0, 0] });
+  m.add(G.box(0.08, 0.22, 0.03), green, { p: [0, 0.48, 0.25], r: [-0.15, 0, 0], shadow: false });
+  m.add(G.box(0.22, 0.08, 0.03), green, { p: [0, 0.48, 0.25], r: [-0.15, 0, 0], shadow: false });
+  // Legs.
+  for (const s of [-1, 1]) {
+    const leg = part(m, { k: 'swing', ax: 'x', amp: 0.7, ph: s > 0 ? 0 : Math.PI }, { p: [s * 0.28, -0.72, 0] });
+    leg.add(G.cyl(0.07, 0.07, 0.16, 6), sponge, { p: [0, -0.08, 0] });
+    leg.add(G.sphere(0.12, 8, 6), white, { p: [0, -0.17, 0.06], s: [1, 0.5, 1.4] });
+  }
+  // Arm holding up the soap bottle, which glows.
+  const arm = part(m, { k: 'swing', ax: 'x', amp: 0.25, ph: 0 }, { p: [0.56, -0.1, 0.1] });
+  arm.add(G.cyl(0.05, 0.05, 0.36, 6), sponge, { p: [0.08, 0.12, 0.05], r: [0.3, 0, -0.5] });
+  arm.add(G.capsule(0.13, 0.42, 12), M.paint(c.accent, { gloss: 0.9, glow: 0.6 }), { p: [0.22, 0.22, 0.18] });
+  arm.add(G.cyl(0.06, 0.06, 0.1, 8), white, { p: [0.22, 0.68, 0.18] });
+  arm.add(G.rbox(0.05, 0.04, 0.14, 0.015), white, { p: [0.22, 0.74, 0.24] });
+  const other = part(m, { k: 'swing', ax: 'x', amp: 0.6, ph: Math.PI }, { p: [-0.56, -0.1, 0.05] });
+  other.add(G.cyl(0.05, 0.05, 0.32, 6), sponge, { p: [-0.1, -0.1, 0], r: [0, 0, -0.6] });
+  // Soap bubbles hovering round it, throbbing.
+  const bubble = M.glass(0xe9fff0, 0.55);
+  [[-0.42, 0.62, -0.2, 0.1], [0.46, 0.9, -0.12, 0.07], [-0.2, 0.84, -0.35, 0.06]].forEach(([x, y, z, r], i) => {
+    const b = part(m, { k: 'pulse', f: 3 + i, amp: 0.18, ph: i * 1.7 }, { p: [x, y, z] });
+    b.add(G.sphere(r, 8, 6), bubble, { shadow: false });
+  });
+}
+
+/** Plain toy eyes: white with a dark pupil, looking forward. */
+function eyes2(m, { x = 0.2, y = 0, z = 0.4, r = 0.1 } = {}) {
+  for (const s of [-1, 1]) {
+    m.add(G.sphere(r, 10, 8), M.glow(0xffffff), { p: [s * x, y, z], s: [1, 1, 0.6], shadow: false });
+    m.add(G.sphere(r * 0.5, 8, 6), M.glow(0x111111), { p: [s * x, y, z + r * 0.5], shadow: false });
+  }
+}
+
 const ENEMIES = {
   SWARM: rubberDuck,
   FIRE: boiledDuck,
@@ -641,7 +775,65 @@ const ENEMIES = {
   ARMORED: submarine,
   ELITE: pirateDuck,
   FLYING_FIRE: bottleRocket,
-  BOSS: admiralQuack
+  BOSS: admiralQuack,
+  SPLITTER: motherDuck,
+  SHIELDER: tinTurtle,
+  HEALER: spongeMedic
+};
+
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius. Centred on the origin, nose along +Z.
+
+const PROJECTILES = {
+  // A squirt of water: a fat drop, round end first.
+  drop(m) {
+    const water = M.paint(0x8fe6ff, { gloss: 0.95, glow: 0.5 });
+    m.add(G.sphere(0.6, 12, 10), water, { p: [0, 0, 0.2] });
+    m.add(G.cone(0.58, 1.1, 12), water, { p: [0, 0, -0.62], r: [-HALF_PI, 0, 0] });
+    m.add(G.sphere(0.16, 6, 5), M.glow(0xffffff), { p: [0.24, 0.3, 0.52] });
+  },
+  // A bath bomb: a fizzing pastel ball with a band round its middle.
+  bathBomb(m) {
+    m.add(G.sphere(0.75, 14, 10), M.paint(0xb78bff, { gloss: 0.2, glow: 0.35 }));
+    m.add(G.torus(0.76, 0.1, 5, 20), M.paint(0xfff27a, { gloss: 0.3, glow: 0.45 }), { r: [HALF_PI, 0, 0] });
+    m.add(G.sphere(0.4, 10, 8), M.paint(0xff7ab8, { gloss: 0.2, glow: 0.35 }), { p: [0.35, 0.45, 0.2], s: [1, 0.6, 1] });
+    const fizz = M.glass(0xffffff, 0.6);
+    for (const [x, y, z] of [[-0.5, 0.6, -0.3], [0.1, 0.85, -0.5], [0.6, 0.2, -0.6]]) m.add(G.sphere(0.16, 6, 5), fizz, { p: [x, y, z] });
+  },
+  // An ice cube off the cold tap.
+  iceCube(m) {
+    m.add(G.rbox(1.1, 1.1, 1.1, 0.22), M.paint(0xbfefff, { gloss: 0.95, glow: 0.45 }), { r: [0.4, 0.6, 0.2] });
+    m.add(G.rbox(0.3, 0.9, 1.16, 0.06), M.glow(0xffffff), { p: [0.22, 0.05, 0], r: [0.4, 0.6, 0.2] });   // glint
+  },
+  // The plunger itself, cup first.
+  plunger(m) {
+    const red = M.paint(0xd9342b, { gloss: 0.6, glow: 0.25 });
+    m.add(G.lathe([[0.1, 0], [0.3, 0.15], [0.62, 0.42], [0.75, 0.62], [0.68, 0.64], [0.55, 0.5], [0, 0.4]], 16), red, { p: [0, 0, 0.05], r: [HALF_PI, 0, 0] });
+    m.add(G.cyl(0.1, 0.1, 1.5, 8), M.paint(0xc98f4e, { gloss: 0.4 }), { p: [0, 0, -0.65], r: [HALF_PI, 0, 0] });
+    m.add(G.sphere(0.15, 8, 6), M.paint(0xc98f4e, { gloss: 0.4 }), { p: [0, 0, -1.4] });
+  },
+  // A puff of steam.
+  steam(m) {
+    const puff = M.paint(0xffffff, { gloss: 0.2, glow: 0.75 });
+    m.add(G.sphere(0.55, 10, 8), puff, { p: [0, 0, 0.25] });
+    m.add(G.sphere(0.42, 10, 8), puff, { p: [0.3, 0.2, -0.3] });
+    m.add(G.sphere(0.36, 10, 8), puff, { p: [-0.28, -0.1, -0.5] });
+  },
+  // A tiny shampoo bottle with fins taped on.
+  shampooRocket(m) {
+    const gold = M.paint(0xffc928, { gloss: 0.9, glow: 0.35 });
+    const red = M.paint(0xe5352b, { gloss: 0.8, glow: 0.3 });
+    m.add(G.capsule(0.42, 1.5, 12), gold, { p: [0, 0, -0.75], r: [HALF_PI, 0, 0] });
+    m.add(G.sleeve(0.43, 0.43, 0.5, 14), M.paint(0xffffff, { gloss: 0.4, glow: 0.2 }), { p: [0, 0, -0.1], r: [HALF_PI, 0, 0] });
+    m.add(G.cone(0.3, 0.55, 12), red, { p: [0, 0, 0.95], r: [HALF_PI, 0, 0] });
+    for (let i = 0; i < 3; i++) {
+      const a = i * (TAU / 3);
+      const fin = G.plate([[0, 0], [0.45, -0.25], [0.45, 0.05], [0, 0.5]], 0.06);
+      fin.rotateX(HALF_PI);
+      m.add(fin, red, { p: [Math.cos(a) * 0.38, Math.sin(a) * 0.38, -0.55], r: [0, 0, a] });
+    }
+  }
 };
 
 // ── Arena ───────────────────────────────────────────────────────────────────
@@ -839,6 +1031,21 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0xffd21a, accent: ctx.accent ?? 0xff7a1a });
+  },
+
+  /** Themed shot models (rendering/projectile-models.js); false for unknown names. */
+  buildProjectile(name, m, ctx) {
+    const build = PROJECTILES[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
+  },
+
+  enemyGaits: {
+    SPLITTER: { step: 2.4, bob: 0.08, rock: 0.18, lean: 0.06, nod: 0.04 },
+    SPLITLING: { step: 3.6, bob: 0.1, rock: 0.16, lean: 0.08 },
+    SHIELDER: { step: 4.2, bob: 0.02, rock: 0.05, nod: 0.03 },
+    HEALER: { step: 2.6, bob: 0.12, rock: 0.08, squash: 0.08 }
   },
 
   paintFloor,

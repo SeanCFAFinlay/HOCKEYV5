@@ -106,18 +106,18 @@ export const visuals = {
   // mesh and flight vocabularies.
   projectiles: {
     // A ball of dough, lobbed.
-    ball: { mesh: 'ball', flight: 'lob', trail: 'dust', impact: 'spark', color: 0xf6e2b8, speed: 11, size: 0.72 },
+    ball: { mesh: 'ball', model: 'doughBall', debris: 'crumbs', debrisColor: 0xf6e2b8, flight: 'lob', trail: 'dust', impact: 'spark', color: 0xf6e2b8, speed: 11, size: 0.72 },
     // A slice of pepperoni, frisbeed off the peel.
-    curveBall: { mesh: 'puck', flight: 'tracer', trail: 'line', impact: 'spark', color: 0xe8433a, speed: 14 },
+    curveBall: { mesh: 'puck', model: 'pepperoni', debris: 'chunks', debrisColor: 0xb3261a, flight: 'tracer', trail: 'line', impact: 'spark', color: 0xe8433a, speed: 14 },
     // A ladle of hot sauce.
-    headButt: { mesh: 'orb', flight: 'lob', trail: 'dust', impact: 'ring', color: 0xe23a1e, speed: 8.5, size: 1.15 },
+    headButt: { mesh: 'orb', model: 'sauceBlob', debris: 'drops', debrisColor: 0xc8301c, flight: 'lob', trail: 'dust', impact: 'ring', color: 0xe23a1e, speed: 8.5, size: 1.15 },
     // Strings of mozzarella.
-    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0xffe9a0, speed: 9.5 },
+    tackle: { mesh: 'shard', model: 'mozzString', debris: 'drops', debrisColor: 0xffe27a, flight: 'spray', trail: 'frost', impact: 'freeze', color: 0xffe9a0, speed: 9.5 },
     // The rolling pin's bonk.
-    glove: { mesh: 'block', flight: 'punch', trail: 'dust', impact: 'slam', color: 0xd99a4e, speed: 8.8, size: 1.2 },
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xd6ff7a, speed: 15 },
-    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff6a14, speed: 11, size: 0.85 },
-    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
+    glove: { mesh: 'block', model: 'rollingPin', debris: 'crumbs', debrisColor: 0xfdfaf2, flight: 'punch', trail: 'dust', impact: 'slam', color: 0xd99a4e, speed: 8.8, size: 1.2 },
+    chain: { mesh: 'bolt', model: 'garlicClove', debris: 'sparks', debrisColor: 0xd6ff7a, flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xd6ff7a, speed: 15 },
+    flare: { mesh: 'plasma', debris: 'embers', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff6a14, speed: 11, size: 0.85 },
+    legend: { mesh: 'star', model: 'cutterWheel', debris: 'sparks', debrisColor: 0xffc928, flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
   },
   // Keys are enemy roles, lower case.
   enemies: {
@@ -127,7 +127,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0xe6a21e, accent: 0x3f9a3a },
     elite: { body: 'bug', color: 0x2a2440, accent: 0xc8322a },
     flying_fire: { body: 'bug', color: 0xc8742c, accent: 0xff5a14 },
-    boss: { body: 'bug', color: 0xeef2f5, accent: 0x2a5ad8 }
+    boss: { body: 'bug', color: 0xeef2f5, accent: 0x2a5ad8 },
+    splitter: { body: 'bug', color: 0x6e5240, accent: 0x2a1f1a },
+    splitling: { body: 'bug', color: 0x8a6a52, accent: 0x2a1f1a },
+    shielder: { body: 'bug', color: 0x5c524c, accent: 0xd8a868 },
+    healer: { body: 'bug', color: 0x2fae4a, accent: 0x9dff9a }
   },
   towers: { family: 'pizza', base: 0x2a1812, metal: 0xd7dde5, levelGlow: 0xff5a3c }
 };
@@ -844,7 +848,151 @@ function healthInspector(m, enemy, c) {
   pad.object.add(enemy.crownGem);
 }
 
+function raccoonKit(m, c) {
+  // A raccoon kit: all head and tail, tiny mask, tiny legs. Used for the
+  // splitlings, and for the three riding on Mama's back.
+  const fur = M.paint(c.color, { gloss: 0.3, glow: 0.16 });
+  const dark = M.paint(c.accent, { gloss: 0.35, glow: 0.05 });
+  const pale = M.paint(0xf3eee4, { gloss: 0.3, glow: 0.18 });
+  m.add(G.sphere(0.5, 14, 10), fur, { p: [0, -0.4, -0.1], s: [1, 0.9, 1.1] });
+  m.add(G.sphere(0.5, 16, 12), fur, { p: [0, 0.22, 0.22] });                                       // big head
+  for (const s of [-1, 1]) {
+    m.add(G.cone(0.16, 0.28, 6), fur, { p: [s * 0.34, 0.7, 0.14], r: [0, 0, -s * 0.4] });
+    m.add(G.sphere(0.2, 10, 8), pale, { p: [s * 0.3, 0.1, 0.52], s: [1.1, 0.8, 0.7] });
+  }
+  m.add(G.sphere(0.34, 12, 8), dark, { p: [0, 0.3, 0.5], s: [1.5, 0.5, 0.7] });                      // mask
+  eyes(m, { x: 0.19, y: 0.32, z: 0.66, r: 0.13 });
+  m.add(G.sphere(0.14, 10, 8), pale, { p: [0, 0.1, 0.7], s: [1, 0.8, 1.2] });
+  m.add(G.sphere(0.07, 8, 6), M.paint(0x15171c, { gloss: 0.95 }), { p: [0, 0.14, 0.86] });
+  const tail = part(m, { k: 'swing', ax: 'y', amp: 0.6, f: 2.5, ph: 0 }, { p: [0, -0.3, -0.6] });
+  for (let i = 0; i < 4; i++) tail.add(G.sphere(0.2 - i * 0.02, 8, 6), i % 2 ? dark : fur, { p: [0, i * 0.14, -i * 0.12] });
+  legs(m, dark, dark, { x: 0.26, hip: -0.72, len: 0.2, r: 0.1, amp: 1 });
+}
+
+function mamaRaccoon(m, enemy, c) {
+  // Mama Raccoon: big, round and slow, a striped apron round her middle and
+  // three kits clinging to her back. Knock her down and they scatter.
+  if (enemy.mini) return raccoonKit(m, c);
+  const fur = M.paint(c.color, { gloss: 0.3, glow: 0.12 });
+  const dark = M.paint(c.accent, { gloss: 0.35, glow: 0.05 });
+  const pale = M.paint(0xeee9df, { gloss: 0.3, glow: 0.14 });
+  const apron = M.paint(0xfbf7ee, { gloss: 0.4, glow: 0.12 });
+  const check = M.paint(0xd8322a, { gloss: 0.5, glow: 0.14 });
+  m.add(G.sphere(0.7, 18, 14), fur, { p: [0, -0.22, -0.05], s: [1.05, 1, 1] });                     // round body
+  m.add(G.sphere(0.55, 14, 10), apron, { p: [0, -0.3, 0.26], s: [1, 1, 0.66] });                     // apron
+  for (const y of [-0.12, -0.42]) m.add(G.torus(0.48, 0.035, 5, 20, Math.PI), check, { p: [0, y, 0.3], r: [0, 0, Math.PI], s: [1, 0.3, 0.7] });
+  m.add(G.sphere(0.38, 16, 12), fur, { p: [0, 0.48, 0.38] });                                      // head
+  for (const s of [-1, 1]) {
+    m.add(G.sphere(0.17, 10, 8), pale, { p: [s * 0.22, 0.4, 0.6], s: [1.1, 0.8, 0.8] });
+    m.add(G.cone(0.12, 0.2, 6), fur, { p: [s * 0.26, 0.84, 0.32], r: [0, 0, -s * 0.35] });
+  }
+  m.add(G.sphere(0.26, 14, 8), dark, { p: [0, 0.54, 0.6], s: [1.5, 0.5, 0.8] });
+  m.add(G.sphere(0.21, 12, 8), pale, { p: [0, 0.7, 0.6], s: [1.3, 0.3, 0.6] });
+  eyes(m, { x: 0.15, y: 0.56, z: 0.76, r: 0.09 });
+  m.add(G.sphere(0.13, 10, 8), pale, { p: [0, 0.4, 0.8], s: [1, 0.8, 1.3] });
+  m.add(G.sphere(0.06, 8, 6), M.paint(0x15171c, { gloss: 0.95 }), { p: [0, 0.44, 0.96] });
+  // A red kerchief on her head.
+  m.add(G.sphere(0.3, 12, 8), check, { p: [0, 0.74, 0.3], s: [1.2, 0.45, 1.1] });
+  // Three kits clinging to her back, peeking over her shoulders.
+  for (const [x, y, z, ry] of [[-0.44, 0.38, -0.32, -0.5], [0.44, 0.38, -0.32, 0.5], [0, 0.5, -0.56, 0]]) {
+    const kit = m.group({ p: [x, y, z], r: [0, ry, 0] });
+    kit.object.scale.setScalar(0.44);
+    kit.add(G.sphere(0.5, 12, 10), fur, { p: [0, 0.22, 0.22] });
+    for (const s of [-1, 1]) kit.add(G.cone(0.16, 0.28, 6), fur, { p: [s * 0.34, 0.7, 0.14], r: [0, 0, -s * 0.4] });
+    kit.add(G.sphere(0.34, 10, 6), dark, { p: [0, 0.3, 0.5], s: [1.5, 0.5, 0.7] });
+    for (const s of [-1, 1]) kit.add(G.sphere(0.12, 8, 6), M.glow(0xffffff), { p: [s * 0.19, 0.32, 0.66], shadow: false });
+    kit.add(G.sphere(0.1, 8, 6), M.paint(0x15171c, { gloss: 0.95 }), { p: [0, 0.12, 0.74] });
+  }
+  // Ringed tail.
+  const tail = part(m, { k: 'swing', ax: 'y', amp: 0.35, f: 1.2, ph: 0 }, { p: [0, -0.45, -0.7] });
+  for (let i = 0; i < 5; i++) tail.add(G.sphere(0.22 - i * 0.015, 10, 8), i % 2 ? dark : fur, { p: [0, i * 0.1, -i * 0.13] });
+  for (const s of [-1, 1]) {
+    m.add(G.tube([[s * 0.6, 0.0, 0.2], [s * 0.5, -0.2, 0.5], [s * 0.2, -0.2, 0.62]], 0.08, 6), fur);
+    m.add(G.sphere(0.09, 8, 6), dark, { p: [s * 0.18, -0.2, 0.64] });
+  }
+  legs(m, dark, dark, { x: 0.34, hip: -0.72, len: 0.2, r: 0.11, amp: 0.7 });
+}
+
+function boxLidRat(m, enemy, c) {
+  // A sewer rat hiding behind the lid of a pizza box, held up in front like
+  // a riot shield. The lid has the shop's logo on it.
+  const fur = M.paint(c.color, { gloss: 0.35, glow: 0.1 });
+  const pink = M.paint(0xf2a0a8, { gloss: 0.5, glow: 0.16 });
+  const card = M.paint(c.accent, { gloss: 0.15, glow: 0.12 });
+  const cardDark = M.paint(0x9a6a36, { gloss: 0.15 });
+  m.add(G.sphere(0.55, 16, 12), fur, { p: [0, -0.3, -0.25], s: [0.95, 0.85, 1.3] });
+  m.add(G.sphere(0.34, 14, 10), fur, { p: [0, 0.18, 0.02], s: [1, 0.95, 1.2] });
+  m.add(G.cone(0.2, 0.42, 10), fur, { p: [0, 0.12, 0.38], r: [HALF_PI, 0, 0] });                   // pointed snout
+  m.add(G.sphere(0.06, 8, 6), pink, { p: [0, 0.12, 0.6] });
+  for (const s of [-1, 1]) {
+    m.add(G.sphere(0.2, 12, 8), fur, { p: [s * 0.28, 0.5, -0.05], s: [1, 1, 0.3] });                // round ears
+    m.add(G.sphere(0.14, 10, 8), pink, { p: [s * 0.28, 0.5, -0.0], s: [1, 1, 0.25] });
+  }
+  eyes(m, { x: 0.15, y: 0.3, z: 0.26, r: 0.08, color: 0xffe0e0, brow: 0.5, browMat: M.matte(0x2a2420) });
+  // Long pink tail.
+  const tail = part(m, { k: 'swing', ax: 'y', amp: 0.4, f: 1.6, ph: 0 }, { p: [0, -0.5, -0.9] });
+  tail.add(G.tube([[0, 0, 0], [0.15, -0.1, -0.3], [-0.1, -0.15, -0.6], [0.05, -0.05, -0.85]], 0.04, 6), pink);
+  // The lid: a square of cardboard with a folded rim, held in front.
+  const shield = part(m, { k: 'swing', ax: 'x', amp: 0.12, ph: 0 }, { p: [0, -0.1, 0.62] });
+  shield.add(G.rbox(1.5, 1.35, 0.06, 0.02), card, { r: [-0.08, 0, 0] });
+  shield.add(G.rbox(1.56, 0.08, 0.14, 0.02), cardDark, { p: [0, 0.68, -0.02], r: [-0.08, 0, 0] });
+  shield.add(G.rbox(1.56, 0.08, 0.14, 0.02), cardDark, { p: [0, -0.68, 0.08], r: [-0.08, 0, 0] });
+  for (const s of [-1, 1]) shield.add(G.rbox(0.08, 1.35, 0.14, 0.02), cardDark, { p: [s * 0.76, 0, 0.03], r: [-0.08, 0, 0] });
+  // Logo: a red ring and a slice.
+  shield.add(G.torus(0.34, 0.05, 6, 24), M.paint(0xd8322a, { gloss: 0.5, glow: 0.25 }), { p: [0, 0.02, 0.06], r: [-0.08, 0, 0] });
+  shield.add(G.plate([[0, 0.24], [-0.16, -0.18], [0.16, -0.18]], 0.02), CHEESE(), { p: [0, 0.02, 0.06], r: [-0.08, 0, 0] });
+  for (const [x, y] of [[0, -0.02], [-0.06, -0.12], [0.06, -0.12]]) shield.add(G.cyl(0.035, 0.035, 0.02, 10), PEPPERONI(), { p: [x, y + 0.02, 0.08], r: [HALF_PI - 0.08, 0, 0] });
+  // Paws gripping the edges.
+  for (const s of [-1, 1]) {
+    m.add(G.tube([[s * 0.3, 0.0, 0.0], [s * 0.55, 0.05, 0.3], [s * 0.72, 0.1, 0.52]], 0.06, 6), fur);
+    m.add(G.sphere(0.08, 8, 6), pink, { p: [s * 0.74, 0.12, 0.56] });
+  }
+  legs(m, fur, pink, { x: 0.3, hip: -0.62, len: 0.3, r: 0.08, amp: 0.6, z: -0.2 });
+}
+
+function sauceMedic(m, enemy, c) {
+  // A jar of the house sauce with a green first-aid lid, a basil sprig
+  // tucked in its band, and a squeeze bottle of pesto to patch everyone up.
+  const glass = M.glass(0xffe8e0, 0.22);
+  const sauce = M.paint(0xc8301c, { gloss: 0.8, glow: 0.2 });
+  const lid = M.paint(c.color, { gloss: 0.7, glow: 0.25 });
+  const label = M.paint(0xfbf7ee, { gloss: 0.4, glow: 0.14 });
+  const heal = M.glow(c.accent);
+  m.add(G.cyl(0.5, 0.52, 1.1, 22), sauce, { p: [0, -0.3, 0] });                                   // sauce inside
+  m.add(G.lathe([[0.5, 0], [0.58, 0.04], [0.6, 0.15], [0.6, 1.05], [0.52, 1.18], [0.5, 1.24], [0, 1.24]], 24), glass, { p: [0, -0.88, 0] });
+  m.add(G.sleeve(0.61, 0.61, 0.42, 24), label, { p: [0, -0.32, 0] });
+  m.add(G.sphere(0.06, 8, 6), BASIL(), { p: [0.3, -0.24, 0.55], s: [1.8, 0.9, 0.3] });
+  // Lid with a white cross, and a soft green halo.
+  m.add(G.cyl(0.54, 0.54, 0.2, 22), lid, { p: [0, 0.46, 0] });
+  m.add(G.torus(0.54, 0.03, 5, 22), lid, { p: [0, 0.4, 0], r: [HALF_PI, 0, 0] });
+  m.add(G.box(0.46, 0.04, 0.14), M.glow(0xffffff), { p: [0, 0.575, 0], shadow: false });
+  m.add(G.box(0.14, 0.04, 0.46), M.glow(0xffffff), { p: [0, 0.575, 0], shadow: false });
+  m.add(G.rbox(0.36, 0.36, 0.06, 0.02), label, { p: [0, 0.46, 0.53] });
+  m.add(G.box(0.24, 0.07, 0.02), heal, { p: [0, 0.46, 0.565], shadow: false });
+  m.add(G.box(0.07, 0.24, 0.02), heal, { p: [0, 0.46, 0.565], shadow: false });
+  const glowRing = part(m, { k: 'pulse', f: 3, amp: 0.25 }, { p: [0, 0.7, 0] });
+  glowRing.add(G.torus(0.34, 0.04, 6, 22), M.energy(c.accent, 0.6), { r: [HALF_PI, 0, 0], shadow: false });
+  // A basil sprig sprouting from the lid.
+  for (const [a, k] of [[0.4, 1], [2.4, 0.9], [4.3, 0.8]]) m.add(G.sphere(0.12 * k, 8, 6), BASIL(), { p: [Math.cos(a) * 0.12, 0.66, Math.sin(a) * 0.12 - 0.2], r: [0.5, a, 0], s: [1.6, 0.3, 0.9] });
+  // Face on the glass.
+  eyes(m, { x: 0.2, y: 0.08, z: 0.58, r: 0.12 });
+  m.add(G.torus(0.09, 0.025, 5, 10, Math.PI), M.glow(0x5a1626), { p: [0, -0.06, 0.6], r: [0, 0, Math.PI], shadow: false });
+  // Pesto squeeze bottle in one hand, a dab on a spoon in the other.
+  const bottle = part(m, { k: 'swing', ax: 'x', amp: 0.3, ph: 0 }, { p: [0.6, -0.1, 0.1] });
+  bottle.add(G.tube([[0, 0, 0], [0.12, -0.05, 0.2], [0.14, 0.05, 0.36]], 0.05, 6), label);
+  bottle.add(G.capsule(0.11, 0.42, 10), M.paint(0x3fbf4a, { gloss: 0.7, glow: 0.35 }), { p: [0.15, 0.0, 0.42] });
+  bottle.add(G.cone(0.05, 0.16, 8), label, { p: [0.15, 0.5, 0.42] });
+  const spoon = part(m, { k: 'swing', ax: 'x', amp: 0.3, ph: Math.PI }, { p: [-0.6, -0.1, 0.1] });
+  spoon.add(G.tube([[0, 0, 0], [-0.12, -0.05, 0.2], [-0.12, 0.05, 0.36]], 0.05, 6), label);
+  spoon.add(G.cyl(0.02, 0.02, 0.36, 6), STEEL(), { p: [-0.12, 0.12, 0.42] });
+  spoon.add(G.sphere(0.08, 10, 8), heal, { p: [-0.12, 0.32, 0.42], shadow: false });
+  legs(m, label, M.paint(0x3a2620, { gloss: 0.6 }), { x: 0.24, hip: -0.82, len: 0.1, r: 0.08, amp: 0.8 });
+}
+
 const ENEMIES = {
+  SPLITTER: mamaRaccoon,
+  SHIELDER: boxLidRat,
+  HEALER: sauceMedic,
   SWARM: raccoon,
   FIRE: pepperGremlin,
   FLYING: seagull,
@@ -1126,6 +1274,70 @@ function buildSurround(scene, hw, hh) {
   return out;
 }
 
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius, nose along +Z (see rendering/projectile-models.js).
+
+const SHOTS = {
+  doughBall(m) {
+    // A ball of dough, lumpy and floury.
+    m.add(G.sphere(0.95, 14, 10), DOUGH(), { s: [1, 0.9, 1] });
+    m.add(G.sphere(0.5, 10, 8), DOUGH(), { p: [0.5, 0.3, -0.3] });
+    for (const [x, y, z] of [[0.3, 0.75, 0.2], [-0.4, 0.6, -0.3], [-0.2, 0.3, 0.8]]) {
+      m.add(G.sphere(0.28, 8, 6), M.paint(0xffffff, { gloss: 0.1, glow: 0.35 }), { p: [x, y, z], s: [1.4, 0.5, 1.2] });
+    }
+  },
+  pepperoni(m) {
+    // A round of pepperoni, frisbeed flat, fat speckles on top.
+    m.add(G.cyl(1.15, 1.15, 0.28, 20), PEPPERONI());
+    m.add(G.torus(1.1, 0.08, 5, 20), M.paint(0x7a1a10, { gloss: 0.5 }), { r: [HALF_PI, 0, 0] });
+    for (const [x, z] of [[0.4, 0.3], [-0.35, 0.45], [-0.3, -0.4], [0.45, -0.35], [0, 0]]) {
+      m.add(G.sphere(0.13, 6, 4), M.paint(0xf3d2a0, { glow: 0.2 }), { p: [x, 0.15, z], s: [1, 0.35, 1] });
+    }
+  },
+  sauceBlob(m) {
+    // A ladleful of tomato sauce, trailing a drip, a fleck of basil in it.
+    m.add(G.sphere(1, 14, 10), SAUCE());
+    m.add(G.cone(0.6, 1.4, 10), SAUCE(), { p: [0, 0, -1.1], r: [-HALF_PI, 0, 0] });
+    m.add(G.sphere(0.3, 8, 6), SAUCE(), { p: [0.6, -0.4, -0.9] });
+    m.add(G.sphere(0.3, 8, 6), BASIL(), { p: [0.3, 0.85, 0.2], s: [1.5, 0.3, 1] });
+    m.add(G.sphere(0.25, 8, 6), M.paint(0xff8a6a, { gloss: 0.9, glow: 0.4 }), { p: [-0.35, 0.5, 0.55] });
+  },
+  mozzString(m) {
+    // A long, sticky string of melted mozzarella with a blob on the end.
+    const mozz = CHEESE();
+    m.add(G.tube([[0, 0, -2.2], [0.35, 0.2, -1.2], [-0.3, -0.15, -0.3], [0, 0, 0.6]], 0.28, 6), mozz);
+    m.add(G.sphere(0.6, 12, 10), mozz, { p: [0, 0, 0.7], s: [1, 0.85, 1.2] });
+    m.add(G.sphere(0.32, 8, 6), M.paint(0xfdfaf2, { gloss: 0.8, glow: 0.3 }), { p: [0.2, 0.3, 0.9] });
+  },
+  rollingPin(m) {
+    // A rolling pin, flung end over end.
+    m.add(G.cyl(0.55, 0.55, 2.6, 16), WOOD(), { r: [0, 0, HALF_PI] });
+    for (const s of [-1, 1]) {
+      m.add(G.cyl(0.22, 0.22, 0.7, 8), DARKWOOD(), { p: [s * 1.6, 0, 0], r: [0, 0, HALF_PI] });
+      m.add(G.sphere(0.28, 8, 6), DARKWOOD(), { p: [s * 2.0, 0, 0] });
+      m.add(G.torus(0.56, 0.05, 4, 16), M.paint(0xfdfaf2, { gloss: 0.3 }), { p: [s * 0.8, 0, 0], r: [0, HALF_PI, 0] });
+    }
+    m.add(G.sphere(0.3, 6, 5), M.paint(0xffffff, { glow: 0.35 }), { p: [0.2, 0.5, 0.1], s: [1.8, 0.4, 1] });
+  },
+  garlicClove(m) {
+    // A clove of garlic crackling with charge.
+    m.add(G.sphere(0.7, 12, 10), M.paint(0xf6f0e2, { gloss: 0.4, glow: 0.3 }), { s: [0.8, 0.8, 1.4] });
+    m.add(G.cone(0.3, 0.7, 8), M.paint(0xd8c9a0, { gloss: 0.3 }), { p: [0, 0, 1.15], r: [HALF_PI, 0, 0] });
+    m.add(G.sphere(1.1, 10, 8), M.energy(0xd6ff7a, 0.35), { shadow: false });
+  },
+  cutterWheel(m) {
+    // The golden cutter's wheel, spinning edge-first.
+    m.add(G.cyl(1.3, 1.3, 0.22, 28), M.metal(0xeef3f8, { rough: 0.12 }), { r: [0, 0, HALF_PI] });
+    m.add(G.torus(1.3, 0.06, 4, 28), M.glow(0xffffff), { r: [0, HALF_PI, 0], shadow: false });
+    m.add(G.cyl(0.45, 0.45, 0.5, 14), GOLD(), { r: [0, 0, HALF_PI] });
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU;
+      m.add(G.cyl(0.14, 0.14, 0.26, 8), GOLD(), { p: [0, Math.cos(a) * 0.85, Math.sin(a) * 0.85], r: [0, 0, HALF_PI] });
+    }
+  }
+};
+
 export const kit = {
   /**
    * @param {THREE.Group} turret - the part of the tower that turns to aim
@@ -1145,6 +1357,14 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0x8a8d96, accent: ctx.accent ?? 0x26272d });
+  },
+
+  /** Themed shot models: see rendering/projectile-models.js. */
+  buildProjectile(name, m, ctx) {
+    const build = SHOTS[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
   },
 
   paintFloor,

@@ -110,19 +110,19 @@ export const visuals = {
   // mesh and flight vocabularies.
   projectiles: {
     // A light-gun shot: a short cyan streak.
-    ball: { mesh: 'laser', flight: 'tracer', trail: 'laser', impact: 'spark', color: 0x2ee6ff, speed: 17 },
+    ball: { mesh: 'laser', model: 'pixelBolt', debris: 'pixels', debrisColor: 0x2ee6ff, flight: 'tracer', trail: 'laser', impact: 'spark', color: 0x2ee6ff, speed: 17 },
     // The sniper's beam.
-    curveBall: { mesh: 'beam', flight: 'tracer', trail: 'line', impact: 'spark', color: 0x7dff6a, speed: 20 },
+    curveBall: { mesh: 'beam', debris: 'pixels', debrisColor: 0x7dff6a, flight: 'tracer', trail: 'line', impact: 'spark', color: 0x7dff6a, speed: 20 },
     // A gold pixel block, lobbed off the coin pusher.
-    headButt: { mesh: 'block', flight: 'lob', trail: 'gold', impact: 'ring', color: 0xffd23a, speed: 8.5, size: 1.15 },
+    headButt: { mesh: 'block', model: 'arcadeToken', debris: 'pixels', debrisColor: 0xffd23a, flight: 'lob', trail: 'gold', impact: 'ring', color: 0xffd23a, speed: 8.5, size: 1.15 },
     // Pause rings.
-    tackle: { mesh: 'ring', flight: 'ring', trail: 'frost', impact: 'freeze', color: 0x7fd8ff, speed: 9 },
+    tackle: { mesh: 'ring', model: 'pauseIcon', debris: 'pixels', debrisColor: 0x7fd8ff, flight: 'ring', trail: 'frost', impact: 'freeze', color: 0x7fd8ff, speed: 9 },
     // The claw coming down.
-    glove: { mesh: 'block', flight: 'punch', trail: 'dust', impact: 'slam', color: 0xff8a1f, speed: 8.8, size: 1.15 },
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xc9a6ff, speed: 15 },
-    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff4a1a, speed: 11, size: 0.85 },
+    glove: { mesh: 'block', model: 'craneClaw', debris: 'pixels', debrisColor: 0xff8a1f, flight: 'punch', trail: 'dust', impact: 'slam', color: 0xff8a1f, speed: 8.8, size: 1.15 },
+    chain: { mesh: 'bolt', model: 'pinball', debris: 'sparks', debrisColor: 0xc9a6ff, flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xc9a6ff, speed: 15 },
+    flare: { mesh: 'plasma', model: 'pixelFire', debris: 'embers', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff4a1a, speed: 11, size: 0.85 },
     // A star off the mega screen: extra life.
-    legend: { mesh: 'star', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
+    legend: { mesh: 'star', model: 'pixelStar', debris: 'pixels', debrisColor: 0xffc928, flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
   },
   // Keys are enemy roles, lower case.
   enemies: {
@@ -132,7 +132,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0x8d93a8, accent: 0xff4a6a },
     elite: { body: 'bug', color: 0x1d1b2c, accent: 0xff2d55 },
     flying_fire: { body: 'bug', color: 0xff4a0a, accent: 0xffc800 },
-    boss: { body: 'bug', color: 0xeeeaff, accent: 0xff2d55 }
+    boss: { body: 'bug', color: 0xeeeaff, accent: 0xff2d55 },
+    splitter: { body: 'bug', color: 0xb8ff2e, accent: 0xff3df0 },
+    splitling: { body: 'bug', color: 0xb8ff2e, accent: 0xff3df0 },
+    shielder: { body: 'bug', color: 0x3a6fd8, accent: 0x22e8ff },
+    healer: { body: 'bug', color: 0x9ff2c4, accent: 0x5dff6a }
   },
   towers: { family: 'arcade', base: 0x1a1236, metal: 0xd7dde5, levelGlow: 0xff3df0 }
 };
@@ -929,7 +933,126 @@ function highScore(m, enemy, c) {
   }
 }
 
+/** One wobbly voxel slime: a dome of cubes with two eyes, centred on `p`. */
+function blobBody(m, { p = [0, 0, 0], px = 0.13, body, shine, eyeY = 0 }) {
+  pixels(m, [
+    '...BBBB...',
+    '.BBWBBBBB.',
+    'BBWBBBBBBB',
+    'BBBEEBEEBB',
+    'BBBEKBEKBB',
+    'BBBBBBBBBB',
+    'BBBBMMBBBB',
+    '.BBBBBBBB.'
+  ], {
+    B: body, W: [shine, px * 7.4, 0.01],
+    E: [M.glow(0xffffff), px * 7.4, 0.01], K: [M.glow(0x14082a), px * 7.6, 0.02], M: [M.glow(0x2a0838), px * 7.3, 0.005]
+  }, { px, d: px * 7, p: [p[0], p[1] + eyeY, p[2]] });
+}
+
+function pixelMite(m, c) {
+  // A single escaped pixel: one wobbling voxel slime with stubby feet.
+  const body = M.paint(c.color, { gloss: 0.7, glow: 0.4 });
+  blobBody(m, { p: [0, -0.25, 0], px: 0.17, body, shine: M.glow(0xffffff) });
+  legs(m, body, M.paint(c.accent, { gloss: 0.6, glow: 0.4 }), { x: 0.4, hip: -0.8, len: 0.08, w: 0.18, amp: 1 });
+}
+
+function pixelBlob(m, enemy, c) {
+  // A slime made of three smaller slimes stuck together, glowing seams
+  // between them: knock it down and it falls apart into the three.
+  if (enemy.mini) return pixelMite(m, c);
+  const body = M.paint(c.color, { gloss: 0.7, glow: 0.38 });
+  const shine = M.glow(0xffffff);
+  const seam = M.energy(c.accent, 0.85);
+  blobBody(m, { p: [-0.5, -0.5, 0.05], px: 0.11, body, shine });
+  blobBody(m, { p: [0.5, -0.5, 0.05], px: 0.11, body, shine });
+  blobBody(m, { p: [0, 0.36, 0], px: 0.12, body: M.paint(c.color, { gloss: 0.7, glow: 0.55 }), shine });
+  // The seams: glowing cracks where the three pieces meet, standing proud
+  // of the slime so they read from every side.
+  m.add(G.box(0.12, 0.86, 1.0), seam, { p: [0, -0.52, 0.02], shadow: false });
+  m.add(G.box(1.6, 0.12, 1.0), seam, { p: [0, -0.08, 0.02], shadow: false });
+  for (const x of [-0.3, 0.3]) m.add(G.box(0.12, 0.12, 1.02), M.glow(0xffffff), { p: [x, -0.08, 0.02], shadow: false });
+  // Drips of slime along the base, and a glitch pixel flying off the top.
+  for (const x of [-0.8, -0.1, 0.6]) m.add(G.box(0.11, 0.18, 0.11), body, { p: [x, -0.98, 0.3] });
+  const bit = part(m, { k: 'pulse', f: 8, amp: 0.5, ph: 0 }, { p: [0.55, 0.85, 0] });
+  bit.add(G.box(0.14, 0.14, 0.14), M.energy(c.accent, 0.9), { shadow: false });
+}
+
+function barrierBot(m, enemy, c) {
+  // A blocky security robot that pushes a glowing barrier panel in front of
+  // it, a projector dish on its head keeping the field lit.
+  const shell = M.paint(c.color, { gloss: 0.8, glow: 0.2 });
+  const dark = M.paint(0x1a1236, { gloss: 0.7 });
+  const field = M.energy(c.accent, 0.42);
+  field.side = THREE.DoubleSide;
+  m.add(G.rbox(0.9, 0.8, 0.7, 0.08), shell, { p: [0, -0.15, -0.15] });
+  m.add(G.rbox(0.6, 0.42, 0.5, 0.06), shell, { p: [0, 0.48, -0.2] });                                // head
+  m.add(G.box(0.48, 0.12, 0.04), dark, { p: [0, 0.5, 0.06] });
+  for (const s of [-1, 1]) m.add(G.box(0.12, 0.08, 0.05), M.glow(NEON.yellow), { p: [s * 0.12, 0.5, 0.08], shadow: false });
+  // The projector dish on top.
+  m.add(G.cyl(0.04, 0.04, 0.18, 8), CHROME(), { p: [0, 0.78, -0.2] });
+  const dish = part(m, { k: 'spin', ax: 'y', sp: 2 }, { p: [0, 0.9, -0.2] });
+  dish.add(G.cyl(0.24, 0.06, 0.1, 10), CHROME());
+  dish.add(G.sphere(0.07, 8, 6), M.glow(c.accent), { p: [0, 0.07, 0], shadow: false });
+  // Chest lights and a hazard stripe.
+  for (let i = 0; i < 4; i++) m.add(G.box(0.12, 0.12, 0.04), M.glow(i % 2 ? NEON.yellow : 0x1a1236), { p: [-0.27 + i * 0.18, -0.4, 0.21], shadow: false });
+  // The barrier: a chrome frame holding a pane of light, pixel grid on it.
+  const shield = part(m, { k: 'swing', ax: 'x', amp: 0.08, ph: 0 }, { p: [0, -0.1, 0.6] });
+  shield.add(G.box(1.5, 1.3, 0.04), field, { shadow: false });
+  for (const s of [-1, 1]) {
+    shield.add(G.box(0.1, 1.42, 0.12), CHROME(), { p: [s * 0.78, 0, 0] });
+    shield.add(G.box(1.66, 0.1, 0.12), CHROME(), { p: [0, s * 0.68, 0] });
+  }
+  for (const x of [-0.375, 0, 0.375]) shield.add(G.box(0.02, 1.3, 0.05), M.glow(c.accent), { p: [x, 0, 0], shadow: false });
+  for (const y of [-0.32, 0.32]) shield.add(G.box(1.5, 0.02, 0.05), M.glow(c.accent), { p: [0, y, 0], shadow: false });
+  // Arms out to the frame.
+  for (const s of [-1, 1]) {
+    m.add(G.box(0.14, 0.14, 0.7), dark, { p: [s * 0.5, 0.0, 0.25] });
+    m.add(G.box(0.2, 0.2, 0.2), shell, { p: [s * 0.52, 0.0, -0.05] });
+  }
+  // Treads.
+  for (const s of [-1, 1]) {
+    const g = part(m, { k: 'swing', ax: 'x', amp: 0.3, ph: s > 0 ? 0 : Math.PI }, { p: [s * 0.32, -0.58, -0.15] });
+    g.add(G.rbox(0.26, 0.3, 0.74, 0.08), BLACK(), { p: [0, -0.24, 0.02] });
+    for (const z of [-0.22, 0.02, 0.26]) g.add(G.cyl(0.08, 0.08, 0.28, 8), CHROME(), { p: [0, -0.24, z], r: [0, 0, HALF_PI] });
+  }
+}
+
+function medBot(m, enemy, c) {
+  // A round little nurse robot: a screen face showing a green pixel cross, a
+  // flashing beacon on top and a repair wand in each claw.
+  const shell = M.paint(c.color, { gloss: 0.85, glow: 0.2 });
+  const trimMat = M.paint(c.accent, { gloss: 0.6, glow: 0.45 });
+  const heal = M.glow(c.accent);
+  m.add(G.capsule(0.55, 1.4, 18), shell, { p: [0, -0.86, -0.05], s: [1, 1, 0.9] });
+  m.add(G.torus(0.55, 0.05, 6, 20), trimMat, { p: [0, -0.3, -0.05], r: [HALF_PI, 0, 0] });
+  // The screen and the pixel cross on it.
+  m.add(G.rbox(0.86, 0.66, 0.08, 0.06), M.paint(0x0a1630, { gloss: 0.9 }), { p: [0, 0.1, 0.46] });
+  pixels(m, ['..GG..', '..GG..', 'GGGGGG', 'GGGGGG', '..GG..', '..GG..'], { G: heal }, { px: 0.085, d: 0.02, p: [0, 0.1, 0.51] });
+  // Eyes in the screen's top corners.
+  for (const s of [-1, 1]) m.add(G.box(0.08, 0.08, 0.02), M.glow(0xffffff), { p: [s * 0.33, 0.33, 0.51], shadow: false });
+  // The beacon, pulsing.
+  m.add(G.cyl(0.12, 0.14, 0.08, 10), CHROME(), { p: [0, 0.58, -0.05] });
+  const beacon = part(m, { k: 'pulse', f: 4, amp: 0.35 }, { p: [0, 0.72, -0.05] });
+  beacon.add(G.box(0.2, 0.2, 0.2), M.glow(c.accent), { shadow: false });
+  beacon.add(G.box(0.36, 0.36, 0.36), M.energy(c.accent, 0.3), { shadow: false });
+  // Arms with repair wands.
+  for (const s of [-1, 1]) {
+    const arm = part(m, { k: 'swing', ax: 'x', amp: 0.4, ph: s > 0 ? Math.PI : 0 }, { p: [s * 0.58, -0.1, 0] });
+    arm.add(G.box(0.12, 0.12, 0.36), CHROME(), { p: [s * 0.05, -0.05, 0.16] });
+    arm.add(G.cyl(0.04, 0.04, 0.34, 8), M.paint(0xffffff, { gloss: 0.8 }), { p: [s * 0.05, 0.1, 0.34] });
+    arm.add(G.box(0.12, 0.12, 0.12), heal, { p: [s * 0.05, 0.3, 0.34], shadow: false });
+  }
+  // Rolling on a single caster wheel.
+  m.add(G.box(0.3, 0.16, 0.3), M.paint(0x1a1236, { gloss: 0.7 }), { p: [0, -0.84, 0] });
+  const wheel = part(m, { k: 'roll', rad: 0.12 }, { p: [0, -0.88, 0] });
+  wheel.add(G.cyl(0.12, 0.12, 0.2, 10), BLACK(), { r: [0, 0, HALF_PI] });
+}
+
 const ENEMIES = {
+  SPLITTER: pixelBlob,
+  SHIELDER: barrierBot,
+  HEALER: medBot,
   SWARM: pixelGhost,
   FIRE: glitchGremlin,
   FLYING: saucerBug,
@@ -1215,6 +1338,73 @@ function buildSurround(scene, hw, hh) {
   return out;
 }
 
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius, nose along +Z (see rendering/projectile-models.js).
+
+const SHOTS = {
+  pixelBolt(m, { color }) {
+    // A light-gun round: a short train of glowing pixels, brightest at the nose.
+    m.add(G.box(0.8, 0.8, 0.8), M.glow(0xffffff), { p: [0, 0, 0.9] });
+    m.add(G.box(0.8, 0.8, 0.8), M.glow(color), { p: [0, 0, 0] });
+    m.add(G.box(0.6, 0.6, 0.6), M.energy(color, 0.7), { p: [0, 0, -0.8], shadow: false });
+    m.add(G.box(0.4, 0.4, 0.4), M.energy(color, 0.45), { p: [0, 0, -1.4], shadow: false });
+  },
+  arcadeToken(root) {
+    // A gold arcade token off the pusher, star stamped on the face, flying
+    // face-on to the camera.
+    const m = root.group({ r: [0, HALF_PI, 0] });
+    m.add(G.cyl(1.1, 1.1, 0.3, 20), GOLD(), { r: [HALF_PI, 0, 0] });
+    m.add(G.torus(1.05, 0.1, 5, 20), M.paint(0xe09a10, { gloss: 0.9, glow: 0.3 }));
+    for (const s of [-1, 1]) m.add(G.star(0.55, 0.22, 0.06), M.paint(0xfff0a0, { gloss: 0.9, glow: 0.5 }), { p: [0, 0, s * 0.16] });
+  },
+  pauseIcon(root) {
+    // A pause symbol in a glowing ring, side-on so it reads from above.
+    const m = root.group({ r: [0, HALF_PI, 0] });
+    const glow = M.glow(0x7fd8ff);
+    for (const s of [-1, 1]) m.add(G.box(0.36, 1.1, 0.2), M.glow(0xffffff), { p: [s * 0.3, 0, 0] });
+    m.add(G.torus(1.0, 0.12, 6, 4, TAU), glow, { r: [0, 0, Math.PI / 4] });
+    m.add(G.box(1.6, 1.6, 0.1), M.energy(0x7fd8ff, 0.25), { shadow: false });
+  },
+  craneClaw(m) {
+    // The prize crane's claw, prongs first, cable trailing.
+    m.add(G.cyl(0.45, 0.55, 0.6, 10), CHROME(), { r: [HALF_PI, 0, 0] });
+    m.add(G.box(0.3, 0.3, 0.3), M.paint(0xff8a1f, { gloss: 0.8, glow: 0.4 }), { p: [0, 0, -0.45] });
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * TAU;
+      const x = Math.cos(a), y = Math.sin(a);
+      m.add(G.tube([[x * 0.3, y * 0.3, 0.2], [x * 0.9, y * 0.9, 0.8], [x * 0.4, y * 0.4, 1.4]], 0.12, 5), CHROME());
+    }
+    m.add(G.cyl(0.06, 0.06, 1.4, 5), BLACK(), { p: [0, 0, -1.2], r: [HALF_PI, 0, 0] });
+  },
+  pinball(m) {
+    // A chrome pinball, crackling with the bumper's charge.
+    m.add(G.sphere(0.95, 16, 12), M.metal(0xeef3f8, { rough: 0.08 }));
+    m.add(G.sphere(0.3, 8, 6), M.glow(0xffffff), { p: [-0.35, 0.45, 0.55], shadow: false });
+    m.add(G.sphere(1.25, 10, 8), M.energy(0xc9a6ff, 0.3), { shadow: false });
+  },
+  pixelFire(m) {
+    // An 8-bit fireball: stacked cubes, white-hot nose, red tail.
+    m.add(G.box(1.0, 1.0, 1.0), M.glow(0xffe27a), { p: [0, 0, 0.3] });
+    m.add(G.box(0.5, 0.5, 0.5), M.glow(0xffffff), { p: [0, 0, 0.85] });
+    for (const [x, y, z, k, col] of [[0.5, 0.3, -0.2, 0.6, 0xff8a1f], [-0.45, -0.3, -0.3, 0.6, 0xff8a1f], [0.2, -0.4, -0.8, 0.5, 0xff4a1a], [-0.2, 0.35, -1.0, 0.4, 0xff2d1a], [0, 0, -1.5, 0.3, 0xc8140a]]) {
+      m.add(G.box(k, k, k), M.glow(col), { p: [x, y, z] });
+    }
+  },
+  pixelStar(m) {
+    // The extra-life star off the mega screen, in chunky pixels.
+    pixels(m, [
+      '....Y....',
+      '...YYY...',
+      'YYYYYYYYY',
+      '.YYKYKYY.',
+      '..YYYYY..',
+      '.YYY.YYY.',
+      'YY.....YY'
+    ], { Y: M.paint(0xffc928, { gloss: 0.8, glow: 0.6 }), K: [M.glow(0x2a1450), 0.5, 0.02] }, { px: 0.3, d: 0.45, r: [0, HALF_PI, 0] });
+  }
+};
+
 export const kit = {
   /**
    * @param {THREE.Group} turret - the part of the tower that turns to aim
@@ -1234,6 +1424,14 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0x45e8ff, accent: ctx.accent ?? 0xff3df0 });
+  },
+
+  /** Themed shot models: see rendering/projectile-models.js. */
+  buildProjectile(name, m, ctx) {
+    const build = SHOTS[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
   },
 
   paintFloor,

@@ -17,6 +17,7 @@ import { getQualityName } from '../rendering/quality.js';
 import { getThemeKit } from '../themes/index.js';
 import { createEnemyBody, enemyBodyKey } from './enemy-models.js';
 import { clearFlash } from './hit-flash.js';
+import { EXTRA_ROLE_VISUALS } from '../config/enemy-extras.js';
 
 // Idle roots waiting for the next enemy of their type.
 const meshPool = new Map();
@@ -76,7 +77,12 @@ function getSharedMaterials() {
     burnFlameA: basic({ color: 0xff2200, transparent: true, opacity: 0.85 }),
     burnFlameB: basic({ color: 0xff6600, transparent: true, opacity: 0.85 }),
     heatRing: basic({ color: 0xff6600, transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
-    ember: basic({ color: 0xffaa00, transparent: true, opacity: 0.9 })
+    ember: basic({ color: 0xffaa00, transparent: true, opacity: 0.9 }),
+    // Support enemies (systems/enemy-abilities.js): the reach of their aura on
+    // the floor, and the bubble on an ally a shielder is protecting.
+    shieldRing: basic({ color: 0x8fd8ff, transparent: true, opacity: 0.3, depthWrite: false, side: THREE.DoubleSide }),
+    healRing: basic({ color: 0x5dff8f, transparent: true, opacity: 0.26, depthWrite: false, side: THREE.DoubleSide }),
+    shieldBubble: basic({ color: 0x7fcfff, opacity: 0.2, ...additive })
   };
   return sharedMaterials;
 }
@@ -94,12 +100,14 @@ function getSharedGeometry() {
     heatAura: share(new THREE.SphereGeometry(1.2, 12, 12)),
     burnFlame: share(new THREE.ConeGeometry(0.1, 0.25, 6)),
     heatRing: share(new THREE.TorusGeometry(0.8, 0.03, 8, 24)),
-    ember: share(new THREE.SphereGeometry(0.03, 4, 4))
+    ember: share(new THREE.SphereGeometry(0.03, 4, 4)),
+    bubble: share(new THREE.SphereGeometry(1, 16, 12))
   };
   return sharedGeometry;
 }
 
 const setScale = (obj, x, y, z) => { obj.scale.x = x; obj.scale.y = y; obj.scale.z = z; };
+const isFast = (enemy) => ['fast', 'very_fast'].includes(enemy.speedClass ?? enemy.speed);
 
 /**
  * Hand an enemy's mesh back for reuse.
@@ -321,11 +329,13 @@ function buildEnemyMesh(enemy, sz, theme, visual, kit, quality, poolKey) {
     group.add(shadow);
   }
 
-  // Movement trail ribbons for fast enemies (SC-5.5: skip on low quality)
-  const isFastEnemy = enemy.speed === 'fast' || enemy.speed === 'very_fast';
+  // Movement trail ribbons for fast enemies (SC-5.5: skip on low quality).
+  // Enemies carry `speedClass`; this used to test a `speed` field nothing set,
+  // so no enemy ever got its streaks.
+  const isFastEnemy = isFast(enemy);
   if (isFastEnemy && quality !== 'low') {
     group.userData.hasTrail = true;
-    const enemyColor = (enemy.fire ? 0xff6600 : 0x00d4ff);
+    const enemyColor = enemy.fire ? 0xff6600 : (visual?.accent ?? 0x00d4ff);
     bind.trailMeshes = [0.3, 0.15, 0.08].map((opacity, i) => {
       const trailPlane = new THREE.Mesh(
         new THREE.PlaneGeometry(sz * 0.3, sz * 0.2),
@@ -355,6 +365,29 @@ function buildEnemyMesh(enemy, sz, theme, visual, kit, quality, poolKey) {
     group.add(holder);
     bind.bossAura = bossAura;
   }
+
+  // Support enemies show how far their aura reaches.
+  if (enemy.aura) {
+    const ring = new THREE.Mesh(geo.auraRing, enemy.aura.kind === 'heal' ? mats.healRing : mats.shieldRing);
+    const radius = enemy.aura.radius / 1.15 / scale;
+    ring.rotation.x = -Math.PI / 2;
+    const holder = new THREE.Group();
+    setScale(holder, radius, radius, radius);
+    holder.position.y = (0.04 - 0.2) / scale;
+    ring.renderOrder = 1;
+    holder.add(ring);
+    group.add(holder);
+  }
+
+  // Shown while a shielder is protecting this enemy.
+  const bubble = new THREE.Mesh(geo.bubble, mats.shieldBubble);
+  const br = sz * 1.35;
+  setScale(bubble, br, br, br);
+  bubble.position.y = lift;
+  bubble.visible = false;
+  bubble.renderOrder = 3;
+  group.add(bubble);
+  bind.shieldBubble = bubble;
 
   // Height (in the group's own units) that clears the body, for the label.
   group.userData.topY = lift + sz * 1.75;
@@ -395,6 +428,7 @@ function bindEnemyMesh(group, enemy) {
 
   bind.slowGroup.visible = false;
   bind.burnGroup.visible = false;
+  if (bind.shieldBubble) bind.shieldBubble.visible = false;
 
   enemy.anim = null;
   enemy.trailParticles = [];
@@ -411,10 +445,13 @@ export function createEnemyMesh(enemy) {
   // Plug-in themes model each enemy as its own creature.
   const kit = getThemeKit(theme);
   const roleKey = enemy.slot || enemy.role?.toLowerCase() || 'swarm';
-  const visual = visuals.enemies[roleKey] || visuals.enemies[enemy.role?.toLowerCase()] || visuals.enemies.swarm;
+  const visual = visuals.enemies[roleKey] || visuals.enemies[enemy.role?.toLowerCase()]
+    || (roleKey === 'splitling' && visuals.enemies.splitter)
+    || EXTRA_ROLE_VISUALS[roleKey] || visuals.enemies.swarm;
 
-  const fast = enemy.speed === 'fast' || enemy.speed === 'very_fast';
-  const poolKey = `${enemyBodyKey(enemy, sz, theme)}|${quality}|${fast ? 1 : 0}`;
+  const fast = isFast(enemy);
+  // Everything that changes what buildEnemyMesh adds belongs in the key.
+  const poolKey = `${enemyBodyKey(enemy, sz, theme)}|${quality}|${fast ? 1 : 0}|${enemy.aura?.kind || ''}`;
   const idle = meshPool.get(poolKey);
   let group = idle && idle.pop();
   if (group) pooledCount--;

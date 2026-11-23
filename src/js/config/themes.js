@@ -3,6 +3,7 @@
 
 import { HOCKEY_TOWERS, SOCCER_TOWERS } from './towers.js';
 import { HOCKEY_ENEMIES, SOCCER_ENEMIES } from './enemies.js';
+import { extraEnemiesFor } from './enemy-extras.js';
 import { HOCKEY_MAPS, SOCCER_MAPS } from './maps.js';
 import { VISUAL_PROFILES } from './visual-profiles.js';
 import { THEME_MODULES } from '../themes/index.js';
@@ -83,7 +84,7 @@ const hockey = withPackFields({
     pressureType: 'ground_swarm'
   }),
   towers: HOCKEY_TOWERS,
-  enemies: HOCKEY_ENEMIES
+  enemies: [...HOCKEY_ENEMIES, ...extraEnemiesFor('hockey')]
 });
 
 const soccer = withPackFields({
@@ -106,7 +107,7 @@ const soccer = withPackFields({
     pressureType: 'mixed_lanes'
   }),
   towers: SOCCER_TOWERS,
-  enemies: SOCCER_ENEMIES
+  enemies: [...SOCCER_ENEMIES, ...extraEnemiesFor('soccer')]
 });
 
 const space = withPackFields({
@@ -152,11 +153,11 @@ const space = withPackFields({
       ...spaceTowers[tower.id]
     };
   }),
-  enemies: SOCCER_ENEMIES.map(enemy => ({
+  enemies: [...SOCCER_ENEMIES.map(enemy => ({
     ...enemy,
     nm: enemy.nm.replace('Ball', 'Drone'),
     id: enemy.id
-  }))
+  })), ...extraEnemiesFor('space')]
 });
 
 /**
@@ -179,7 +180,7 @@ function packFromModule(mod) {
       pressureType: pack.pressureType || 'mixed_lanes'
     }),
     towers: SOCCER_TOWERS.map(tower => ({ ...tower, ...(pack.towers?.[tower.id] || {}) })),
-    enemies: SOCCER_ENEMIES.map(enemy => ({ ...enemy, ...(pack.enemies?.[enemy.id] || {}), id: enemy.id }))
+    enemies: [...SOCCER_ENEMIES, ...extraEnemiesFor(pack.id)].map(enemy => ({ ...enemy, ...(pack.enemies?.[enemy.id] || {}), id: enemy.id }))
   });
 }
 

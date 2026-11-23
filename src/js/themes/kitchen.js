@@ -102,14 +102,17 @@ export const visuals = {
   // Keys are the shared projectile ids; see config/visual-profiles.js for the
   // mesh and flight vocabularies.
   projectiles: {
-    ball: { mesh: 'block', flight: 'lob', trail: 'dust', impact: 'spark', color: 0xd9973f, speed: 9.5, size: 0.9 },
-    curveBall: { mesh: 'tracer', flight: 'tracer', trail: 'line', impact: 'spark', color: 0x3a2a1c, speed: 13 },
-    headButt: { mesh: 'ring', flight: 'ring', trail: 'shock', impact: 'ring', color: 0xff5d8f, speed: 8.5 },
-    tackle: { mesh: 'shard', flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x7fd6ff, speed: 9.5 },
-    glove: { mesh: 'sphere', flight: 'punch', trail: 'gold', impact: 'slam', color: 0xb8c4d6, speed: 8.8, size: 1.1 },
-    chain: { mesh: 'bolt', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xf5e663, speed: 15 },
-    flare: { mesh: 'plasma', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85 },
-    legend: { mesh: 'sphere', flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
+    // Toaster: toast. Pepper mill: peppercorns. Mixer: a doughnut. Spray
+    // bottle: water. Pan: a fried egg. Microwave: arcs. Torch: flame.
+    // Pressure cooker: a steaming dumpling.
+    ball: { mesh: 'block', model: 'toast', debris: 'crumbs', debrisColor: 0xd9973f, flight: 'lob', trail: 'dust', impact: 'spark', color: 0xd9973f, speed: 9.5, size: 0.9 },
+    curveBall: { mesh: 'tracer', model: 'peppercorn', debris: 'crumbs', debrisColor: 0x2b1d14, flight: 'tracer', trail: 'line', impact: 'spark', color: 0x3a2a1c, speed: 13 },
+    headButt: { mesh: 'ring', model: 'donut', debris: 'crumbs', debrisColor: 0xff5d8f, flight: 'ring', trail: 'shock', impact: 'ring', color: 0xff5d8f, speed: 8.5 },
+    tackle: { mesh: 'shard', model: 'droplet', debris: 'drops', debrisColor: 0x9fe3ff, flight: 'spray', trail: 'frost', impact: 'freeze', color: 0x7fd6ff, speed: 9.5 },
+    glove: { mesh: 'sphere', model: 'friedEgg', debris: 'drops', debrisColor: 0xffc21a, flight: 'punch', trail: 'gold', impact: 'slam', color: 0xb8c4d6, speed: 8.8, size: 1.1 },
+    chain: { mesh: 'bolt', debris: 'sparks', flight: 'bolt', trail: 'electric', impact: 'chain', color: 0xf5e663, speed: 15 },
+    flare: { mesh: 'plasma', debris: 'embers', flight: 'flame', trail: 'fire', impact: 'burn', color: 0xff5a14, speed: 11, size: 0.85 },
+    legend: { mesh: 'sphere', model: 'dumpling', debris: 'crumbs', debrisColor: 0xfff1d6, flight: 'heavy', trail: 'gold', impact: 'crit', color: 0xffc928, speed: 11.5, size: 1.3 }
   },
   // Keys are enemy roles, lower case.
   enemies: {
@@ -119,7 +122,11 @@ export const visuals = {
     armored: { body: 'bug', color: 0x1f5d3a, accent: 0x9be36b },
     elite: { body: 'bug', color: 0x6b3a1c, accent: 0xff8a3d },
     flying_fire: { body: 'bug', color: 0xf5c518, accent: 0x1a1a1a },
-    boss: { body: 'bug', color: 0x6f6a66, accent: 0xffd700 }
+    boss: { body: 'bug', color: 0x6f6a66, accent: 0xffd700 },
+    splitter: { body: 'bug', color: 0x5b2a6e, accent: 0xf3e6c8 },
+    splitling: { body: 'bug', color: 0x5b2a6e, accent: 0xf3e6c8 },
+    shielder: { body: 'bug', color: 0x4a7fd0, accent: 0xfff0c8 },
+    healer: { body: 'bug', color: 0xe8241f, accent: 0x5cff9a }
   },
   towers: { family: 'kitchen', base: 0x3a2618, metal: 0xd7dde5, levelGlow: 0xff8a3d }
 };
@@ -441,7 +448,89 @@ function ratKing(m, enemy, c) {
   enemy.crownGem = m.add(G.sphere(0.09, 8, 6), M.glow(0xff2a2a), { p: [0, 0.84, 0.86], shadow: false });
 }
 
+function spiderMum(m, enemy, c) {
+  // A fat spider with her egg sac strapped on: hit her and the babies scatter.
+  // A Spiderling (enemy.mini) is the same spider without the eggs.
+  const mini = !!enemy.mini;
+  const body = M.paint(c.color, { gloss: 0.75, glow: 0.12 });
+  const dark = M.matte(0x1a0d1f);
+  m.add(G.sphere(0.6, 16, 12), body, { p: [0, 0.02, -0.35], s: [1, 0.85, 1.1] });     // abdomen
+  m.add(G.sphere(0.34, 12, 10), body, { p: [0, -0.08, 0.42] });                       // head
+  m.add(G.box(0.08, 0.04, 0.7), M.paint(c.accent, { glow: 0.5 }), { p: [0, 0.52, -0.35], r: [0.1, 0, 0] });   // back stripe
+  // Eight legs, four a side, splayed from the head.
+  for (let i = 0; i < 4; i++) {
+    const z = 0.55 - i * 0.24, k = i - 1.5;
+    for (const s of [-1, 1]) {
+      m.add(G.tube([[s * 0.2, -0.05, z * 0.6], [s * 0.78, 0.5, z - k * 0.22], [s * 1.1, -0.95, z - k * 0.55]], mini ? 0.075 : 0.05, 5), dark);
+    }
+  }
+  for (const s of [-1, 1]) m.add(G.cone(0.06, 0.2, 6), dark, { p: [s * 0.1, -0.3, 0.7], r: [Math.PI, 0, 0] });   // fangs
+  // Four red eyes in a row.
+  for (const [x, y, r] of [[-0.16, 0.08, 0.08], [0.16, 0.08, 0.08], [-0.07, 0.15, 0.06], [0.07, 0.15, 0.06]]) {
+    m.add(G.sphere(r, 8, 6), M.glow(0xff2a2a), { p: [x, y, 0.7], shadow: false });
+  }
+  if (mini) return;
+  // The egg sac: a cluster of pale eggs heaped on her back.
+  const egg = M.paint(c.accent, { gloss: 0.5, glow: 0.18 });
+  for (const [x, y, z, r] of [[0, 0.66, -0.4, 0.3], [-0.3, 0.55, -0.18, 0.24], [0.3, 0.55, -0.2, 0.24], [-0.26, 0.52, -0.64, 0.24], [0.26, 0.52, -0.62, 0.24], [0, 0.88, -0.2, 0.2], [0, 0.5, -0.92, 0.2], [0, 0.82, -0.62, 0.18]]) {
+    m.add(G.sphere(r, 10, 8), egg, { p: [x, y, z] });
+  }
+}
+
+function shellSnail(m, enemy, c) {
+  // A slug foot under a huge spiral shell: the shell is what shields its friends.
+  const shell = M.paint(c.color, { gloss: 0.85, glow: 0.14 });
+  const band = M.paint(c.accent, { gloss: 0.7, glow: 0.3 });
+  const flesh = M.paint(0xcdb88f, { gloss: 0.95 });
+  m.add(G.capsule(0.34, 1.9, 14), flesh, { p: [0, -0.74, -0.95], r: [Math.PI / 2, 0, 0], s: [1.25, 1, 0.62] });   // foot
+  m.add(G.sphere(0.28, 12, 10), flesh, { p: [0, -0.48, 0.78], s: [1, 0.9, 1.1] });                                  // head
+  for (const s of [-1, 1]) {
+    m.add(G.tube([[s * 0.1, -0.35, 0.86], [s * 0.18, -0.05, 0.98], [s * 0.24, 0.18, 1.02]], 0.04, 5), flesh);     // eye stalks
+    m.add(G.sphere(0.08, 8, 6), M.glow(0xffffff), { p: [s * 0.24, 0.22, 1.03], shadow: false });
+    m.add(G.sphere(0.04, 6, 5), M.glow(0x000000), { p: [s * 0.25, 0.22, 1.1], shadow: false });
+  }
+  // The shell: a tall coiled dome flattened side to side, the spiral picked out in rings.
+  m.add(G.sphere(0.78, 18, 14), shell, { p: [0, 0.08, -0.25], s: [0.72, 1, 1] });
+  m.add(G.torus(0.62, 0.07, 6, 24), band, { p: [0, 0.08, -0.25], r: [0, Math.PI / 2, 0], s: [1, 1, 1] });         // lip
+  for (const s of [-1, 1]) {
+    m.add(G.torus(0.4, 0.07, 6, 20), band, { p: [s * 0.46, 0.12, -0.27], r: [0, Math.PI / 2, 0] });
+    m.add(G.torus(0.2, 0.065, 6, 16), band, { p: [s * 0.54, 0.16, -0.3], r: [0, Math.PI / 2, 0] });
+    m.add(G.sphere(0.1, 8, 6), band, { p: [s * 0.56, 0.18, -0.31] });
+  }
+  m.add(G.cone(0.16, 0.3, 10), shell, { p: [0, 0.88, -0.32], r: [-0.3, 0, 0] });                                   // tip
+}
+
+function nurseLadybird(m, enemy, c) {
+  // A ladybird in a nurse's cap, a glowing first-aid cross on her back.
+  const shell = M.paint(c.color, { gloss: 0.95, glow: 0.14 });
+  const black = M.matte(0x111111);
+  const white = M.paint(0xffffff, { gloss: 0.6, glow: 0.15 });
+  const cross = M.glow(c.accent);
+  m.add(G.sphere(0.75, 18, 14), shell, { p: [0, -0.15, -0.12], s: [1, 0.78, 1.15] });
+  m.add(G.box(0.04, 0.05, 1.5), black, { p: [0, 0.43, -0.2], r: [0.05, 0, 0] });                 // wing seam
+  for (const [x, z] of [[-0.42, 0.2], [0.42, 0.2], [-0.55, -0.3], [0.55, -0.3], [-0.3, -0.72], [0.3, -0.72]]) {
+    const nx = x / 0.75, nz = (z + 0.12) / 0.86, y = -0.15 + 0.585 * Math.sqrt(Math.max(0.05, 1 - nx * nx - nz * nz));
+    m.add(G.sphere(0.15, 10, 8), black, { p: [x, y, z], s: [1, 0.5, 1] });
+  }
+  m.add(G.box(0.46, 0.1, 0.12), cross, { p: [0, 0.48, -0.22], shadow: false });                   // cross on the back
+  m.add(G.box(0.12, 0.1, 0.46), cross, { p: [0, 0.48, -0.22], shadow: false });
+  m.add(G.sphere(0.32, 12, 10), black, { p: [0, -0.22, 0.74] });                                   // head
+  for (const s of [-1, 1]) {
+    m.add(G.sphere(0.1, 8, 6), white, { p: [s * 0.19, -0.1, 0.92] });                              // cheek patches
+    m.add(G.tube([[s * 0.1, 0.02, 0.9], [s * 0.25, 0.3, 1.05], [s * 0.35, 0.32, 1.15]], 0.025, 5), black);
+  }
+  // Nurse's cap with a green cross.
+  m.add(G.rbox(0.42, 0.2, 0.28, 0.05), white, { p: [0, 0.14, 0.72], r: [-0.25, 0, 0] });
+  m.add(G.box(0.16, 0.05, 0.02), cross, { p: [0, 0.16, 0.87], r: [-0.25, 0, 0], shadow: false });
+  m.add(G.box(0.05, 0.16, 0.02), cross, { p: [0, 0.16, 0.87], r: [-0.25, 0, 0], shadow: false });
+  legs(m, black, { spread: 0.6, reach: 0.5, r: 0.05, y: -0.4 });
+  eyes(m, { x: 0.12, y: -0.18, z: 1.02, r: 0.06 });
+}
+
 const ENEMIES = {
+  SPLITTER: spiderMum,
+  SHIELDER: shellSnail,
+  HEALER: nurseLadybird,
   SWARM: (m, e, c) => ant(m, e, c, false),
   FIRE: (m, e, c) => ant(m, e, c, true),
   FLYING: housefly,
@@ -449,6 +538,62 @@ const ENEMIES = {
   ELITE: cockroach,
   FLYING_FIRE: wasp,
   BOSS: ratKing
+};
+
+// ── Projectiles ─────────────────────────────────────────────────────────────
+//
+// Units: 1 = a shot's radius, nose along +Z. See rendering/projectile-models.js.
+
+const PROJECTILES = {
+  toast(m) {
+    // A slice of toast flying edge-first, so it shows its face from the side.
+    const g = m.group({ r: [0, Math.PI / 2, 0] });
+    const toast = M.paint(0xe3a04f, { gloss: 0.2, glow: 0.15 }), crust = M.matte(0x8a5a2b);
+    g.add(G.rbox(1.45, 1.25, 0.26, 0.08), crust, { p: [0, -0.12, 0] });
+    g.add(G.rbox(1.25, 1.1, 0.34, 0.08), toast, { p: [0, -0.12, 0] });
+    for (const s of [-1, 1]) {
+      g.add(G.sphere(0.5, 12, 8), crust, { p: [s * 0.36, 0.48, 0], s: [1, 0.85, 0.26] });
+      g.add(G.sphere(0.42, 12, 8), toast, { p: [s * 0.36, 0.45, 0], s: [1, 0.85, 0.42] });
+    }
+  },
+  peppercorn(m, { color }) {
+    const corn = M.paint(color, { gloss: 0.3, glow: 0.1 });
+    m.add(G.sphere(0.62, 9, 7), corn, { p: [0, 0, 0.3] });
+    m.add(G.sphere(0.42, 8, 6), corn, { p: [0.3, 0.15, -0.5] });
+    m.add(G.sphere(0.34, 8, 6), corn, { p: [-0.28, -0.12, -0.95] });
+  },
+  donut(m, { color }) {
+    // A pink-iced ring doughnut skimming along flat.
+    m.add(G.torus(0.62, 0.36, 10, 22), M.paint(0xd99a55, { gloss: 0.3, glow: 0.1 }), { r: [Math.PI / 2, 0, 0] });
+    m.add(G.torus(0.62, 0.3, 8, 22), M.paint(color, { gloss: 0.8, glow: 0.3 }), { p: [0, 0.14, 0], r: [Math.PI / 2, 0, 0], s: [1, 1, 0.8] });
+    const sprinkles = [0xffffff, 0x38bdf8, 0xf5e663, 0x7dff6a];
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      m.add(G.box(0.22, 0.07, 0.07), M.glow(sprinkles[i % 4]), { p: [Math.cos(a) * 0.62, 0.42, Math.sin(a) * 0.62], r: [0, a * 2.3, 0] });
+    }
+  },
+  droplet(m, { color }) {
+    const water = M.paint(color, { gloss: 1, glow: 0.45 });
+    m.add(G.sphere(0.6, 14, 10), water, { p: [0, 0, 0.2] });
+    m.add(G.cone(0.58, 1.3, 14), water, { p: [0, 0, -0.62], r: [-Math.PI / 2, 0, 0] });
+    m.add(G.sphere(0.16, 8, 6), M.glow(0xffffff), { p: [0.22, 0.3, 0.5] });
+  },
+  friedEgg(m) {
+    const white = M.paint(0xfffdf6, { gloss: 0.7, glow: 0.15 });
+    m.add(G.cyl(0.95, 0.95, 0.16, 16), white, { s: [1, 1, 0.85] });
+    m.add(G.cyl(0.55, 0.55, 0.16, 12), white, { p: [0.55, 0, -0.3] });
+    m.add(G.sphere(0.42, 14, 10), M.paint(0xffc21a, { gloss: 0.9, glow: 0.35 }), { p: [-0.05, 0.1, 0.1], s: [1, 0.6, 1] });
+  },
+  dumpling(m) {
+    // A steaming pleated dumpling, hot out of the pressure cooker.
+    const dough = M.paint(0xfff1d6, { gloss: 0.5, glow: 0.2 });
+    m.add(G.sphere(0.85, 16, 12), dough, { s: [1, 0.75, 1] });
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      m.add(G.tube([[Math.cos(a) * 0.62, 0.4, Math.sin(a) * 0.62], [Math.cos(a) * 0.3, 0.65, Math.sin(a) * 0.3], [0, 0.78, 0]], 0.07, 5), dough);
+    }
+    m.add(G.sphere(0.5, 10, 8), M.energy(0xffffff, 0.35), { p: [0, 0.4, -0.75], shadow: false });
+  }
 };
 
 // ── Arena ───────────────────────────────────────────────────────────────────
@@ -579,6 +724,14 @@ export const kit = {
   buildEnemy(group, enemy, sz, ctx) {
     const build = ENEMIES[(enemy.role || 'SWARM').toUpperCase()] || ENEMIES.SWARM;
     build(modeller(group, sz), enemy, { color: ctx.color ?? 0x2a1a12, accent: ctx.accent ?? 0xff8a3d });
+  },
+
+  /** Themed shot models; false for names this kit doesn't know. */
+  buildProjectile(name, m, ctx) {
+    const build = PROJECTILES[name];
+    if (!build) return false;
+    build(m, ctx);
+    return true;
   },
 
   paintFloor,

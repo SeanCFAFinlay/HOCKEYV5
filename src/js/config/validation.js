@@ -12,7 +12,9 @@ const VALID_TOWER_ROLES = [
 // Valid enemy roles
 const VALID_ENEMY_ROLES = [
   'SWARM', 'FIRE', 'FLYING', 'ARMORED',
-  'ELITE', 'FLYING_FIRE', 'BOSS', 'SPEEDSTER', 'BRUISER'
+  'ELITE', 'FLYING_FIRE', 'BOSS', 'SPEEDSTER', 'BRUISER',
+  // config/enemy-extras.js
+  'SPLITTER', 'SHIELDER', 'HEALER', 'SPLITLING'
 ];
 
 const VALID_SPEED_CLASSES = ['slow', 'normal', 'fast', 'very_fast'];
@@ -178,7 +180,9 @@ function validateEnemy(enemy, themeName) {
     errors.push(`${prefix}: 'unlockWave' must be a positive wave number`);
   }
 
-  if (typeof enemy.waveWeight !== 'number' || enemy.waveWeight <= 0) {
+  // A spawn-only enemy (a splitter's offspring) is never drawn by the wave
+  // generator, so it legitimately has no weight.
+  if (typeof enemy.waveWeight !== 'number' || enemy.waveWeight < 0 || (enemy.waveWeight === 0 && !enemy.spawnOnly)) {
     errors.push(`${prefix}: 'waveWeight' must be a positive number`);
   }
 

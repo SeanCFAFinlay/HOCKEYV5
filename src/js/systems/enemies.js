@@ -16,6 +16,7 @@ import { assertDefined, assertPositiveNumber, warnIf } from '../utils/assertions
 import { cameraBossTrack } from '../engine/camera.js';
 import { freshStatus, tickStatus, speedMultiplier, applyBurn } from './status.js';
 import { detachStatusFx } from '../rendering/status-fx.js';
+import { updateEnemyAuras, onEnemyDied } from './enemy-abilities.js';
 
 // How fast a knocked-back enemy is thrown, in tiles per second.
 const KNOCK_SPEED = 7;
@@ -32,8 +33,13 @@ export const EnemyState = {
 /**
  * Spawn a new enemy
  * @param {Object} ed - Enemy definition
+ * @param {Object} [opts]
+ * @param {boolean} [opts.child] - spawned by another enemy (a splitter's
+ *   offspring), not by the wave: it was never counted as pending
+ * @param {{x:number, z:number}} [opts.at] - world position to appear at
+ * @param {Array} [opts.path] - route to carry on along, with opts.pathIdx/navV
  */
-export function spawnEnemy(ed) {
+export function spawnEnemy(ed, opts = {}) {
   // Validate enemy definition
   assertDefined(ed, 'enemy definition');
   assertDefined(ed.id, 'enemy.id');
@@ -60,6 +66,18 @@ export function spawnEnemy(ed) {
   const rewardScale = ed.rwdScale ?? enemyRewardScale(wave);
   const speed = ed.spd * enemySpeedScale(mapIndex);
 
+  const startX = opts.at ? opts.at.x : s.x - hw + 0.5;
+  const startZ = opts.at ? opts.at.z : s.y - hh + 0.5;
+
+  // A splitter keeps part of its bounty for its children, so splitting pays
+  // out the same in total as one enemy would.
+  let rwd = ed.rwdFixed ?? Math.max(1, Math.round(ed.rwd * rewardScale));
+  let splitReward = 0;
+  if (ed.split && ed.rwdFixed == null) {
+    splitReward = Math.round(rwd * 0.4);
+    rwd = Math.max(1, rwd - splitReward);
+  }
+
   const e = {
     // Identity
     type: ed.id,
@@ -77,20 +95,21 @@ export function spawnEnemy(ed) {
 
     // Position (world coords)
     spawn: { x: s.x, y: s.y },
-    x: s.x - hw + 0.5,
+    x: startX,
     y: 0.2,
-    z: s.y - hh + 0.5,
+    z: startZ,
 
     // Previous position for interpolation
-    prevX: s.x - hw + 0.5,
+    prevX: startX,
     prevY: 0.2,
-    prevZ: s.y - hh + 0.5,
+    prevZ: startZ,
 
     hp: ed.hp * hpScale,
     maxHp: ed.hp * hpScale,
     baseSpd: speed,
     spd: speed,
-    rwd: Math.max(1, Math.round(ed.rwd * rewardScale)),
+    rwd,
+    splitReward,
     sz: ed.sz || 1,
     armor: ed.armor || 0,
 
@@ -99,10 +118,17 @@ export function spawnEnemy(ed) {
     flying: ed.flying || false,
     boss: ed.boss || false,
 
-    // Pathfinding
-    pathIdx: 1,
-    path: null,
-    navV: -1,
+    // Abilities (systems/enemy-abilities.js)
+    split: ed.split || null,
+    aura: ed.aura || null,
+    shielded: false,
+    // A splitter's children tumble out and find their feet before moving.
+    popT: opts.child && ed.spawnOnly ? 0.45 : 0,
+
+    // Pathfinding: a splitter's children carry on along its route.
+    pathIdx: opts.path ? Math.max(1, opts.pathIdx || 1) : 1,
+    path: opts.path || null,
+    navV: opts.path ? (opts.navV ?? -1) : -1,
 
     // Status effects (chill, freeze, shock, burn, ... see systems/status.js)
     ...freshStatus(),
@@ -130,7 +156,7 @@ export function spawnEnemy(ed) {
   e.state = EnemyState.MOVING;
 
   addEnemy(e);
-  decrementSpawnsPending();
+  if (!opts.child) decrementSpawnsPending();
 
   // Dynamic camera: track boss briefly when it spawns
   if (e.boss) {
@@ -147,6 +173,9 @@ export function updateEnemies(dt) {
   const { COLS, ROWS, enemies, grid, BASE, navVersion, towers, scene } = state;
   const hw = COLS / 2;
   const hh = ROWS / 2;
+
+  // Shields and heal pulses, before anyone moves or is shot this step.
+  updateEnemyAuras(dt);
 
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
@@ -167,6 +196,14 @@ export function updateEnemies(dt) {
     // Check death from burn damage
     if (e.hp <= 0) {
       handleEnemyDeath(e, i);
+      continue;
+    }
+
+    // Just split out of a splitter: stays put for a moment.
+    if (e.popT > 0) {
+      e.popT -= dt;
+      updateHealthBar(e);
+      if (e.mesh) e.mesh.position.set(e.x, e.y, e.z);
       continue;
     }
 
@@ -474,6 +511,10 @@ function handleEnemyDeath(e, index) {
     });
   }
   detachStatusFx(e);
+
+  // Splitting, scorching (systems/enemy-abilities.js). After the splice above,
+  // so children land behind this enemy's slot and the loop doesn't revisit it.
+  onEnemyDied(e);
 
   // SC-5.2: enemy death sound (boss vs normal)
   const deathSound = e.boss ? 'enemyDeathBoss' : 'enemyDeath';
