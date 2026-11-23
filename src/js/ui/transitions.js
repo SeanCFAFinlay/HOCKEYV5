@@ -18,6 +18,8 @@ const DEFAULT_TRANSITION = { exit: 'screen-exit-left', enter: 'screen-enter-righ
 
 let _transitioning = false;
 let _pendingTimer = null;
+// Completes the transition in flight (swaps the active screen right away).
+let _finishPending = null;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -49,14 +51,22 @@ export function cancelTransition() {
     clearTimeout(_pendingTimer);
     _pendingTimer = null;
   }
+  _finishPending = null;
   _transitioning = false;
 }
 
 export function showScreenAnimated(targetId) {
-  if (_transitioning) return;
-
   const targetEl = document.getElementById(targetId);
   if (!targetEl) return;
+
+  // A new request while one is still animating used to be dropped, so tapping
+  // a board during the 400ms slide into the map screen left the game screen
+  // hidden and the arena loader waiting forever. Finish the old one at once
+  // and run this one.
+  if (_transitioning && _finishPending) {
+    clearTimeout(_pendingTimer);
+    _finishPending();
+  }
 
   const currentEl = getActiveScreen();
   const fromId = currentEl ? currentEl.id : null;
@@ -69,18 +79,22 @@ export function showScreenAnimated(targetId) {
   targetEl.classList.add(enterClass);
 
   // Wait for animation to complete, then swap active state
-  _pendingTimer = setTimeout(() => {
+  const finish = () => {
+    if (_finishPending !== finish) return;
     // Swap active classes
-    if (currentEl) {
+    if (currentEl && currentEl !== targetEl) {
       currentEl.classList.remove('active');
-      cleanupClasses(currentEl, exitClass);
     }
+    if (currentEl) cleanupClasses(currentEl, exitClass);
     targetEl.classList.add('active');
     cleanupClasses(targetEl, enterClass);
 
     _transitioning = false;
     _pendingTimer = null;
-  }, duration);
+    _finishPending = null;
+  };
+  _finishPending = finish;
+  _pendingTimer = setTimeout(finish, duration);
 }
 
 export function showResultsModal(modalId) {

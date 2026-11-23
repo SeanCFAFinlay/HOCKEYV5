@@ -266,17 +266,20 @@ describe('SC-4.1 — transitioning flag prevents double-transitions', () => {
     expect(mod.isTransitioning()).toBe(false);
   });
 
-  it('second showScreenAnimated call during transition is ignored', async () => {
+  it('a call during a transition finishes the first one and wins', async () => {
+    // Dropping it left the game screen hidden when a board was tapped during
+    // the slide into the map screen, and the arena loader hung forever.
     vi.useFakeTimers();
     const mod = await importTransitions();
 
     mod.showScreenAnimated('mapScreen');
-    mod.showScreenAnimated('gameScreen'); // should be ignored
+    mod.showScreenAnimated('gameScreen');
 
     vi.advanceTimersByTime(700);
 
-    expect(elements.mapScreen.classList.contains('active')).toBe(true);
-    expect(elements.gameScreen.classList.contains('active')).toBe(false);
+    expect(elements.gameScreen.classList.contains('active')).toBe(true);
+    expect(elements.mapScreen.classList.contains('active')).toBe(false);
+    expect(mod.isTransitioning()).toBe(false);
   });
 });
 
