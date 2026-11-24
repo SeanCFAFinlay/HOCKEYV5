@@ -157,6 +157,10 @@ export function init3D() {
   // Clean up existing renderer
   if (state.renderer) {
     state.renderer.dispose();
+    // dispose() alone leaves the old WebGL context and everything uploaded to
+    // it alive until garbage collection; on phones a few replays add up and
+    // iOS kills the tab. Losing the context frees it now.
+    try { state.renderer.forceContextLoss(); } catch { /* not supported */ }
     if (state.renderer.domElement && state.renderer.domElement.parentNode) {
       state.renderer.domElement.parentNode.removeChild(state.renderer.domElement);
     }

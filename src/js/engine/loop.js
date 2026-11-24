@@ -12,7 +12,7 @@ import { updateAnimations } from '../rendering/animations.js';
 import { updateTrails } from '../rendering/trails.js';
 import { updateCamera } from './camera.js';
 import { updateHUD } from '../ui/hud.js';
-import { processWaveSpawns, startWave } from '../systems/waves.js';
+import { processWaveSpawns, startWave, onWaveCleared } from '../systems/waves.js';
 import { updatePreviewAnimation } from './input.js';
 import { createVictoryEffect, createDefeatEffect } from '../systems/particles.js';
 import { updatePerfOverlay } from '../ui/perf-overlay.js';
@@ -93,8 +93,21 @@ export function isPaused() {
  * @param {boolean} next
  */
 export function setPaused(next) {
+  const wasPaused = paused;
   paused = !!next;
-  lastPausedView = '';   // always draw the first paused frame
+  lastPausedView = '';
+  // An auto-wave timer that fired during the pause did nothing; start the
+  // next wave on resume instead of leaving auto-wave on but stalled.
+  if (wasPaused && !paused) {
+    const st = getState();
+    if (st.running && !st.waveActive && st.wave > 0 && shouldAutoStartNextWave(st)) {
+      if (st.autoWaveTimer) clearTimeout(st.autoWaveTimer);
+      setAutoWaveTimer(setTimeout(() => {
+        const s = getState();
+        if (s.running && !paused && !s.waveActive && shouldAutoStartNextWave(s)) startWave();
+      }, 650 / (st.gameSpeed || 1)));
+    }
+  }   // always draw the first paused frame
   // Drop any accumulated-but-unsimulated time. Without this the accumulator
   // survives the pause and the first frame after resuming fast-forwards to
   // catch up, which reads as a jolt.
@@ -173,8 +186,11 @@ export function gameLoop(currentTime) {
   // Accumulate time
   accumulator += frameTime;
 
-  // Fixed timestep physics updates
+  // Fixed timestep physics updates. One error in a system used to end the
+  // loop for good (the next frame is only asked for at the bottom), freezing
+  // the match; now it is logged and the game keeps going.
   let steps = 0;
+  try {
   while (accumulator >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
     processWaveSpawns(FIXED_DT, gameTime);
     updateEnemies(FIXED_DT);
@@ -186,6 +202,9 @@ export function gameLoop(currentTime) {
     gameTime += FIXED_DT;
     steps++;
   }
+  // A slow phone at high speed can't simulate every step; drop what it
+  // couldn't, or the backlog grows and the game fast-forwards later.
+  if (steps === MAX_STEPS_PER_FRAME) accumulator = Math.min(accumulator, FIXED_DT);
 
   // Variable update for smooth animations
   addAnimTime(frameTime);
@@ -205,9 +224,17 @@ export function gameLoop(currentTime) {
 
   // Check wave completion
   checkWaveCompletion();
+  } catch (err) {
+    reportLoopError(err);
+  }
 
   // Continue loop
   frameId = requestAnimationFrame(gameLoop);
+}
+
+let loopErrors = 0;
+function reportLoopError(err) {
+  if (loopErrors++ < 5) console.error('[loop] frame error', err);
 }
 
 /**
@@ -259,6 +286,7 @@ function checkWaveCompletion() {
       setAutoWave(false);
     }
     emit(GameEvents.WAVE_COMPLETE, { wave: state.wave });
+    onWaveCleared();
     updateHUD();
 
     // Auto-wave handling: use setTimeout for player-friendly delay between waves.

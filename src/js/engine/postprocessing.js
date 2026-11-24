@@ -663,6 +663,8 @@ export function initPostProcessing(renderer, scene, camera) {
   baseWidth  = width;
   baseHeight = height;
 
+  // Each match builds a new composer; free the old one's render targets.
+  try { composer?.dispose?.(); } catch { /* already gone with its context */ }
   composer  = createComposer(renderer, scene, camera, width, height);
   ppEnabled = true;
   _applyRenderScale();

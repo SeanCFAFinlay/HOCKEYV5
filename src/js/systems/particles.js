@@ -237,9 +237,8 @@ export function createImpact(x, y, z, color) {
     });
   }
 
-  const ringGeo = new THREE.RingGeometry(0.06, 0.22, 20);
   const ringMat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
+  const ring = new THREE.Mesh(sharedRing('impact'), ringMat);
   ring.position.set(x, y, z);
   ring.rotation.x = -Math.PI / 2;
   state.scene.add(ring);
@@ -249,7 +248,7 @@ export function createImpact(x, y, z, color) {
     life: 0.2, maxLife: 0.2,
     mesh: ring,
     isRing: true,
-    ringGeo,
+    ownMaterial: true,
     delay: 0
   });
 }
@@ -291,14 +290,13 @@ export function spawnTrailParticle(x, y, z, color) {
  */
 export function spawnGroundRipple(x, z, color) {
   const state = getState();
-  const ringGeo = new THREE.RingGeometry(0.1, 0.25, 24);
   const ringMat = new THREE.MeshBasicMaterial({
     color: color || 0xffffff,
     transparent: true,
     opacity: 0.6,
     side: THREE.DoubleSide
   });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
+  const ring = new THREE.Mesh(sharedRing('ripple'), ringMat);
   ring.position.set(x, 0.05, z);
   ring.rotation.x = -Math.PI / 2;
   state.scene.add(ring);
@@ -308,7 +306,7 @@ export function spawnGroundRipple(x, z, color) {
     life: 0.3, maxLife: 0.3,
     mesh: ring,
     isPlacementRing: true,
-    ringGeo,
+    ownMaterial: true,
     delay: 0
   });
 }
@@ -697,10 +695,25 @@ function _updateMeshVisuals(p, lifeRatio) {
   }
 }
 
+// Ring shapes are shared by every hit and ripple; only the material (which
+// carries each ring's fade) is per ring. They used to be built and disposed
+// on every hit, about a hundred GPU buffers a second in a busy wave.
+const sharedRings = {};
+function sharedRing(kind) {
+  if (!sharedRings[kind]) {
+    sharedRings[kind] = kind === 'impact'
+      ? new THREE.RingGeometry(0.06, 0.22, 20)
+      : new THREE.RingGeometry(0.1, 0.25, 24);
+  }
+  return sharedRings[kind];
+}
+
 function _removeParticle(p, scene, particles, i) {
   if (p.mesh) {
     scene.remove(p.mesh);
-    if (p.ringGeo || p.isSpawnRing) {
+    if (p.ownMaterial) {
+      p.mesh.material?.dispose();
+    } else if (p.ringGeo || p.isSpawnRing) {
       if (p.ringGeo) p.ringGeo.dispose();
       if (p.mesh.geometry) p.mesh.geometry.dispose();
       if (p.mesh.material) p.mesh.material.dispose();
@@ -723,8 +736,12 @@ export function clearAllParticles() {
 
   for (const p of particles) {
     if (p.mesh) {
-      scene.remove(p.mesh);
-      releaseMesh(p.mesh);
+      scene?.remove(p.mesh);
+      // Rings own their material (and spawn rings their shape); they were
+      // never pool meshes and must not go back into the pool.
+      if (p.ownMaterial) p.mesh.material?.dispose();
+      else if (p.ringGeo || p.isSpawnRing) { p.mesh.geometry?.dispose(); p.mesh.material?.dispose(); }
+      else releaseMesh(p.mesh);
     }
   }
   particles.length = 0;

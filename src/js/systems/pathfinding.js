@@ -19,6 +19,18 @@ const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
  * @param {number} gy - Goal Y (grid coords)
  * @returns {Array|null} Path array or null
  */
+/**
+ * A path on the board as it is right now, never read from or written to the
+ * cache. For "what if" checks that change the grid for a moment (placement
+ * previews): cached, their answers outlived the pretend tower and froze
+ * enemies at the spawn or sent them round an empty tile.
+ */
+export function findPathUncached(sx, sy, gx, gy) {
+  const { grid, COLS, ROWS } = getState();
+  if (!grid) return null;
+  return computePath(sx, sy, gx, gy, COLS, ROWS, grid);
+}
+
 export function findPathGrid(sx, sy, gx, gy) {
   const state = getState();
   const { COLS, ROWS, grid, navVersion } = state;

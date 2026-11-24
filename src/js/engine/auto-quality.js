@@ -117,6 +117,7 @@ function _triggerQualityReduction() {
       try {
         const { renderer } = getState();
         if (renderer && renderer.getPixelRatio?.() > 1) {
+          renderer.__resolutionCap = 1;
           renderer.setPixelRatio(1);
           console.warn('[AutoQuality] Still slow at the lowest tier - rendering at pixel ratio 1');
         }

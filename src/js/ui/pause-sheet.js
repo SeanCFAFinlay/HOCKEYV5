@@ -121,6 +121,15 @@ export function initPauseSheet({ onRestart, onExit } = {}) {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isPauseMenuOpen()) {
       e.preventDefault();
+      // Settings open on top of the sheet: Escape closes Settings only, rather
+      // than resuming the game behind a panel that is still up.
+      const settings = document.getElementById('settingsOverlay');
+      if (settings?.classList.contains('show')) {
+        e.stopImmediatePropagation();
+        settings.classList.remove('show');
+        document.body.style.overflow = '';
+        return;
+      }
       // stopImmediatePropagation: input.js also listens for Escape to deselect
       // a tower, and closing the menu should not also clear the selection.
       e.stopImmediatePropagation();

@@ -108,28 +108,17 @@ export function processWaveSpawns(dt, gameTime) {
 }
 
 /**
- * Check if wave is complete
+ * What a cleared wave sets off: the chime, the burst, the path lines back to
+ * full, and WAVE_END for music and the grid. engine/loop.js decides when a
+ * wave is over and calls this; a second, unused copy of that check here meant
+ * none of it ever happened.
  */
-export function checkWaveCompletion() {
+export function onWaveCleared() {
   const state = getState();
-
-  if (state.waveActive &&
-      spawnQueue.length === 0 &&
-      state.spawnsPending === 0 &&
-      state.enemies.length === 0) {
-    setWaveActive(false);
-    emit(GameEvents.WAVE_END, { wave: state.wave });
-    playSound('waveComplete');
-    setPathPreviewVisible(true, false); // Restore full opacity after wave
-    updateHUD();
-
-    // Visual effect - wave complete celebration
-    createWaveComplete();
-
-    return true;
-  }
-
-  return false;
+  emit(GameEvents.WAVE_END, { wave: state.wave });
+  playSound('waveComplete');
+  setPathPreviewVisible(true, false);
+  createWaveComplete();
 }
 
 /**

@@ -37,6 +37,8 @@ import { matchBonuses } from '../systems/perks.js';
 import { refreshUpgradesButton } from './perks-screen.js';
 import { showArenaLoader, hideArenaLoader } from './arena-loader.js';
 import { warmUpShaders } from '../rendering/warmup.js';
+import { hideUpgrade } from './upgrade-sheet.js';
+import { resetInputState } from '../engine/input.js';
 
 export function renderThemeCards() {
   const container = document.getElementById('themeCards');
@@ -187,6 +189,19 @@ export function selectTheme(t) {
 
 const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
 
+/**
+ * Take down everything a finished match leaves over the board: the win/lose
+ * card, the blur behind it (which also blocks taps), and a tower's upgrade
+ * sheet. Without this the next match after a result stayed blurred and dead.
+ */
+function clearMatchOverlays() {
+  document.getElementById('gameScreen')?.classList.remove('screen-blur');
+  for (const id of ['winModal', 'loseModal']) {
+    document.getElementById(id)?.classList.remove('show', 'modal-slide-up');
+  }
+  try { hideUpgrade(); } catch { /* sheet not built yet */ }
+}
+
 export function startGame(idx, mode = 'campaign') {
   const state = getState();
   const { themeData } = state;
@@ -197,6 +212,8 @@ export function startGame(idx, mode = 'campaign') {
     money: mode === 'sandbox' ? Math.floor(baseMapData.money * (themeData.balance?.sandbox?.startingMoneyMultiplier || 3)) : baseMapData.money,
     lives: mode === 'sandbox' ? Math.floor(baseMapData.lives * (themeData.balance?.sandbox?.livesMultiplier || 3)) : baseMapData.lives
   };
+
+  clearMatchOverlays();
 
   // Cover the screen with the arena card first; building the scene below
   // blocks the main thread for a moment.
@@ -309,9 +326,7 @@ export function exitGame() {
   performFullCleanup();
   clearTargetingFeedback();
 
-  // Hide modals
-  document.getElementById('winModal')?.classList.remove('show');
-  document.getElementById('loseModal')?.classList.remove('show');
+  clearMatchOverlays();
 
   emit(GameEvents.GAME_RESET, {});
 
@@ -327,14 +342,14 @@ export function replayGame() {
   const mapIdx = state.mapIndex;
   const mode = state.gameMode || 'campaign';
 
-  // Hide modals
-  document.getElementById('winModal')?.classList.remove('show');
-  document.getElementById('loseModal')?.classList.remove('show');
+  clearMatchOverlays();
 
   // Stop current game
   stopGameLoop();
   setSpeedEffect(1);
   clearTargetingFeedback();
+  resetInputState();
+  hideArenaLoader();
 
   // Cleanup
   if (state.autoWaveTimer) {

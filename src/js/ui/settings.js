@@ -6,6 +6,7 @@
 
 import { setPostProcessingQuality, getComposer } from '../engine/postprocessing.js';
 import { icon } from './icons.js';
+import { getState } from '../engine/state.js';
 import { setQualityTier, resetQualityTier } from '../rendering/quality.js';
 import { setAutoQualityPinned } from '../engine/auto-quality.js';
 import { resetAllProgress } from '../systems/storage.js';
@@ -179,6 +180,10 @@ function buildPanel(settings) {
   // Close on backdrop click
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeSettings();
+  });
+  // ...and on Escape (the pause sheet handles it first when it's open).
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('show')) closeSettings();
   });
 
   document.body.appendChild(overlay);
@@ -495,6 +500,8 @@ function _executeReset() {
   saveSettings(fresh);
   applySettings(fresh);
   _syncPanelToSettings(fresh);
+  // Music defaults to off; turn it off now, not after the next reload.
+  import('./music-control.js').then(m => m.setMusicEnabled(false)).catch(() => {});
 }
 
 // ── Panel sync ────────────────────────────────────────────────────────────────
@@ -594,7 +601,12 @@ function _injectHUDButton() {
   btn.className = 'settings-btn';
   btn.setAttribute('aria-label', 'Settings');
   btn.innerHTML = icon('gear');
-  btn.addEventListener('click', openSettings);
+  // In a match, pause first: Settings used to open over a game still running.
+  btn.addEventListener('click', () => {
+    if (getState().running && typeof window.togglePauseMenu === 'function' &&
+        !document.body.classList.contains('game-paused')) window.togglePauseMenu();
+    openSettings();
+  });
   hudRight.appendChild(btn);
 }
 

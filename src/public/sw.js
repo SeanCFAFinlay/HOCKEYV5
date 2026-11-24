@@ -5,11 +5,11 @@
 // Three.js build and fonts from their CDNs) is served from cache when present
 // and refreshed in the background.
 
-const CACHE = 'hockey-td-v1';
+const CACHE = 'hockey-td-v2';
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(['./', 'manifest.webmanifest'])).then(() => self.skipWaiting())
+    caches.open(CACHE).then(cache => cache.addAll(['./', 'manifest.webmanifest', 'vendor/three-r128.min.js', 'icons/icon-192.png'])).then(() => self.skipWaiting())
   );
 });
 

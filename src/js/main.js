@@ -1,6 +1,21 @@
 // Main entry point - Hockey vs Soccer TD
 // Initializes all systems and exposes window handlers
 
+// Fonts ship with the game rather than coming from Google Fonts, so the app
+// looks right offline and on first launch.
+import '@fontsource/rajdhani/500.css';
+import '@fontsource/rajdhani/600.css';
+import '@fontsource/rajdhani/700.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+
+// Ask the browser to keep this game's saves. Without it Safari may clear
+// stored data for a site not visited for a week; an installed app is granted
+// this, and it costs nothing to ask.
+try { navigator.storage?.persist?.().catch(() => {}); } catch { /* unsupported */ }
+
 // Import event system first
 import { on, GameEvents } from './engine/events.js';
 

@@ -5,6 +5,10 @@ const STORAGE_KEY = 'hockeyvssoccer_td';
 const STORAGE_VERSION = 1;
 
 // Default save data structure
+// A deep copy each time: a shallow one shared progression/stats with this
+// template, so progress written into it came back after a reset.
+const freshSave = () => JSON.parse(JSON.stringify(DEFAULT_SAVE));
+
 const DEFAULT_SAVE = {
   version: STORAGE_VERSION,
   progression: {
@@ -51,10 +55,19 @@ export function initStorage() {
         saveData = migrateSaveData(parsed);
         persistSave();
       } else {
-        saveData = parsed;
+        // Fill in anything an older or damaged save is missing, so screens
+        // that read save.progression / stats don't throw on it.
+        const base = freshSave();
+        saveData = { ...base, ...parsed };
+        for (const k of Object.keys(base)) {
+          if (base[k] && typeof base[k] === 'object' && !Array.isArray(base[k])) {
+            const v = parsed[k];
+            saveData[k] = (v && typeof v === 'object' && !Array.isArray(v)) ? { ...base[k], ...v } : base[k];
+          }
+        }
       }
     } else {
-      saveData = { ...DEFAULT_SAVE };
+      saveData = freshSave();
       persistSave();
     }
 
@@ -62,7 +75,7 @@ export function initStorage() {
     migrateLegacyStorage();
   } catch (err) {
     console.warn('Failed to load save data, creating new save:', err);
-    saveData = { ...DEFAULT_SAVE };
+    saveData = freshSave();
     persistSave();
   }
 
@@ -168,7 +181,7 @@ function migrateSaveData(oldData) {
   console.log(`Migrating save data from v${oldData.version} to v${STORAGE_VERSION}`);
 
   // Start with default structure
-  const newData = { ...DEFAULT_SAVE };
+  const newData = freshSave();
 
   // Preserve what we can from old data
   if (oldData.progression) newData.progression = oldData.progression;
@@ -341,7 +354,7 @@ export function getSettings() {
  * Reset all progress (for testing or user request)
  */
 export function resetAllProgress() {
-  saveData = { ...DEFAULT_SAVE };
+  saveData = freshSave();
   persistSave();
   // Bought upgrades are kept apart from the save (systems/perks.js); a reset
   // takes the stars away, so the upgrades go too.

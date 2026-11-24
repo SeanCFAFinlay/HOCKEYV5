@@ -34,7 +34,7 @@ vi.mock('../js/engine/events.js', () => ({
 
 vi.mock('../js/systems/pathfinding.js', () => ({
   onNavChanged: vi.fn(),
-  findPathGrid: vi.fn()
+  findPathUncached: vi.fn()
 }));
 
 vi.mock('../js/rendering/tower-meshes.js', () => ({
@@ -104,14 +104,14 @@ function makeBaseState(cols = 5, rows = 5) {
 
 describe('wouldBlockPath (SC-1.1)', () => {
   let wouldBlockPath;
-  let findPathGrid;
+  let findPathUncached;
 
   beforeEach(async () => {
     vi.resetModules();
     const mod = await import('../js/systems/towers.js');
     wouldBlockPath = mod.wouldBlockPath;
     const pfMod = await import('../js/systems/pathfinding.js');
-    findPathGrid = pfMod.findPathGrid;
+    findPathUncached = pfMod.findPathUncached;
   });
 
   it('exports wouldBlockPath as a function', () => {
@@ -123,7 +123,7 @@ describe('wouldBlockPath (SC-1.1)', () => {
     mockState = state;
 
     // Path exists after placement (mock returns a path)
-    findPathGrid.mockReturnValue([[0, 2], [1, 2], [2, 2], [3, 2], [4, 2]]);
+    findPathUncached.mockReturnValue([[0, 2], [1, 2], [2, 2], [3, 2], [4, 2]]);
 
     // Placing at (2, 0) — top row, should not block mid-row path
     expect(wouldBlockPath(2, 0)).toBe(false);
@@ -137,7 +137,7 @@ describe('wouldBlockPath (SC-1.1)', () => {
     mockState = state;
 
     // Mock: no path found after simulated placement
-    findPathGrid.mockReturnValue(null);
+    findPathUncached.mockReturnValue(null);
 
     // Placing at (1,1) would block the only path
     expect(wouldBlockPath(1, 1)).toBe(true);
@@ -150,7 +150,7 @@ describe('wouldBlockPath (SC-1.1)', () => {
     mockState = state;
 
     // First spawn has path, second does not
-    findPathGrid
+    findPathUncached
       .mockReturnValueOnce([[0, 1], [1, 1], [2, 1], [3, 2], [4, 2]])
       .mockReturnValueOnce(null);
 
@@ -164,7 +164,7 @@ describe('wouldBlockPath (SC-1.1)', () => {
     mockState = state;
 
     // Both spawns have valid paths
-    findPathGrid
+    findPathUncached
       .mockReturnValue([[0, 1], [1, 1], [4, 2]]);
 
     expect(wouldBlockPath(2, 0)).toBe(false);
@@ -176,7 +176,7 @@ describe('wouldBlockPath (SC-1.1)', () => {
     state.BASE = { x: 2, y: 1 };
     mockState = state;
 
-    findPathGrid.mockReturnValue(null);
+    findPathUncached.mockReturnValue(null);
 
     wouldBlockPath(1, 1);
 
@@ -190,7 +190,7 @@ describe('wouldBlockPath (SC-1.1)', () => {
     state.BASE = { x: 2, y: 1 };
     mockState = state;
 
-    findPathGrid.mockReturnValue([[0, 1], [1, 0], [2, 1]]);
+    findPathUncached.mockReturnValue([[0, 1], [1, 0], [2, 1]]);
 
     wouldBlockPath(1, 1);
 
@@ -206,7 +206,7 @@ describe('wouldBlockPath (SC-1.1)', () => {
     mockState = state;
 
     // Second spawn has a path
-    findPathGrid.mockReturnValue([[0, 1], [1, 1], [2, 1]]);
+    findPathUncached.mockReturnValue([[0, 1], [1, 1], [2, 1]]);
 
     // Placing at a different cell; wouldBlockPath must not crash
     expect(() => wouldBlockPath(1, 2)).not.toThrow();
@@ -215,7 +215,7 @@ describe('wouldBlockPath (SC-1.1)', () => {
 
 describe('handleCellTap path validation integration (SC-1.1)', () => {
   let handleCellTap;
-  let findPathGrid;
+  let findPathUncached;
   let addTower;
   let dispatch;
 
@@ -224,7 +224,7 @@ describe('handleCellTap path validation integration (SC-1.1)', () => {
     const mod = await import('../js/systems/towers.js');
     handleCellTap = mod.handleCellTap;
     const pfMod = await import('../js/systems/pathfinding.js');
-    findPathGrid = pfMod.findPathGrid;
+    findPathUncached = pfMod.findPathUncached;
     const stateMod = await import('../js/engine/state.js');
     addTower = stateMod.addTower;
     dispatch = stateMod.dispatch;
@@ -235,7 +235,7 @@ describe('handleCellTap path validation integration (SC-1.1)', () => {
     mockState = state;
 
     // null path = would block
-    findPathGrid.mockReturnValue(null);
+    findPathUncached.mockReturnValue(null);
 
     handleCellTap(2, 2);
 
@@ -249,7 +249,7 @@ describe('handleCellTap path validation integration (SC-1.1)', () => {
     mockState = state;
 
     // Valid path exists
-    findPathGrid.mockReturnValue([[0, 2], [2, 2], [4, 2]]);
+    findPathUncached.mockReturnValue([[0, 2], [2, 2], [4, 2]]);
 
     handleCellTap(2, 0);
 

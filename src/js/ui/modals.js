@@ -2,7 +2,8 @@
 
 import { getState } from '../engine/state.js';
 import { on, GameEvents } from '../engine/events.js';
-import { selectTheme, startGame } from './screens.js';
+import { exitGame } from './screens.js';
+import { saveHighScore } from '../systems/highscores.js';
 import { saveMapCompletion, getMapProgress } from '../systems/storage.js';
 import { showResultsModal } from './transitions.js';
 
@@ -31,21 +32,9 @@ export function closeModal(type) {
     }
   }
   
-  document.getElementById(type + 'Modal').classList.remove('show');
-  selectTheme(state.theme);
-}
-
-/**
- * Replay the same map without returning to the menu.
- */
-export function replayGame() {
-  const state = getState();
-
-  document.getElementById('winModal')?.classList.remove('show');
-  document.getElementById('loseModal')?.classList.remove('show');
-
-  // gameMode, or an Endless/Sandbox run silently replays as Campaign.
-  startGame(state.mapIndex, state.gameMode || 'campaign');
+  // The full exit: stops the loop, frees the scene, clears the blur and the
+  // card, then shows this world's map list.
+  exitGame();
 }
 
 function _showWinModal(score, waveReached) {

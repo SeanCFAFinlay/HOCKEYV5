@@ -217,7 +217,16 @@ function setupKeyboardShortcuts() {
     // Only allow shortcuts during active gameplay
     if (!state.running) return;
 
-    switch(e.key.toLowerCase()) {
+    const key = e.key.toLowerCase();
+    // While paused, or with Settings / a result card open, only the pause key
+    // works. Space/Enter there belong to the focused button (Resume), and used
+    // to start a wave behind the menu instead.
+    const overlayOpen = document.body.classList.contains('game-paused') ||
+      document.querySelector('.settings-overlay.show, .settings-panel.show, #settingsModal.show, .modal.show');
+    if (overlayOpen && key !== 'p') return;
+    if ((key === ' ' || key === 'enter') && e.target.closest?.('button, a, select')) return;
+
+    switch(key) {
       case ' ':
       case 'enter':
         // Start wave
@@ -756,6 +765,22 @@ function handleTap(e) {
     return;
   }
   const raw = getCellUnderPoint(e);
+  // Tapping one of your towers always opens it, even with a build type still
+  // picked. Otherwise the tap only previewed that tile and said "Can't build
+  // on this tile", and the tower's upgrade sheet seemed unreachable.
+  if (raw && state.grid?.[raw.y]?.[raw.x]?.tower) {
+    hidePreview();
+    // Opening a tower means building is done: put the build pick down so its
+    // hint strip doesn't sit behind the upgrade sheet.
+    if (state.selectedTower) {
+      import('./state.js').then(({ setSelectedTower }) => {
+        setSelectedTower(null);
+        import('../ui/hud.js').then(({ renderTowers }) => renderTowers());
+      });
+    }
+    handleCellTap(raw.x, raw.y);
+    return;
+  }
   const cell = isTouch ? snapToBuildable(raw) : raw;
 
   if (cell) {

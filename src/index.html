@@ -13,13 +13,9 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <title>Hockey vs Soccer TD — PH Interactive Studios</title>
 
-  <!-- Fonts preconnect + stylesheet for performance -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-
-  <!-- Three.js r128 with CDN fallback error notification -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Fonts are bundled (js/main.js imports them) and so is Three.js r128:
+       the installed app and the store builds must start with no network. -->
+  <script src="vendor/three-r128.min.js"></script>
   <script>
     if (typeof THREE === 'undefined') {
       document.body.innerHTML = '<div style="color:#fff;background:#07090f;padding:24px;text-align:center;font-family:sans-serif"><h2>⚠️ Failed to load 3D engine</h2><p>Please check your internet connection and reload.</p><button onclick="location.reload()" style="margin-top:12px;padding:12px 24px;font-size:1rem;cursor:pointer;border-radius:8px;border:none">Reload</button></div>';

@@ -92,6 +92,8 @@ export function resetQualityTier() {
 
 export function applyRendererQuality(renderer) {
   const tier = getQualityTier();
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, tier.maxPixelRatio));
+  // __resolutionCap: auto-quality's last-resort drop to ratio 1. Without it a
+  // rotation or the iOS address bar resizing put the full ratio straight back.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, tier.maxPixelRatio, renderer.__resolutionCap || Infinity));
   renderer.shadowMap.enabled = tier.shadows;
 }

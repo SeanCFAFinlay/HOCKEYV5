@@ -343,33 +343,60 @@ export function tickDamageAnimations(mesh, dt) {
  * @param {number} damage - Damage amount
  * @param {boolean} isCrit - Is critical
  */
-export function showDamageNumber(x, y, z, damage, isCrit) {
-  const state = getState();
-  if (!state.scene) return;
+// Damage numbers repeat a lot (a tower hits for the same amount), so each
+// distinct number is drawn and uploaded once and shared. Drawing a canvas and
+// uploading a texture per hit cost phones 50-100 uploads a second late game.
+const NUMBER_CACHE_MAX = 160;
+const numberTextures = new Map();   // key -> { texture, refs }
+const MAX_LIVE_NUMBERS = 36;
+let liveNumbers = 0;
 
-  const text = Math.floor(damage).toString();
-  const fontSize = isCrit ? 48 : 32;
+function numberTexture(text, isCrit) {
+  const key = (isCrit ? 'c' : 'n') + text;
+  let entry = numberTextures.get(key);
+  if (entry) {
+    // Refresh its place as most recently used.
+    numberTextures.delete(key);
+    numberTextures.set(key, entry);
+    return entry;
+  }
   const canvas = document.createElement('canvas');
   canvas.width = 128;
   canvas.height = 64;
   const ctx = canvas.getContext('2d');
-
-  ctx.font = `bold ${fontSize}px Arial`;
+  ctx.font = `bold ${isCrit ? 48 : 32}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-
-  // Outline
   ctx.strokeStyle = 'rgba(0,0,0,0.8)';
   ctx.lineWidth = 4;
   ctx.strokeText(text, 64, 32);
-
-  // Fill
   ctx.fillStyle = isCrit ? '#ffd700' : '#ffffff';
   ctx.fillText(text, 64, 32);
+  entry = { texture: new THREE.CanvasTexture(canvas), refs: 0, key };
+  numberTextures.set(key, entry);
+  if (numberTextures.size > NUMBER_CACHE_MAX) {
+    for (const [k, old] of numberTextures) {
+      if (old.refs > 0) continue;
+      old.texture.dispose();
+      numberTextures.delete(k);
+      break;
+    }
+  }
+  return entry;
+}
 
-  const texture = new THREE.CanvasTexture(canvas);
+export function showDamageNumber(x, y, z, damage, isCrit) {
+  const state = getState();
+  const scene = state.scene;
+  if (!scene || typeof document === 'undefined') return;
+  // A wall of overlapping numbers reads as noise anyway; crits still show.
+  if (liveNumbers >= MAX_LIVE_NUMBERS && !isCrit) return;
+
+  const entry = numberTexture(Math.floor(damage).toString(), isCrit);
+  entry.refs++;
+  liveNumbers++;
   const mat = new THREE.SpriteMaterial({
-    map: texture,
+    map: entry.texture,
     transparent: true,
     depthTest: false
   });
@@ -378,7 +405,7 @@ export function showDamageNumber(x, y, z, damage, isCrit) {
   sprite.scale.set(1.2, 0.6, 1);
   if (isCrit) sprite.scale.multiplyScalar(1.4);
   sprite.renderOrder = 999;
-  state.scene.add(sprite);
+  scene.add(sprite);
 
   // Animate upward and fade out
   const startY = y + 0.5;
@@ -395,9 +422,11 @@ export function showDamageNumber(x, y, z, damage, isCrit) {
     if (t < 1) {
       requestAnimationFrame(animate);
     } else {
-      state.scene.remove(sprite);
+      // The scene it was added to, even if a new match has started since.
+      scene.remove(sprite);
       mat.dispose();
-      texture.dispose();
+      entry.refs--;
+      liveNumbers--;
     }
   }
 

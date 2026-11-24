@@ -18,6 +18,8 @@
   animation: tut-in 0.25s ease-out;
 }
 .tut-card[hidden] { display: none; }
+/* Out of the way while paused or in Settings: it sits above both. */
+body.game-paused .tut-card, body:has(#settingsOverlay.show) .tut-card { display: none; }
 @keyframes tut-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 
 .tut-step {
