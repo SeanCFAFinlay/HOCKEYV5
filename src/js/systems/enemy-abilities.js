@@ -122,6 +122,7 @@ function splitApart(e) {
       at: { x: inTile(e.x + Math.cos(a) * r, cx), z: inTile(e.z + Math.sin(a) * r, cz) },
       path: e.path,
       pathIdx: e.pathIdx,
+      pathBase: e.pathBase,
       navV: e.navV
     });
   }

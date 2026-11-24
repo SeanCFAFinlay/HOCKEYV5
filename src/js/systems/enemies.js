@@ -127,6 +127,9 @@ export function spawnEnemy(ed, opts = {}) {
 
     // Pathfinding: a splitter's children carry on along its route.
     pathIdx: opts.path ? Math.max(1, opts.pathIdx || 1) : 1,
+    // Tiles walked on earlier routes. A re-path restarts pathIdx at 1, so
+    // "how far along" is pathBase + pathIdx (towers' First/Last use it).
+    pathBase: opts.path ? (opts.pathBase || 0) : 0,
     path: opts.path || null,
     navV: opts.path ? (opts.navV ?? -1) : -1,
 
@@ -337,6 +340,7 @@ function updateGroundEnemy(e, dt, speed, hw, hh, index) {
 
   // Check if path needs update
   if (e.navV !== navVersion || !e.path) {
+    if (e.path) e.pathBase = (e.pathBase || 0) + Math.max(0, e.pathIdx - 1);
     e.path = findPathGrid(gx, gy, BASE.x, BASE.y);
     e.stuck = !e.path;
     e.pathIdx = 1;

@@ -260,15 +260,11 @@ function findTarget(tower, enemies, tx, tz) {
   let target = null;
   let bestScore = -Infinity;
 
-  // How far each enemy still has to go, in tiles. pathIdx alone was wrong:
-  // a re-path (any tower built or sold) restarts every walker's index at 1,
-  // and flyers never advance it, so "First" fell back to "nearest the tower".
-  const st = getState();
-  const bx = st.BASE ? st.BASE.x - st.COLS / 2 + 0.5 : 0;
-  const bz = st.BASE ? st.BASE.y - st.ROWS / 2 + 0.5 : 0;
-  const left = (e) => (!e.flying && e.path && e.path.length)
-    ? Math.max(0, e.path.length - e.pathIdx)
-    : Math.hypot(e.x - bx, e.z - bz);
+  // How far along each enemy is. pathIdx alone was wrong after a re-path
+  // (any tower built or sold mid-wave restarts it at 1, and "First" fell back
+  // to "nearest the tower"), so tiles walked on earlier routes count too.
+  // Flyers keep their old low priority: balance was tuned around it.
+  const along = (e) => (e.pathBase || 0) + e.pathIdx;
 
   const priority = tower.priority || TargetPriority.FIRST;
 
@@ -286,12 +282,12 @@ function findTarget(tower, enemies, tx, tz) {
     switch (priority) {
       case TargetPriority.FIRST:
         // Furthest along path + boss bonus
-        score = -left(e) * 100 - dist + (e.boss ? 500 : 0);
+        score = along(e) * 100 - dist + (e.boss ? 500 : 0);
         break;
 
       case TargetPriority.LAST:
         // Closest to spawn
-        score = left(e) * 100 - dist;
+        score = -along(e) * 100 - dist;
         break;
 
       case TargetPriority.STRONGEST:
@@ -310,7 +306,7 @@ function findTarget(tower, enemies, tx, tz) {
         break;
 
       default:
-        score = -left(e) * 100 - dist;
+        score = along(e) * 100 - dist;
     }
 
     if (score > bestScore) {

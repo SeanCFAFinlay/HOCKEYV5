@@ -177,6 +177,8 @@ export function onNavChanged() {
     const gx = Math.max(0, Math.min(COLS - 1, Math.floor(e.x + hw)));
     const gy = Math.max(0, Math.min(ROWS - 1, Math.floor(e.z + hh)));
 
+    // Keep how far it had come; only the route restarts.
+    if (e.path) e.pathBase = (e.pathBase || 0) + Math.max(0, e.pathIdx - 1);
     e.path = findPathGrid(gx, gy, BASE.x, BASE.y);
     e.stuck = !e.path;
     e.pathIdx = 1;
