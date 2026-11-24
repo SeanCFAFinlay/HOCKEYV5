@@ -7,6 +7,7 @@
 
 import { getState } from '../engine/state.js';
 import { on, GameEvents } from '../engine/events.js';
+import { canCallEarly, earlyBonus } from '../systems/waves.js';
 
 let timer = null;
 let waveTotal = 0;
@@ -28,6 +29,7 @@ function showIdle() {
   const state = getState();
   const total = state.mapData?.waves || 0;
   const next = (state.wave || 0) + 1;
+  p.btn.classList.toggle('call-early', false);
   p.main.textContent = '▶ Start';
   p.sub.textContent = total && next <= total ? `Wave ${next} of ${total}` : '';
   p.btn.style.setProperty('--p', '0%');
@@ -40,8 +42,17 @@ function showProgress() {
   if (!state.waveActive) { showIdle(); return; }
   const left = remaining(state);
   if (left > waveTotal) waveTotal = left;
-  p.main.textContent = `Wave ${state.wave}`;
-  p.sub.textContent = left === 1 ? '1 enemy left' : `${left} enemies left`;
+  // Everyone is on the board and there's a next wave: offer it early.
+  const early = canCallEarly();
+  p.btn.disabled = !early;
+  p.btn.classList.toggle('call-early', early);
+  if (early) {
+    p.main.textContent = '⏩ Next wave';
+    p.sub.textContent = `Early bonus +$${earlyBonus()}`;
+  } else {
+    p.main.textContent = `Wave ${state.wave}`;
+    p.sub.textContent = left === 1 ? '1 enemy left' : `${left} enemies left`;
+  }
   const done = waveTotal > 0 ? 1 - left / waveTotal : 0;
   p.btn.style.setProperty('--p', `${Math.round(Math.max(0, Math.min(1, done)) * 100)}%`);
 }

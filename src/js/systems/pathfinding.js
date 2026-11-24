@@ -179,7 +179,9 @@ export function onNavChanged() {
 
     // Keep how far it had come; only the route restarts.
     if (e.path) e.pathBase = (e.pathBase || 0) + Math.max(0, e.pathIdx - 1);
-    e.path = findPathGrid(gx, gy, BASE.x, BASE.y);
+    // On the way back with a trophy it heads for its own gate, not the goal.
+    const goal = e.returning && e.spawn ? e.spawn : BASE;
+    e.path = findPathGrid(gx, gy, goal.x, goal.y);
     e.stuck = !e.path;
     e.pathIdx = 1;
     e.navV = state.navVersion;

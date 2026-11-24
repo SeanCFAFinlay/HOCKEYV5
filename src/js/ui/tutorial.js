@@ -44,6 +44,20 @@ const STEPS = [
     done: s => s.waveActive || s.wave > 0
   },
   {
+    title: 'Guard your trophies',
+    text: () => 'They are after the trophies on your goal. One that gets there grabs a trophy and runs back to its gate. Knock it out and the trophy floats home.',
+    target: () => document.getElementById('livesStat'),
+    done: () => false,
+    after: 9000
+  },
+  {
+    title: 'Build a maze',
+    text: () => 'Enemies walk round your towers, never through. Line towers up to make them take the long way, past more of your guns.',
+    target: () => null,
+    done: () => false,
+    after: 8000
+  },
+  {
     title: 'Abilities',
     text: () => 'These recharge on their own. The first one drops a strike where you tap; the others freeze every enemy or speed up your towers. Try one!',
     target: () => document.getElementById('abilityBar'),
@@ -59,7 +73,7 @@ const STEPS = [
   },
   {
     title: "You're ready!",
-    text: () => 'Clear arenas to earn stars, then spend them on Upgrades from the main menu.',
+    text: () => 'Keep every trophy for 3 stars. Once a wave is all on the board, Next wave calls the next one early for bonus cash.',
     target: () => null,
     done: () => false,
     after: 6000

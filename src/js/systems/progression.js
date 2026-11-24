@@ -1,6 +1,7 @@
 // Progression system - map completion grading, unlocks, and rewards
 // Integrates with storage and events
 
+import { trophyTotal } from './trophies.js';
 import { on, emit, GameEvents } from '../engine/events.js';
 import { getState } from '../engine/state.js';
 import {
@@ -12,11 +13,6 @@ import {
 } from './storage.js';
 
 // Star thresholds (percentage of max possible score)
-const STAR_THRESHOLDS = {
-  1: 0.3,   // 30% of max score = 1 star
-  2: 0.6,   // 60% of max score = 2 stars
-  3: 0.9    // 90% of max score = 3 stars
-};
 
 // Bonus multipliers for grading
 const GRADING_BONUSES = {
@@ -174,14 +170,15 @@ function calculateGrade(score, mapData, won) {
   // Adjusted score with bonuses
   const adjustedScore = score * multiplier;
 
-  // Calculate star rating
+  // Stars are the trophies you kept: all of them is 3, at least half is 2,
+  // any win is 1.
   let stars = 0;
   if (won) {
-    const ratio = adjustedScore / baseMaxScore;
-    if (ratio >= STAR_THRESHOLDS[3]) stars = 3;
-    else if (ratio >= STAR_THRESHOLDS[2]) stars = 2;
-    else if (ratio >= STAR_THRESHOLDS[1]) stars = 1;
-    else stars = 1;  // Minimum 1 star for winning
+    const kept = Math.max(0, getState().lives);
+    const totalTrophies = trophyTotal() || mapData.lives || 1;
+    if (kept >= totalTrophies) stars = 3;
+    else if (kept * 2 >= totalTrophies) stars = 2;
+    else stars = 1;
   }
 
   // Check if new record

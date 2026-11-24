@@ -1,7 +1,7 @@
 // Wave management with game-time based spawning
 // No setTimeout - all spawns tied to fixed timestep
 
-import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpawnsPending, setAutoWave, setWaves, setWaveStartLives, updateRunStats } from '../engine/state.js';
+import { getState, setWaveActive, incrementWave, setSpawnsPending, decrementSpawnsPending, setAutoWave, setWaves, setWaveStartLives, updateRunStats, addMoney, addScore } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { playSound } from '../engine/audio.js';
 import { spawnEnemy } from './enemies.js';
@@ -18,14 +18,43 @@ let spawnQueue = [];
 let spawnTimer = 0;
 const SPAWN_INTERVAL = 0.45; // 450ms between spawns in game-time
 
+// Calling the next wave before this one is cleared pays this share of the
+// next wave's bounty up front (and twice that in score).
+const EARLY_BONUS_SHARE = 0.25;
+
 /**
- * Start a new wave
+ * Whether the next wave can be called now, while one is still running: once
+ * every enemy of the current wave is on the board, and if there is a next.
+ */
+export function canCallEarly() {
+  const state = getState();
+  if (!state.running || !state.waveActive || spawnQueue.length > 0) return false;
+  return state.gameMode === 'endless' || state.wave < (state.mapData?.waves || 0);
+}
+
+/** Cash for calling the next wave now. */
+export function earlyBonus() {
+  const state = getState();
+  return Math.round(waveBounty((state.wave || 0) + 1, state.mapIndex || 0) * EARLY_BONUS_SHARE);
+}
+
+/**
+ * Start a new wave. While a wave is running this calls the next one early,
+ * for a bonus (canCallEarly decides when that is allowed).
  */
 export function startWave() {
   const state = getState();
   const { wave, mapData, WAVES, themeData, waveActive } = state;
 
-  if (waveActive) return;
+  let early = false;
+  if (waveActive) {
+    if (!canCallEarly()) return;
+    early = true;
+    const bonus = earlyBonus();
+    addMoney(bonus);
+    addScore(bonus * 2);
+    emit(GameEvents.WAVE_CALLED_EARLY, { wave: wave + 1, bonus });
+  }
 
   if (wave >= mapData.waves) {
     if (state.gameMode !== 'endless') return;
@@ -36,7 +65,8 @@ export function startWave() {
 
   setWaveActive(true);
   setWaveStartLives(state.lives);
-  hideUpgrade();
+  // Calling early mid-fight: leave the player's open tower sheet alone.
+  if (!early) hideUpgrade();
   incrementWave();
 
   const currentWave = state.wave;
@@ -48,8 +78,9 @@ export function startWave() {
   // Visual effect - spawn portal pulse
   createSpawnPulse();
 
-  // Dynamic camera: pull back to show full arena on wave start
-  cameraWaveStartPullback();
+  // Dynamic camera: pull back to show full arena on wave start (not when
+  // the player is calling waves early in the middle of a fight)
+  if (!early) cameraWaveStartPullback();
 
   const waveData = WAVES[currentWave - 1] || {};
 

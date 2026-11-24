@@ -9,6 +9,14 @@
 // the middle ones, and need real play (mazing, the right powers, upgrades over
 // sprawl) to finish the late ones.
 
+/**
+ * An enemy carrying a trophy runs home this much faster. Enemies have to come
+ * back past the towers with what they took, which on its own made every map
+ * much easier than the old "reach the goal and it's gone" rule; the sprint
+ * puts the difficulty back (tuned with the auto-player against the old game).
+ */
+export const CARRY_SPEED = 1.6;
+
 /** Enemy health multiplier. `mapIndex` is 0 for a world's first map. */
 export function enemyHpScale(wave, mapIndex = 0) {
   const w = Math.max(1, wave);

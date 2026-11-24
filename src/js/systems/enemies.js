@@ -2,7 +2,7 @@
 // Delta-time based, deterministic movement
 
 import { buzz } from '../ui/mobile.js';
-import { enemyHpScale, enemyRewardScale, enemySpeedScale } from '../config/balance.js';
+import { enemyHpScale, enemyRewardScale, enemySpeedScale, CARRY_SPEED } from '../config/balance.js';
 import { getState, addEnemy, decrementLives, decrementSpawnsPending, addMoney, addScore, incrementKills } from '../engine/state.js';
 import { emit, GameEvents } from '../engine/events.js';
 import { playSoundAt } from '../engine/audio.js';
@@ -17,6 +17,23 @@ import { cameraBossTrack } from '../engine/camera.js';
 import { freshStatus, tickStatus, speedMultiplier, applyBurn } from './status.js';
 import { detachStatusFx } from '../rendering/status-fx.js';
 import { updateEnemyAuras, onEnemyDied } from './enemy-abilities.js';
+import { takeFromHome, pickUpNear, dropFrom, stealFrom } from './trophies.js';
+
+/**
+ * Where an enemy is heading: the goal to grab a trophy, then back to the gate
+ * it came in by (with one if it got one).
+ */
+function goalCell(e) {
+  return e.returning && e.spawn ? e.spawn : getState().BASE;
+}
+
+/** Reached the goal: grab a trophy if any is there, and turn for home. */
+function reachGoal(e) {
+  takeFromHome(e);
+  e.returning = true;
+  e.navV = -1;    // re-path to the gate
+  e.knock = 0;
+}
 
 // How fast a knocked-back enemy is thrown, in tiles per second.
 const KNOCK_SPEED = 7;
@@ -212,7 +229,8 @@ export function updateEnemies(dt) {
 
     // Current speed: chilled and staggered enemies crawl, frozen and stunned
     // ones do not move at all.
-    const currentSpeed = e.baseSpd * speedMultiplier(e);
+    // Running home with a trophy: faster.
+    const currentSpeed = e.baseSpd * speedMultiplier(e) * (e.carrying ? CARRY_SPEED : 1);
 
     // A thrown enemy lets go of whatever it was attacking.
     if (e.knock > 0 && e.state === EnemyState.ATTACKING) {
@@ -233,6 +251,11 @@ export function updateEnemies(dt) {
       case EnemyState.ATTACKING:
         updateAttackingEnemy(e, dt, currentSpeed, hw, hh, i);
         break;
+    }
+
+    // Passing a dropped trophy: grab it and head for the gate.
+    if (!e.carrying && e.state !== EnemyState.EXITED && e.state !== EnemyState.DEAD && pickUpNear(e)) {
+      if (!e.returning) { e.returning = true; e.navV = -1; }
     }
 
     // Update health bar
@@ -289,11 +312,10 @@ function knockBackAlongPath(e, dt, hw, hh) {
  * Update flying enemy - straight to base
  */
 function updateFlyingEnemy(e, dt, speed, hw, hh, index) {
-  const state = getState();
-  const { BASE } = state;
+  const goal = goalCell(e);
 
-  const tx = BASE.x - hw + 0.5;
-  const tz = BASE.y - hh + 0.5;
+  const tx = goal.x - hw + 0.5;
+  const tz = goal.z !== undefined ? goal.z : goal.y - hh + 0.5;
   const dx = tx - e.x;
   const dz = tz - e.z;
   const dist = Math.sqrt(dx * dx + dz * dz) || 0.001;
@@ -310,13 +332,14 @@ function updateFlyingEnemy(e, dt, speed, hw, hh, index) {
 
   const move = speed * dt;
 
-  // Check if reached base
+  // Reached the goal (grab and turn) or, on the way back, its gate.
   if (dist <= move + 0.35) {
-    handleEnemyEscape(e, index);
+    if (e.returning) handleEnemyEscape(e, index);
+    else reachGoal(e);
     return;
   }
 
-  // Move towards base
+  // Move towards the goal or back to the gate
   e.x += (dx / dist) * move;
   e.z += (dz / dist) * move;
   e.y = 1.2;
@@ -341,16 +364,19 @@ function updateGroundEnemy(e, dt, speed, hw, hh, index) {
   // Check if path needs update
   if (e.navV !== navVersion || !e.path) {
     if (e.path) e.pathBase = (e.pathBase || 0) + Math.max(0, e.pathIdx - 1);
-    e.path = findPathGrid(gx, gy, BASE.x, BASE.y);
+    const g = goalCell(e);
+    e.path = findPathGrid(gx, gy, g.x, g.y);
     e.stuck = !e.path;
     e.pathIdx = 1;
     e.navV = navVersion;
   }
 
-  // No valid path
+  const goal = goalCell(e);
+  // No valid path (or already standing on the goal tile)
   if (!e.path || e.path.length < 2) {
-    if (gx === BASE.x && gy === BASE.y) {
-      handleEnemyEscape(e, index);
+    if (gx === goal.x && gy === goal.y) {
+      if (e.returning) handleEnemyEscape(e, index);
+      else reachGoal(e);
     }
     return;
   }
@@ -411,12 +437,13 @@ function updateGroundEnemy(e, dt, speed, hw, hh, index) {
       e.mesh.rotation.y = Math.atan2(dx, dz);
     }
 
-    // Check if reached base
+    // Reached the goal, or (on the way back) its gate
     const cgx = Math.max(0, Math.min(COLS - 1, Math.floor(e.x + hw)));
     const cgy = Math.max(0, Math.min(ROWS - 1, Math.floor(e.z + hh)));
 
-    if (cgx === BASE.x && cgy === BASE.y) {
-      handleEnemyEscape(e, index);
+    if (cgx === goal.x && cgy === goal.y) {
+      if (e.returning) handleEnemyEscape(e, index);
+      else reachGoal(e);
       return;
     }
   }
@@ -505,6 +532,9 @@ function handleEnemyDeath(e, index) {
   // Remove from active enemies array immediately so towers don't target it
   state.enemies.splice(index, 1);
 
+  // Carrying a trophy: it falls here and starts floating home.
+  dropFrom(e);
+
   // Ignite: a burning enemy that dies sets its neighbours alight.
   if (e.burnT > 0 && e.burnSpread > 0) {
     const r2 = e.burnSpread * e.burnSpread;
@@ -549,13 +579,18 @@ function handleEnemyEscape(e, index) {
     returnEnemyMesh(e);
   }
 
-  decrementLives();
-  buzz('lifeLost');
+  // Out through its gate. With a trophy, that trophy is lost; empty-handed
+  // (the goal was bare when it got there), it just leaves.
+  const stole = stealFrom(e);
+  if (stole) {
+    decrementLives();
+    buzz('lifeLost');
+  }
 
   // Remove from array
   state.enemies.splice(index, 1);
 
-  emit(GameEvents.ENEMY_ESCAPE, { enemy: e });
+  if (stole) emit(GameEvents.ENEMY_ESCAPE, { enemy: e });
   updateHUD();
 }
 

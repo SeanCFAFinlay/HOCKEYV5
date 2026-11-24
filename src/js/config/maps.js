@@ -32,7 +32,8 @@ export const MapLayout = {
   COMB: 'comb',             // teeth from the top: pockets above one lane
   PINBALL: 'pinball',       // scattered bumper blocks
   CASTLE: 'castle',         // the base walled in, one gate
-  RIVER: 'river'            // two rivers, the bridges never in line
+  RIVER: 'river',           // two rivers, the bridges never in line
+  OPEN_FIELD: 'open_field'  // almost empty: the player's towers make the maze
 };
 
 export const HOCKEY_MAPS = [

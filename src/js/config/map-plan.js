@@ -32,13 +32,18 @@ const WORLD_ORDER = ['hockey', 'soccer', 'space', 'kitchen', 'golf', 'bowling', 
  * The layout for arena `index` of a world. Avoids repeating a layout the same
  * world already used on an earlier arena where the pool allows.
  */
+// Arenas 2, 5 and 8 of every world are open fields: no set route at all, the
+// player builds the maze with towers.
+const OPEN_SLOTS = new Set([1, 4, 7]);
+
 export function layoutFor(worldId, index, fallback) {
+  if (OPEN_SLOTS.has(index)) return L.OPEN_FIELD;
   const pool = TIERS[index];
   if (!pool) return fallback;
   const w = WORLD_ORDER.indexOf(worldId);
   const salt = w < 0 ? [...String(worldId)].reduce((a, c) => a + c.charCodeAt(0), 0) : w;
   const used = new Set();
-  for (let i = 0; i < index; i++) used.add(pick(TIERS[i], salt, i, used));
+  for (let i = 0; i < index; i++) if (!OPEN_SLOTS.has(i)) used.add(pick(TIERS[i], salt, i, used));
   return pick(pool, salt, index, used);
 }
 
@@ -80,5 +85,6 @@ export const LAYOUT_BLURB = {
   [L.COMB]: 'One lane under a row of pockets',
   [L.PINBALL]: 'Bumpers scattered all over',
   [L.CASTLE]: 'The goal is walled in - one gate',
-  [L.RIVER]: 'Two rivers, and the bridges never line up'
+  [L.RIVER]: 'Two rivers, and the bridges never line up',
+  [L.OPEN_FIELD]: 'Open field - your towers are the maze'
 };

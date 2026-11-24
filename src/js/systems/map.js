@@ -359,6 +359,20 @@ export function generateObstacles(layout) {
       break;
     }
 
+    case MapLayout.OPEN_FIELD: {
+      // An open floor: only a sparse lattice of single posts, staggered row
+      // to row. Nothing channels the enemies; the towers you build are the
+      // maze. The posts give a maze something to hang off.
+      const stepX = W >= 26 ? 5 : 4;
+      const stepY = H >= 15 ? 4 : 3;
+      let row = 0;
+      for (let y = 2; y <= H - 3; y += stepY, row++) {
+        const off = row % 2 ? Math.floor(stepX / 2) : 0;
+        for (let x = 3 + off; x <= W - 4; x += stepX) place(x, y);
+      }
+      break;
+    }
+
     case MapLayout.PINBALL: {
       // Bumper blocks, mirrored top and bottom, staggered so there is never
       // a straight line through.

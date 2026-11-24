@@ -8,6 +8,7 @@ import { clearAllParticles } from '../systems/particles.js';
 import { returnEnemyMesh } from '../rendering/enemy-meshes.js';
 import { stopGameLoop, resetGameTime } from './loop.js';
 import { resetInputState } from './input.js';
+import { clearTrophies } from '../systems/trophies.js';
 
 /**
  * Dispose of a Three.js object and its resources
@@ -118,6 +119,7 @@ export function performFullCleanup() {
     cleanupEnemies(scene, enemies);
     cleanupProjectiles(scene, projectiles);
     clearAllParticles();
+    clearTrophies();
   }
 
   // 5. Clear pathfinding cache
@@ -158,6 +160,7 @@ export function performSoftReset() {
     cleanupEnemies(scene, enemies);
     cleanupProjectiles(scene, projectiles);
     clearAllParticles();
+    clearTrophies();
   }
 
   // Clear tower references from grid

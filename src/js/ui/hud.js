@@ -10,6 +10,7 @@ import { getWaveThemeName, getWavePreview } from '../config/waves.js';
 import { initCurrencyFly } from './currency-fly.js';
 import { initTooltips, attachTooltip, hideTooltip } from './tooltips.js';
 import { setDangerVignette } from '../engine/postprocessing.js';
+import { canCallEarly } from '../systems/waves.js';
 
 // DOM element cache
 let domCache = null;
@@ -240,7 +241,7 @@ export function updateHUD() {
 
   // Update wave button. Auto-wave now shows in the pause sheet, which syncs
   // itself each time it opens.
-  if (domCache.startBtn) domCache.startBtn.disabled = state.waveActive;
+  if (domCache.startBtn) domCache.startBtn.disabled = state.waveActive && !canCallEarly();
 
   // Update lives warning
   if (domCache.livesStat && state.mapData) {

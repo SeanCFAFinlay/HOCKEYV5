@@ -39,6 +39,7 @@ import { showArenaLoader, hideArenaLoader } from './arena-loader.js';
 import { warmUpShaders } from '../rendering/warmup.js';
 import { hideUpgrade } from './upgrade-sheet.js';
 import { resetInputState } from '../engine/input.js';
+import { initTrophies } from '../systems/trophies.js';
 
 export function renderThemeCards() {
   const container = document.getElementById('themeCards');
@@ -280,6 +281,9 @@ export function startGame(idx, mode = 'campaign') {
 
       // Initialize camera
       initCameraState();
+
+      // The trophies the enemies are after, one per life, on the goal.
+      initTrophies(getState().lives);
 
       loader.step('Filling the stands', 80);
       await nextFrame();

@@ -89,11 +89,15 @@ export const GameEvents = {
   WAVE_START: 'wave:start',
   WAVE_END: 'wave:end',
   WAVE_COMPLETE: 'wave:complete',
+  WAVE_CALLED_EARLY: 'wave:early',
 
   // Enemy events
   ENEMY_SPAWN: 'enemy:spawn',
   ENEMY_DEATH: 'enemy:death',
-  ENEMY_ESCAPE: 'enemy:escape',
+  ENEMY_ESCAPE: 'enemy:escape',   // carried a trophy out: one trophy lost
+  TROPHY_TAKEN: 'trophy:taken',
+  TROPHY_DROPPED: 'trophy:dropped',
+  TROPHY_HOME: 'trophy:home',
   ENEMY_HIT: 'enemy:hit',
   ENEMY_KILL: 'enemy:kill',
 

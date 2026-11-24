@@ -138,7 +138,7 @@
 }
 
 .hud-stat.money  { color: var(--gold); }
-.hud-stat.lives  { color: var(--red); }
+.hud-stat.lives  { color: var(--gold, #ffc93c); }
 .hud-stat.score  { color: var(--grass); }
 .hud-stat.kills  { color: var(--purple); }
 .hud-stat.enemies {
