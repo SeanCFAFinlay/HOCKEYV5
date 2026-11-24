@@ -15,13 +15,19 @@
  * much easier than the old "reach the goal and it's gone" rule; the sprint
  * puts the difficulty back (tuned with the auto-player against the old game).
  */
-export const CARRY_SPEED = 1.6;
+export const CARRY_SPEED = 2.0;
+
+/**
+ * Enemies are this much tougher than before trophies, for the same reason:
+ * a trip there and back past the towers is two chances to stop them.
+ */
+export const TROPHY_HP = 1.6;
 
 /** Enemy health multiplier. `mapIndex` is 0 for a world's first map. */
 export function enemyHpScale(wave, mapIndex = 0) {
   const w = Math.max(1, wave);
   const waveScale = 1 + w * HP_PER_WAVE + Math.pow(w / HP_CURVE_WAVES, HP_CURVE_POWER) * HP_CURVE_WEIGHT;
-  return waveScale * (1 + Math.max(0, mapIndex) * HP_PER_MAP);
+  return waveScale * (1 + Math.max(0, mapIndex) * HP_PER_MAP) * TROPHY_HP;
 }
 
 /**

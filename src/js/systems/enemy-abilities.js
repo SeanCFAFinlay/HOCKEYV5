@@ -123,7 +123,12 @@ function splitApart(e) {
       path: e.path,
       pathIdx: e.pathIdx,
       pathBase: e.pathBase,
-      navV: e.navV
+      navV: e.navV,
+      // A parent on its way home gives its children the same route to its
+      // gate; they have to be heading there too, or they reach the end of it
+      // short of their goal and stand there for good.
+      spawn: e.spawn,
+      returning: e.returning
     });
   }
   createImpact(e.x, 0.5, e.z, e.splitColor || 0xe3c4ff);

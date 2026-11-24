@@ -55,6 +55,8 @@ export const EnemyState = {
  *   offspring), not by the wave: it was never counted as pending
  * @param {{x:number, z:number}} [opts.at] - world position to appear at
  * @param {Array} [opts.path] - route to carry on along, with opts.pathIdx/navV
+ * @param {{x:number, y:number}} [opts.spawn] - gate it came in by (inherited)
+ * @param {boolean} [opts.returning] - already on its way back to that gate
  */
 export function spawnEnemy(ed, opts = {}) {
   // Validate enemy definition
@@ -111,7 +113,8 @@ export function spawnEnemy(ed, opts = {}) {
     state: EnemyState.SPAWNING,
 
     // Position (world coords)
-    spawn: { x: s.x, y: s.y },
+    spawn: opts.spawn ? { ...opts.spawn } : { x: s.x, y: s.y },
+    returning: !!opts.returning,
     x: startX,
     y: 0.2,
     z: startZ,
@@ -387,8 +390,15 @@ function updateGroundEnemy(e, dt, speed, hw, hh, index) {
     return;
   }
 
+  // Ran out of route short of the goal: work out a new one next step rather
+  // than standing still (a stuck walker means the wave can never end).
+  if (e.pathIdx >= e.path.length) {
+    e.navV = -1;
+    return;
+  }
+
   // Get current target cell
-  const step = e.path[Math.min(e.pathIdx, e.path.length - 1)];
+  const step = e.path[e.pathIdx];
   const sx = step[0];
   const sy = step[1];
   const stepCell = grid[sy] && grid[sy][sx];
