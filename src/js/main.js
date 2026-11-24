@@ -38,6 +38,7 @@ import { initSettings, openSettings } from './ui/settings.js';
 import { showScreen, showScreenWithAnimation, selectTheme, exitGame, replayGame as replayGameScreens } from './ui/screens.js';
 import { initModals, closeModal } from './ui/modals.js';
 import { initPauseSheet, togglePauseMenu, closePauseMenu, openPauseMenu } from './ui/pause-sheet.js';
+import { initAppShell } from './native/app-shell.js';
 import { initMobileHelpers } from './ui/mobile.js';
 import { initMusicControl } from './ui/music-control.js';
 import { initUpgradesButton } from './ui/perks-screen.js';
@@ -188,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Pause / overflow menu. Restart and exit are injected rather than imported
   // by the sheet itself, to keep ui/pause-sheet.js from depending on screens.js.
   initPauseSheet({ onRestart: replayGameScreens, onExit: exitGame });
+  initAppShell();
   initMobileHelpers({ pause: openPauseMenu, isPaused });
   initMusicControl();
   initUpgradesButton();

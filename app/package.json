@@ -1,0 +1,19 @@
+{
+  "name": "hockey-td-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Native app shells (Capacitor) for Hockey vs Soccer TD. The game itself lives in ../src.",
+  "scripts": {
+    "web": "npm --prefix ../src run build",
+    "sync": "npm run web && npx cap sync",
+    "android": "npm run sync && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/cli": "8.6",
+    "@capacitor/core": "8.6",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4"
+  }
+}

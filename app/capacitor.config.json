@@ -1,0 +1,15 @@
+{
+  "appId": "com.phinteractive.hockeytd",
+  "appName": "Hockey vs Soccer TD",
+  "webDir": "../src/dist",
+  "android": {
+    "backgroundColor": "#060b18"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#060b18",
+      "showSpinner": false
+    }
+  }
+}

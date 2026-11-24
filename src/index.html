@@ -272,7 +272,9 @@
 <script>
   // Offline support for the installed game. Service workers need HTTPS, and
   // skipping plain-http hosts also keeps local development free of stale caches.
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  // Not inside the store app: it ships its files already, and a service
+  // worker there would only risk serving an old build after an app update.
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
